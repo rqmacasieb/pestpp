@@ -728,10 +728,13 @@ map<string, double> ParetoObjectives::get_prob_non_dominance(vector<string>& mem
 
 map<string, double> ParetoObjectives::get_prob_non_dominance(vector<string>& members, map<string, map<string, double>>& _member_struct)
 {
-	map<string, double> prob_nondom_map, PD_k, f;
-	double PD, PND; 
+	map<string, double> prob_nondom_map, PD_ij, PD_ji;
+	double PD_i, PD_j, PND;
 
-	for (auto n : members)
+	/*map<string, double> prob_nondom_map, PD_k, f;
+	double PD, PND; */
+
+	/*for (auto n : members)
 	{	
 		PND = 1;
 		for (auto m : _member_struct)
@@ -750,8 +753,34 @@ map<string, double> ParetoObjectives::get_prob_non_dominance(vector<string>& mem
 			
 		}
 		prob_nondom_map[n] = PND;
-	}
+	}*/
 	
+	for (auto n : members)
+	{
+		PND = 1;
+		for (auto m : _member_struct)
+		{
+			if (first_equals_second(_member_struct[n], m.second))
+				continue;
+			else
+			{
+				PD_ij = dominance_probability(_member_struct[n], m.second);
+				PD_ji = dominance_probability(m.second, _member_struct[n]);
+				PD_i = 1;
+				PD_j = 1;
+				for (auto obj_name : *obj_names_ptr)
+				{
+					PD_i *= PD_ij[obj_name];
+					PD_j *= PD_ji[obj_name];
+				}
+
+				PND = PND * (1 - PD_i - PD_j);
+			}
+
+		}
+		prob_nondom_map[n] = PND;
+	}
+
 	return prob_nondom_map;
 }
 
