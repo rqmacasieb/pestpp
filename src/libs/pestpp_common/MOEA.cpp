@@ -4024,21 +4024,21 @@ vector<string> MOEA::get_pso_gbest_solutions(int num_reals, ParameterEnsemble& _
  //       }
  //   }
 
-	//if (prob_pareto)
-	//{
-	//	map<string, double> ehvi_nondom = objectives.get_ehvi(nondom_solutions);
-	//	double mean_ei = 0;
-	//	for (auto& ei : ehvi_nondom)
-	//		mean_ei += ei.second / nondom_solutions.size();
+	if (prob_pareto)
+	{
+		map<string, double> ehvi_nondom = objectives.get_ehvi(nondom_solutions);
+		double mean_ei = 0;
+		for (auto& ei : ehvi_nondom)
+			mean_ei += ei.second / nondom_solutions.size();
 
-	//	for (auto& ei : ehvi_nondom)
-	//		ei.second = 1 - (abs(ei.second - mean_ei) / mean_ei);
+		for (auto& ei : ehvi_nondom)
+			ei.second = 1 - (abs(ei.second - mean_ei) / mean_ei);
 
-	//	for (auto& cd : crowd_dist) {
-	//		if (ehvi_nondom[cd.first] < -1) //penalty for overpromising points
-	//			cd.second = 0;
-	//	}
-	//}
+		for (auto& cd : fitness) {
+			if (ehvi_nondom[cd.first] < -1) //penalty for overpromising points
+				cd.second = 0;
+		}
+	}
 
 	//map<string, double> fitness;
 	//for (auto f : crowd_dist)
