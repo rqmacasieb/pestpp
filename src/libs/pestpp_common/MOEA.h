@@ -73,6 +73,7 @@ public:
 
 	//sort specific members
 	map<string, double> get_cuboid_crowding_distance(vector<string>& members);
+	map<string, double> get_cuboid_crowding_distance_varweighted(vector<string>& members);
 	map<string, double> get_ehvi(vector<string>& members);
 	map<string, double> get_prob_non_dominance(vector<string>& members);
 
@@ -107,6 +108,8 @@ private:
 	map<string, double> get_cuboid_crowding_distance(map<string, map<string, double>>& _member_struct);
 	map<string, double> get_cuboid_crowding_distance(vector<string>& members, map<string, map<string, double>>& _member_struct);
 
+	map<string, double> get_cuboid_crowding_distance_varweighted(vector<string>& members, map<string, map<string, double>>& _member_struct);
+
 	map<string, double> get_spea2_kth_nn_crowding_distance(map<string, map<string, double>>& _member_struct);
 	map<string, double> get_spea2_kth_nn_crowding_distance(vector<string>& members, map<string, map<string, double>>& _member_struct);	
 	map<string, double> get_cuboid_crowding_distance(ObservationEnsemble& oe, ParameterEnsemble& dp);
@@ -125,9 +128,8 @@ private:
 	map<string, map<string, double>> feas_member_struct;
 	map<int, vector<string>> front_map;
 	map<int, vector<string>> prob_front_map;
-	map<string, double> crowd_map;
+	map<string, double> crowd_map, varwghtd_crowd_map, probnondom_map;
 	map<string, int> member_front_map;
-	map<string, double> member_cvar;
 	map<string, double> infeas;
 	vector<string> infeas_ordered;
 	map<string, double> spea2_constrained_fitness_map;
@@ -145,8 +147,6 @@ private:
 	double psi_function(double aa, double bb, double mu, double sd);
 	map<string, double> ehvi_member_map;
 	map<int, vector<double>> hypervolume_partitions;
-	double EHVI;
-
 	double get_ehvi(string& member, map<string, map<string, double>>& _member_struct);
 };
 

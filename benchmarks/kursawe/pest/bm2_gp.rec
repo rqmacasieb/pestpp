@@ -6,12 +6,12 @@
 
 
 version: 5.2.5
-binary compiled on Mar  1 2024 at 12:33:06
+binary compiled on Mar  3 2024 at 21:05:39
 
 using control file: "./pest/bm2_gp.pst"
 in directory: "C:\Users\mac732\OneDrive - CSIRO\Documents\GitHub\pestpp\benchmarks\kursawe"
 on host: "DUMPLING-FL"
-started at 03/01/24 12:34:08
+started at 03/03/24 21:21:29
 
 on host: "DUMPLING-FL"
 
@@ -419,4 +419,3 @@ initialized archives with 5 nondominated members
 ...generating PSO population of size 100
 ...pareto dominance sort yielded 1 domination fronts
 5 in the front 1
-...running population of size  100
