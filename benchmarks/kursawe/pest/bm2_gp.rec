@@ -11,7 +11,7 @@ binary compiled on Mar 11 2024 at 11:45:08
 using control file: "./pest/bm2_gp.pst"
 in directory: "C:\Users\mac732\OneDrive - CSIRO\Documents\GitHub\pestpp\benchmarks\kursawe"
 on host: "DUMPLING-FL"
-started at 03/17/24 12:15:46
+started at 03/17/24 21:51:36
 
 on host: "DUMPLING-FL"
 
@@ -395,3 +395,19 @@ OBJ_2                 minimize   -0.4481814     2.938061     -8.44242      6.631
 3 in the front 8
 3 in the front 9
 (not reporting remaining front membership)
+...wrote pareto summary to ./pest/bm2_gp.pareto.summary.csv
+initialized archives with 19 nondominated members
+19 feasible solutions
+...pareto dominance sort yielded 1 domination fronts
+19 in the front 1
+...wrote pareto summary to ./pest/bm2_gp.pareto.archive.summary.csv
+...loading outer repository obs from csv file 
+...saved decision variable population of size 19 X 3 to './pest/bm2_gp.archive.dv_pop.csv'
+...saved generation-specific decision variable population of size 19 X 3 to './pest/bm2_gp.0.archive.dv_pop.csv'
+...saved observation population of size 19 X 5 to './pest/bm2_gp.archive.obs_pop.csv'
+...saved generation-specific observation population of size 19 X 5 to './pest/bm2_gp.0.archive.obs_pop.csv'
+...number of initial feasible solutions: 19
+
+  ---  initialization complete  ---  
+
+  ---  starting generation  1  ---  

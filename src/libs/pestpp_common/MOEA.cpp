@@ -311,7 +311,7 @@ map<string, double> ParetoObjectives::get_mopso_fitness(vector<string> members, 
 				cd.second = 1;
 				map<string, double> mem = _member_struct[cd.first];
 				for (auto obj_name : *obs_obj_names_ptr)
-					cd.second *= pow(1+abs(mem[obj_name+"_SD"] / mem[obj_name]), -alpha);
+					cd.second *= pow(1+abs(mem[obj_name+"_SD"] / mem[obj_name]), -1);
 
 				/*if (beta == 0)
 				{
