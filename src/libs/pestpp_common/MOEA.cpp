@@ -288,8 +288,8 @@ map<string, double> ParetoObjectives::get_mopso_fitness(vector<string> members, 
 		{
 			if (cd.second != CROWDING_EXTREME)
 				cd.second = get_euclidean_fitness(cd.second, var_dist[cd.first]);
-		
-}
+				
+		}
 
 		//normalize cd
 		double mx = -1.0e+30;
@@ -309,7 +309,7 @@ map<string, double> ParetoObjectives::get_mopso_fitness(vector<string> members, 
 			if (cd.second == CROWDING_EXTREME)
 			{
 				cd.second = 1;
-				map<string, double> mem = extreme_members[cd.first];
+				map<string, double> mem = _member_struct[cd.first];
 				for (auto obj_name : *obs_obj_names_ptr)
 					cd.second *= pow(1+abs(mem[obj_name+"_SD"] / mem[obj_name]), -1);
 
@@ -679,6 +679,7 @@ pair<vector<string>, vector<string>> ParetoObjectives::get_nsga2_pareto_dominanc
 			expected_crowd_map[front.second[0]] = -999;
 			var_crowd_map[front.second[0]] = -999;
 			fitness_map[front.second[0]] = -999;
+			probnotdom_map[front.second[0]] = -999;
 
 		}
 
@@ -1014,8 +1015,8 @@ pair<map<string, double>, map<string, double>> ParetoObjectives::get_euclidean_c
 pair<map<string, double>, map<string, double>> ParetoObjectives::get_euclidean_crowding_distance(vector<string>& members, map<string, map<string, double>>& _member_struct)
 {
 
-	map<string, map<string, double>> obj_member_map, end_member_map;
-	map<string, double> crowd_distance_map, var_distance_map, euclidean_fitness_map, obj_sd_map;
+	map<string, map<string, double>> obj_member_map, objsd_member_map;
+	map<string, double> crowd_distance_map, var_distance_map, euclidean_fitness_map;
 	string m = members[0];
 	vector<string> obj_names;
 	//for (auto obj_map : _member_struct[m])
@@ -1033,22 +1034,18 @@ pair<map<string, double>, map<string, double>> ParetoObjectives::get_euclidean_c
 			obj_member_map[obj_map.first][member] = obj_map.second;*/
 
 		for (auto obj_map : *obs_obj_names_ptr) //need to make sure the SDs are not included
-		{
 			obj_member_map[obj_map][member] = _member_struct[member][obj_map];
-			end_member_map[member][obj_map] = _member_struct[member][obj_map];
-		}
 
 		if (prob_pareto)
 		{
 			for (auto objsd_map : *obs_obj_names_ptr)
-				end_member_map[member][objsd_map + "_SD"] = 0.0;
+				objsd_member_map[member][objsd_map] = _member_struct[member][objsd_map + "_SD"];
 		}
 	}
 
 	//map<double,string>::iterator start, end;
-	map<string, double> omap;
+	map<string, double> omap, sdmap;
 	double obj_range, fitness;
-	extreme_members.clear();
 
 	for (auto obj_map : obj_member_map)
 	{
@@ -1065,13 +1062,8 @@ pair<map<string, double>, map<string, double>> ParetoObjectives::get_euclidean_c
 		//the obj extrema - makes sure they are retained 
 		crowd_distance_map[start->first] = CROWDING_EXTREME;
 		euclidean_fitness_map[start->first] = CROWDING_EXTREME;
-		end_member_map[start->first][obj_map.first + "_SD"] = _member_struct[start->first][obj_map.first + "_SD"];
-		extreme_members[start->first] = end_member_map[start->first];
-
 		crowd_distance_map[last->first] = CROWDING_EXTREME;
-		euclidean_fitness_map[last ->first] = CROWDING_EXTREME;
-		end_member_map[last->first][obj_map.first + "_SD"] = _member_struct[last->first][obj_map.first + "_SD"];
-		extreme_members[last->first] = end_member_map[last->first];
+		euclidean_fitness_map[last->first] = CROWDING_EXTREME;
 
 		vector<double> eucd_prev_it, eucd_it_next;
 
