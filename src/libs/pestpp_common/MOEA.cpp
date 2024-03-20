@@ -313,7 +313,7 @@ map<string, double> ParetoObjectives::get_mopso_fitness(vector<string> members, 
 				for (auto obj_name : *obs_obj_names_ptr)
 				{
 					if (mem[obj_name + "_SD"] != -999)
-						end_mem_fitness = pow(1 + abs(mem[obj_name + "_SD"] / mem[obj_name]), -1);
+						end_mem_fitness = (1 + abs(mem[obj_name])) / (1 + abs(mem[obj_name]) + mem[obj_name + "_SD"]);
 
 					if (end_mem_fitness > cd.second)
 						cd.second = end_mem_fitness;
