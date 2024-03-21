@@ -1053,7 +1053,7 @@ pair<map<string, double>, map<string, double>> ParetoObjectives::get_euclidean_c
 
 	//map<double,string>::iterator start, end;
 	map<string, double> omap;
-	double obj_range, fitness;
+	double fitness;
 	extreme_members.clear();
 
 	for (auto obj_map : obj_member_map)
@@ -1066,19 +1066,139 @@ pair<map<string, double>, map<string, double>> ParetoObjectives::get_euclidean_c
 
 		sortedset::iterator start = crowd_sorted.begin(), last = prev(crowd_sorted.end(), 1);
 
-		obj_range = last->second - start->second;
-
 		//the obj extrema - makes sure they are retained 
-		crowd_distance_map[start->first] = CROWDING_EXTREME;
-		euclidean_fitness_map[start->first] = CROWDING_EXTREME;
-		end_member_map[start->first][obj_map.first + "_SD"] = _member_struct[start->first][obj_map.first + "_SD"];
-		extreme_members[start->first] = end_member_map[start->first];
+		map<string, map<string, double>> ext_mems;
 
+		//start with the first member of the sortedset
+		for (auto member : members)
+		{
+			if (_member_struct[member][obj_map.first] == _member_struct[start->first][obj_map.first])
+				ext_mems[member] = end_member_map[member];
+			
+		}
 
-		crowd_distance_map[last->first] = CROWDING_EXTREME;
-		euclidean_fitness_map[last->first] = CROWDING_EXTREME;
-		end_member_map[last->first][obj_map.first + "_SD"] = _member_struct[last->first][obj_map.first + "_SD"];
-		extreme_members[last->first] = end_member_map[last->first];
+		if (ext_mems.size() > 1) //there are multiple extreme members with the same obj value
+		{
+			map<string, double> ext_mems_pd;
+			for (auto em : ext_mems)
+			{
+				double pd = 1;
+				for (auto m : ext_mems)
+				{
+					if (em.first != m.first)
+					{
+						map<string, double> PD = dominance_probability(_member_struct[em.first], _member_struct[m.first]);
+						for (auto objname : *obj_names_ptr)
+						{
+							if (objname != obj_map.first)
+								pd *= PD[objname];
+						}
+					}
+				}
+				ext_mems_pd[em.first] = pd;
+			}
+
+			double mx = 0;
+			string extreme_member_name;
+			for (auto em : ext_mems_pd)
+			{
+				if (em.second > mx)
+					extreme_member_name = em.first;
+			}
+			crowd_distance_map[extreme_member_name] = CROWDING_EXTREME;
+			euclidean_fitness_map[extreme_member_name] = CROWDING_EXTREME;
+			end_member_map[extreme_member_name][obj_map.first + "_SD"] = _member_struct[extreme_member_name][obj_map.first + "_SD"];
+			extreme_members[extreme_member_name];
+		}
+		else
+		{
+			crowd_distance_map[start->first] = CROWDING_EXTREME;
+			euclidean_fitness_map[start->first] = CROWDING_EXTREME;
+			end_member_map[start->first][obj_map.first + "_SD"] = _member_struct[start->first][obj_map.first + "_SD"];
+			extreme_members[start->first] = end_member_map[start->first];
+		}
+
+		//then the last member of the sortedset
+		for (auto member : members)
+		{
+			if (_member_struct[member][obj_map.first] == _member_struct[last->first][obj_map.first])
+				ext_mems[member] = end_member_map[member];
+
+		}
+
+		if (ext_mems.size() > 1) //there are multiple extreme members with the same obj value
+		{
+			map<string, double> ext_mems_pd;
+			for (auto em : ext_mems)
+			{
+				double pd = 1;
+				for (auto m : ext_mems)
+				{
+					if (em.first != m.first)
+					{
+						map<string, double> PD = dominance_probability(_member_struct[em.first], _member_struct[m.first]);
+						for (auto objname : *obj_names_ptr)
+						{
+							if (objname != obj_map.first)
+								pd *= PD[objname];
+						}
+					}
+				}
+				ext_mems_pd[em.first] = pd;
+			}
+
+			double mx = 0;
+			string extreme_member_name;
+			for (auto em : ext_mems_pd)
+			{
+				if (em.second > mx)
+					extreme_member_name = em.first;
+			}
+			crowd_distance_map[extreme_member_name] = CROWDING_EXTREME;
+			euclidean_fitness_map[extreme_member_name] = CROWDING_EXTREME;
+			end_member_map[extreme_member_name][obj_map.first + "_SD"] = _member_struct[extreme_member_name][obj_map.first + "_SD"];
+			extreme_members[extreme_member_name];
+		}
+		else
+		{
+			crowd_distance_map[last->first] = CROWDING_EXTREME;
+			euclidean_fitness_map[last->first] = CROWDING_EXTREME;
+			end_member_map[last->first][obj_map.first + "_SD"] = _member_struct[last->first][obj_map.first + "_SD"];
+			extreme_members[last->first] = end_member_map[last->first];
+		}
+
+		//for (auto member : members)
+		//{
+		//	if (member == start->first)
+		//		continue;
+
+		//	if (_member_struct[member][obj_map.first] == _member_struct[start->first][obj_map.first])
+		//	{
+		//		crowd_distance_map[member] = CROWDING_EXTREME;
+		//		euclidean_fitness_map[member] = CROWDING_EXTREME;
+		//		end_member_map[member][obj_map.first + "_SD"] = _member_struct[member][obj_map.first + "_SD"];
+		//		extreme_members[member] = end_member_map[member];
+		//	}
+		//}
+
+		//crowd_distance_map[last->first] = CROWDING_EXTREME;
+		//euclidean_fitness_map[last->first] = CROWDING_EXTREME;
+		//end_member_map[last->first][obj_map.first + "_SD"] = _member_struct[last->first][obj_map.first + "_SD"];
+		//extreme_members[last->first] = end_member_map[last->first];
+
+		//for (auto member : members)
+		//{
+		//	if (member == last->first)
+		//		continue;
+
+		//	if (_member_struct[member][obj_map.first] == _member_struct[last->first][obj_map.first])
+		//	{
+		//		crowd_distance_map[member] = CROWDING_EXTREME;
+		//		euclidean_fitness_map[member] = CROWDING_EXTREME;
+		//		end_member_map[member][obj_map.first + "_SD"] = _member_struct[member][obj_map.first + "_SD"];
+		//		extreme_members[member] = end_member_map[member];
+		//	}
+		//}
 
 		vector<double> eucd_prev_it, eucd_it_next;
 
@@ -3369,7 +3489,7 @@ void MOEA::initialize()
 		objectives.get_nsga2_pareto_dominance(iter, op_archive, dp_archive, &constraints, false, true, ARC_SUM_TAG);
 
 		//set hypervolume partitions of nondom solutions from previous outer iteration
-		if (prob_pareto)
+		/*if (prob_pareto)
 		{
 			map<string, map<string, double>> hv_pts;
 			vector<string> tokens;
@@ -3409,10 +3529,10 @@ void MOEA::initialize()
 				throw_moea_error(string("error processing outer repository obs file"));
 			}
 
-			/*objectives.set_hypervolume_partitions(hv_pts);
+			objectives.set_hypervolume_partitions(hv_pts);
 
-			objectives.get_ehvi(op, dp);*/
-		}
+			objectives.get_ehvi(op, dp);
+		}*/
 			
 				
 	}
