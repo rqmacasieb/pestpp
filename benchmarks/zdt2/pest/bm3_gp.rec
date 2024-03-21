@@ -11,7 +11,7 @@ binary compiled on Mar 18 2024 at 22:40:45
 using control file: "./pest/bm3_gp.pst"
 in directory: "C:\Users\mac732\OneDrive - CSIRO\Documents\GitHub\pestpp\benchmarks\zdt2"
 on host: "DUMPLING-FL"
-started at 03/21/24 12:27:59
+started at 03/21/24 13:55:01
 
 on host: "DUMPLING-FL"
 
@@ -452,3 +452,29 @@ OBJ_2                 minimize     4.771978    0.6967199       3.2509      7.195
 7 in the front 8
 3 in the front 9
 (not reporting remaining front membership)
+...wrote pareto summary to ./pest/bm3_gp.pareto.summary.csv
+initialized archives with 10 nondominated members
+...pareto dominance sort yielded 1 domination fronts
+10 in the front 1
+...wrote pareto summary to ./pest/bm3_gp.pareto.archive.summary.csv
+...saved decision variable population of size 10 X 30 to './pest/bm3_gp.archive.dv_pop.csv'
+...saved generation-specific decision variable population of size 10 X 30 to './pest/bm3_gp.0.archive.dv_pop.csv'
+...saved observation population of size 10 X 4 to './pest/bm3_gp.archive.obs_pop.csv'
+...saved generation-specific observation population of size 10 X 4 to './pest/bm3_gp.0.archive.obs_pop.csv'
+...number of initial feasible solutions: 10
+
+  ---  initialization complete  ---  
+
+  ---  starting generation  1  ---  
+...pareto dominance sort yielded 6 domination fronts
+36 in the front 1
+10 in the front 2
+24 in the front 3
+21 in the front 4
+6 in the front 5
+3 in the front 6
+...generating PSO population of size 100
+...pareto dominance sort yielded 2 domination fronts
+9 in the front 1
+1 in the front 2
+...running population of size  100
