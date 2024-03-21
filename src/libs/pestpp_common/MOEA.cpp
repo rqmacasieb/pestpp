@@ -304,10 +304,11 @@ map<string, double> ParetoObjectives::get_mopso_fitness(vector<string> members, 
 		if (mx < 0.0)
 			throw runtime_error("pso max crowding distance is negative");
 
-		double end_mem_fitness = 0;
+		
 		for (auto& cd : crowd_dist) {
 			if (cd.second == CROWDING_EXTREME)
 			{
+				double end_mem_fitness = 0;
 				cd.second = 0;
 				map<string, double> mem = extreme_members[cd.first];
 				for (auto obj_name : *obs_obj_names_ptr)
@@ -1111,7 +1112,7 @@ pair<map<string, double>, map<string, double>> ParetoObjectives::get_euclidean_c
 			crowd_distance_map[extreme_member_name] = CROWDING_EXTREME;
 			euclidean_fitness_map[extreme_member_name] = CROWDING_EXTREME;
 			end_member_map[extreme_member_name][obj_map.first + "_SD"] = _member_struct[extreme_member_name][obj_map.first + "_SD"];
-			extreme_members[extreme_member_name];
+			extreme_members[extreme_member_name] = end_member_map[extreme_member_name];
 		}
 		else
 		{
@@ -1163,7 +1164,7 @@ pair<map<string, double>, map<string, double>> ParetoObjectives::get_euclidean_c
 			crowd_distance_map[extreme_member_name] = CROWDING_EXTREME;
 			euclidean_fitness_map[extreme_member_name] = CROWDING_EXTREME;
 			end_member_map[extreme_member_name][obj_map.first + "_SD"] = _member_struct[extreme_member_name][obj_map.first + "_SD"];
-			extreme_members[extreme_member_name];
+			extreme_members[extreme_member_name] = end_member_map[extreme_member_name];
 		}
 		else
 		{
