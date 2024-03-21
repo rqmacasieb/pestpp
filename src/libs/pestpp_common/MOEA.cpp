@@ -1103,7 +1103,10 @@ pair<map<string, double>, map<string, double>> ParetoObjectives::get_euclidean_c
 			for (auto em : ext_mems_pd)
 			{
 				if (em.second > mx)
+				{
+					mx = em.second;
 					extreme_member_name = em.first;
+				}
 			}
 			crowd_distance_map[extreme_member_name] = CROWDING_EXTREME;
 			euclidean_fitness_map[extreme_member_name] = CROWDING_EXTREME;
@@ -1152,7 +1155,10 @@ pair<map<string, double>, map<string, double>> ParetoObjectives::get_euclidean_c
 			for (auto em : ext_mems_pd)
 			{
 				if (em.second > mx)
+				{
+					mx = em.second;
 					extreme_member_name = em.first;
+				}
 			}
 			crowd_distance_map[extreme_member_name] = CROWDING_EXTREME;
 			euclidean_fitness_map[extreme_member_name] = CROWDING_EXTREME;
