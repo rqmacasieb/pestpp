@@ -286,7 +286,7 @@ map<string, double> ParetoObjectives::get_mopso_fitness(vector<string> members, 
 		
 		for (auto& cd : crowd_dist)
 		{
-			if (cd.second != CROWDING_EXTREME)
+			if ((cd.second != CROWDING_EXTREME) && (cd.second != 1E+40))
 				cd.second = get_euclidean_fitness(cd.second, var_dist[cd.first]);
 		}
 
@@ -294,7 +294,7 @@ map<string, double> ParetoObjectives::get_mopso_fitness(vector<string> members, 
 		double mx = -1.0e+30;
 		for (auto& cd : crowd_dist)
 		{
-			if ((cd.second != CROWDING_EXTREME) && (cd.second > mx))
+			if ((cd.second != CROWDING_EXTREME) && (cd.second != 1E+40) && (cd.second > mx))
 				mx = cd.second;
 			else if (members.size() == 2)
 				mx = cd.second;
@@ -324,22 +324,9 @@ map<string, double> ParetoObjectives::get_mopso_fitness(vector<string> members, 
 					if (end_mem_fitness > cd.second)
 						cd.second = end_mem_fitness;
 				}
-
-				/*if (beta == 0)
-				{
-					cd.second = 1;
-					map<string, double> mem = _member_struct[cd.first];
-					for (auto obj_sd_name : *obs_obj_sd_names_ptr)
-						cd.second *= pow(exp(mem[obj_sd_name]), -alpha);
-				}
-				else
-				{
-					cd.second = 1;
-					map<string, double> mem = _member_struct[cd.first];
-					for (auto obj_sd_name : *obs_obj_sd_names_ptr)
-						cd.second *= mem[obj_sd_name];
-					cd.second = pow(1+ beta * cd.second, -alpha);
-				}*/
+			}
+			else if (cd.second == 1E+40){
+				cd.second = 0.0;
 			}
 			else if (mx != 0.0) {
 				cd.second = pow(cd.second / mx, alpha);
@@ -1050,11 +1037,8 @@ pair<map<string, double>, map<string, double>> ParetoObjectives::get_euclidean_c
 			end_member_map[member][obj_map] = _member_struct[member][obj_map];
 		}
 
-		if (prob_pareto)
-		{
-			for (auto objsd_map : *obs_obj_names_ptr)
-				end_member_map[member][objsd_map + "_SD"] = -999;
-		}
+		for (auto objsd_map : *obs_obj_names_ptr)
+			end_member_map[member][objsd_map + "_SD"] = -999;
 	}
 
 	//map<double,string>::iterator start, end;
@@ -1079,7 +1063,11 @@ pair<map<string, double>, map<string, double>> ParetoObjectives::get_euclidean_c
 		for (auto member : members)
 		{
 			if (_member_struct[member][obj_map.first] == _member_struct[start->first][obj_map.first])
+			{
 				ext_mems[member] = end_member_map[member];
+				crowd_distance_map[member] = 1E+40;
+				euclidean_fitness_map[member] = 1E+40;
+			}
 			
 		}
 
@@ -1131,8 +1119,11 @@ pair<map<string, double>, map<string, double>> ParetoObjectives::get_euclidean_c
 		for (auto member : members)
 		{
 			if (_member_struct[member][obj_map.first] == _member_struct[last->first][obj_map.first])
+			{
 				ext_mems[member] = end_member_map[member];
-
+				crowd_distance_map[member] = 1E+40;
+				euclidean_fitness_map[member] = 1E+40;
+			}
 		}
 
 		if (ext_mems.size() > 1) //there are multiple extreme members with the same obj value
@@ -1279,7 +1270,7 @@ vector<string> ParetoObjectives::sort_members_by_crowding_distance(int front, ve
 	map<string, map<string, double>>& _member_struct)
 {
 
-	map<string, double> crowd_distance_map = get_cuboid_crowding_distance(members, _member_struct);
+	//map<string, double> crowd_distance_map = get_cuboid_crowding_distance(members, _member_struct);
 	pair<map<string, double>, map<string, double>> euclidean_maps;
 	map<string, double> expected_dist_map/*, prob_not_dom*/;
 	map<string, double> var_dist_map;
@@ -1292,9 +1283,11 @@ vector<string> ParetoObjectives::sort_members_by_crowding_distance(int front, ve
 		var_dist_map = euclidean_maps.second;
 		//prob_not_dom = get_prob_non_dominance(members, _member_struct);
 	}
+	else
+		fit_map = get_cuboid_crowding_distance(members, _member_struct);
 
 	vector <pair<string, double>> cs_vec;
-	for (auto cd : crowd_distance_map)
+	for (auto cd : fit_map)
 	{
 		cs_vec.push_back(cd);
 		crowd_map[cd.first] = cd.second;
@@ -1324,14 +1317,14 @@ vector<string> ParetoObjectives::sort_members_by_crowding_distance(int front, ve
 
 	reverse(cs_vec.begin(), cs_vec.end());
 
-	vector<string> crowd_ordered;
+	vector<string> fitness_ordered;
 	for (auto cs : cs_vec)
-		crowd_ordered.push_back(cs.first);
+		fitness_ordered.push_back(cs.first);
 
 	//TODO: check here that all solutions made it thru the crowd distance sorting
-	if (crowd_ordered.size() != members.size())
+	if (fitness_ordered.size() != members.size())
 		throw runtime_error("ParetoObjectives::sort_members_by_crowding_distance() error: final sort size != initial size");
-	return crowd_ordered;
+	return fitness_ordered;
 }
 
 map<string, double> ParetoObjectives::get_prob_non_dominance(vector<string>& members)
