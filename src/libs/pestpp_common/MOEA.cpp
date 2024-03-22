@@ -286,7 +286,7 @@ map<string, double> ParetoObjectives::get_mopso_fitness(vector<string> members, 
 		
 		for (auto& cd : crowd_dist)
 		{
-			if ((cd.second != CROWDING_EXTREME) && (cd.second != 1E+40))
+			if (cd.second != CROWDING_EXTREME)
 				cd.second = get_euclidean_fitness(cd.second, var_dist[cd.first]);
 		}
 
@@ -294,7 +294,7 @@ map<string, double> ParetoObjectives::get_mopso_fitness(vector<string> members, 
 		double mx = -1.0e+30;
 		for (auto& cd : crowd_dist)
 		{
-			if ((cd.second != CROWDING_EXTREME) && (cd.second != 1E+40) && (cd.second > mx))
+			if ((cd.second != CROWDING_EXTREME) && (cd.second > mx))
 				mx = cd.second;
 			else if (members.size() == 2)
 				mx = cd.second;
@@ -324,9 +324,22 @@ map<string, double> ParetoObjectives::get_mopso_fitness(vector<string> members, 
 					if (end_mem_fitness > cd.second)
 						cd.second = end_mem_fitness;
 				}
-			}
-			else if (cd.second == 1E+40){
-				cd.second = 0.0;
+
+				/*if (beta == 0)
+				{
+					cd.second = 1;
+					map<string, double> mem = _member_struct[cd.first];
+					for (auto obj_sd_name : *obs_obj_sd_names_ptr)
+						cd.second *= pow(exp(mem[obj_sd_name]), -alpha);
+				}
+				else
+				{
+					cd.second = 1;
+					map<string, double> mem = _member_struct[cd.first];
+					for (auto obj_sd_name : *obs_obj_sd_names_ptr)
+						cd.second *= mem[obj_sd_name];
+					cd.second = pow(1+ beta * cd.second, -alpha);
+				}*/
 			}
 			else if (mx != 0.0) {
 				cd.second = pow(cd.second / mx, alpha);
@@ -970,21 +983,21 @@ map<string, double> ParetoObjectives::get_cuboid_crowding_distance(vector<string
 	return crowd_distance_map;
 }
 
-vector<double> ParetoObjectives::get_euclidean_distance(map<string, double> first, map<string, double> second)
+vector<double> ParetoObjectives::get_euclidean_distance(map<string, double> first, map<string, double> second, map<string, double> objrange)
 {
 	vector<double> euclidean_dist{ 0, 0 };
 
 	for (auto obj : *obs_obj_names_ptr)
-		euclidean_dist.at(0) += pow(first[obj] - second[obj], 2);
+		euclidean_dist.at(0) += pow((first[obj] - second[obj]) / objrange[obj], 2);
 
 	if (prob_pareto)
 	{
 		for (auto obj : *obs_obj_names_ptr)
-			euclidean_dist.at(1) += 4 * pow(first[obj] - second[obj], 2) * (pow(first[obj + "_SD"], 2) + pow(second[obj + "_SD"], 2));
-		for (auto objsd : *obs_obj_sd_names_ptr)
 		{
-			euclidean_dist.at(0) += pow(first[objsd], 2) + pow(second[objsd], 2);
-			euclidean_dist.at(1) += 2 * pow(pow(first[objsd], 2) + pow(second[objsd], 2), 2);
+			euclidean_dist.at(0) += (pow(first[obj + "_SD"], 2) + pow(second[obj + "_SD"], 2)) / pow(objrange[obj], 2);
+			euclidean_dist.at(1) += 4 * pow((first[obj] - second[obj])/objrange[obj], 2) 
+				* (pow(first[obj + "_SD"], 2) + pow(second[obj + "_SD"], 2)/ pow(objrange[obj], 2)) 
+				+ 2 * pow((pow(first[obj + "_SD"], 2) + pow(second[obj + "_SD"], 2)) / pow(objrange[obj], 2), 2);
 		}
 
 	}
@@ -1037,14 +1050,26 @@ pair<map<string, double>, map<string, double>> ParetoObjectives::get_euclidean_c
 			end_member_map[member][obj_map] = _member_struct[member][obj_map];
 		}
 
-		for (auto objsd_map : *obs_obj_names_ptr)
-			end_member_map[member][objsd_map + "_SD"] = -999;
+		if (prob_pareto)
+		{
+			for (auto objsd_map : *obs_obj_names_ptr)
+				end_member_map[member][objsd_map + "_SD"] = -999;
+		}
 	}
 
 	//map<double,string>::iterator start, end;
 	map<string, double> omap;
 	double fitness;
 	extreme_members.clear();
+
+	map<string, double> obj_range;
+	for (auto obj_map : obj_member_map)
+	{
+		omap = obj_map.second;
+		sortedset crowd_sorted(omap.begin(), omap.end(), compFunctor);
+		sortedset::iterator start = crowd_sorted.begin(), last = prev(crowd_sorted.end(), 1);
+		obj_range[obj_map.first] = last->second - start->second;
+	}
 
 	for (auto obj_map : obj_member_map)
 	{
@@ -1055,7 +1080,7 @@ pair<map<string, double>, map<string, double>> ParetoObjectives::get_euclidean_c
 		sortedset crowd_sorted(omap.begin(), omap.end(), compFunctor);
 
 		sortedset::iterator start = crowd_sorted.begin(), last = prev(crowd_sorted.end(), 1);
-
+		
 		//the obj extrema - makes sure they are retained 
 		map<string, map<string, double>> ext_mems;
 
@@ -1063,12 +1088,7 @@ pair<map<string, double>, map<string, double>> ParetoObjectives::get_euclidean_c
 		for (auto member : members)
 		{
 			if (_member_struct[member][obj_map.first] == _member_struct[start->first][obj_map.first])
-			{
 				ext_mems[member] = end_member_map[member];
-				crowd_distance_map[member] = 1E+40;
-				euclidean_fitness_map[member] = 1E+40;
-			}
-			
 		}
 
 		if (ext_mems.size() > 1) //there are multiple extreme members with the same obj value
@@ -1119,11 +1139,8 @@ pair<map<string, double>, map<string, double>> ParetoObjectives::get_euclidean_c
 		for (auto member : members)
 		{
 			if (_member_struct[member][obj_map.first] == _member_struct[last->first][obj_map.first])
-			{
 				ext_mems[member] = end_member_map[member];
-				crowd_distance_map[member] = 1E+40;
-				euclidean_fitness_map[member] = 1E+40;
-			}
+
 		}
 
 		if (ext_mems.size() > 1) //there are multiple extreme members with the same obj value
@@ -1208,7 +1225,7 @@ pair<map<string, double>, map<string, double>> ParetoObjectives::get_euclidean_c
 		if (crowd_sorted.size() == 3)
 		{
 			sortedset::iterator it = next(start, 1);
-			eucd_prev_it = get_euclidean_distance(_member_struct[it->first], _member_struct[start->first]);
+			eucd_prev_it = get_euclidean_distance(_member_struct[it->first], _member_struct[start->first], obj_range);
 			fitness = get_euclidean_fitness(eucd_prev_it.at(0), eucd_prev_it.at(1));
 			if (fitness > euclidean_fitness_map[it->first])
 			{
@@ -1217,7 +1234,7 @@ pair<map<string, double>, map<string, double>> ParetoObjectives::get_euclidean_c
 				euclidean_fitness_map[it->first] = fitness;
 			}
 
-			eucd_it_next = get_euclidean_distance(_member_struct[it->first], _member_struct[last->first]);
+			eucd_it_next = get_euclidean_distance(_member_struct[it->first], _member_struct[last->first], obj_range);
 			fitness= get_euclidean_fitness(eucd_it_next.at(0), eucd_it_next.at(1));
 			if (fitness > euclidean_fitness_map[it->first])
 			{
@@ -1240,7 +1257,7 @@ pair<map<string, double>, map<string, double>> ParetoObjectives::get_euclidean_c
 				iprev = prev(it, 1);
 				inext = next(it, 1);
 
-				eucd_prev_it = get_euclidean_distance(_member_struct[it->first], _member_struct[iprev->first]);
+				eucd_prev_it = get_euclidean_distance(_member_struct[it->first], _member_struct[iprev->first], obj_range);
 				fitness = get_euclidean_fitness(eucd_prev_it.at(0), eucd_prev_it.at(1));
 				if (fitness > euclidean_fitness_map[it->first])
 				{
@@ -1249,7 +1266,7 @@ pair<map<string, double>, map<string, double>> ParetoObjectives::get_euclidean_c
 					euclidean_fitness_map[it->first] = fitness;
 				}
 
-				eucd_it_next = get_euclidean_distance(_member_struct[it->first], _member_struct[inext->first]);
+				eucd_it_next = get_euclidean_distance(_member_struct[it->first], _member_struct[inext->first], obj_range);
 				fitness = get_euclidean_fitness(eucd_it_next.at(0), eucd_it_next.at(1));
 				if (fitness > euclidean_fitness_map[it->first])
 				{

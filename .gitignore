@@ -51,6 +51,8 @@ x64
 /pest++/benchmarks/stor/pestpp/
 /pest++/benchmarks/tidal/pestpp/
 /pest++/benchmarks/mou_tests/
+/pest++/benchmarks/kursawe/
+/pest++/benchmarks/zdt2/
 
 pest++/mio/model_input_output_interface.mod
 pest++/pest++/pestpp
