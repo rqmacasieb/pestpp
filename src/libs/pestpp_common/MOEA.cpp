@@ -1135,6 +1135,7 @@ pair<map<string, double>, map<string, double>> ParetoObjectives::get_euclidean_c
 			extreme_members[start->first] = end_member_map[start->first];
 		}
 
+		ext_mems.clear();
 		//then the last member of the sortedset
 		for (auto member : members)
 		{
