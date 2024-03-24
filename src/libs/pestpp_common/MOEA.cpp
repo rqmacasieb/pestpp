@@ -1013,7 +1013,7 @@ double ParetoObjectives::get_euclidean_fitness(double E, double V)
 	if (beta == 0)
 		val = pow(E / exp(pow(V, 0.5)),0.5);
 	else
-		val = E / (beta * pow(V, 0.5) + 1);
+		val = pow(E / (beta * pow(V, 0.5) + 1),0.5);
 	
 	return val;
 }
@@ -1228,19 +1228,21 @@ pair<map<string, double>, map<string, double>> ParetoObjectives::get_euclidean_c
 			sortedset::iterator it = next(start, 1);
 			eucd_prev_it = get_euclidean_distance(_member_struct[it->first], _member_struct[start->first], obj_range);
 			fitness = get_euclidean_fitness(eucd_prev_it.at(0), eucd_prev_it.at(1));
-			
-			crowd_distance_map[it->first] += eucd_prev_it.at(0);
-			var_distance_map[it->first] += eucd_prev_it.at(1);
-			euclidean_fitness_map[it->first] += fitness;
-			
+			if (fitness > euclidean_fitness_map[it->first])
+			{
+				crowd_distance_map[it->first] = eucd_prev_it.at(0);
+				var_distance_map[it->first] = eucd_prev_it.at(1);
+				euclidean_fitness_map[it->first] = fitness;
+			}
 
 			eucd_it_next = get_euclidean_distance(_member_struct[it->first], _member_struct[last->first], obj_range);
-			fitness = get_euclidean_fitness(eucd_it_next.at(0), eucd_it_next.at(1));
-			
-			crowd_distance_map[it->first] += eucd_it_next.at(0);
-			var_distance_map[it->first] += eucd_it_next.at(1);
-			euclidean_fitness_map[it->first] += fitness;
-			
+			fitness= get_euclidean_fitness(eucd_it_next.at(0), eucd_it_next.at(1));
+			if (fitness > euclidean_fitness_map[it->first])
+			{
+				crowd_distance_map[it->first] = eucd_it_next.at(0);
+				var_distance_map[it->first] = eucd_it_next.at(1);
+				euclidean_fitness_map[it->first] = fitness;
+			}
 		}
 		else if (crowd_sorted.size() > 3)
 		{
@@ -1258,19 +1260,21 @@ pair<map<string, double>, map<string, double>> ParetoObjectives::get_euclidean_c
 
 				eucd_prev_it = get_euclidean_distance(_member_struct[it->first], _member_struct[iprev->first], obj_range);
 				fitness = get_euclidean_fitness(eucd_prev_it.at(0), eucd_prev_it.at(1));
-				
-				crowd_distance_map[it->first] += eucd_prev_it.at(0);
-				var_distance_map[it->first] += eucd_prev_it.at(1);
-				euclidean_fitness_map[it->first] += fitness;
-				
+				if (fitness > euclidean_fitness_map[it->first])
+				{
+					crowd_distance_map[it->first] = eucd_prev_it.at(0);
+					var_distance_map[it->first] = eucd_prev_it.at(1);
+					euclidean_fitness_map[it->first] = fitness;
+				}
 
 				eucd_it_next = get_euclidean_distance(_member_struct[it->first], _member_struct[inext->first], obj_range);
 				fitness = get_euclidean_fitness(eucd_it_next.at(0), eucd_it_next.at(1));
-				
-				crowd_distance_map[it->first] += eucd_it_next.at(0);
-				var_distance_map[it->first] += eucd_it_next.at(1);
-				euclidean_fitness_map[it->first] += fitness;
-				
+				if (fitness > euclidean_fitness_map[it->first])
+				{
+					crowd_distance_map[it->first] = eucd_it_next.at(0);
+					var_distance_map[it->first] = eucd_it_next.at(1);
+					euclidean_fitness_map[it->first] = fitness;
+				}
 			}
 
 		}
