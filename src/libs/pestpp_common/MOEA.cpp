@@ -1040,7 +1040,7 @@ pair<map<string, double>, map<string, double>> ParetoObjectives::get_euclidean_c
 	{
 		crowd_distance_map[member] = 0.0;
 		var_distance_map[member] = 0.0;
-		euclidean_fitness_map[member] = 0.0;
+		euclidean_fitness_map[member] = 1E+10;
 		/*for (auto obj_map : _member_struct[member])
 			obj_member_map[obj_map.first][member] = obj_map.second;*/
 
@@ -1228,7 +1228,7 @@ pair<map<string, double>, map<string, double>> ParetoObjectives::get_euclidean_c
 			sortedset::iterator it = next(start, 1);
 			eucd_prev_it = get_euclidean_distance(_member_struct[it->first], _member_struct[start->first], obj_range);
 			fitness = get_euclidean_fitness(eucd_prev_it.at(0), eucd_prev_it.at(1));
-			if (fitness > euclidean_fitness_map[it->first])
+			if (fitness < euclidean_fitness_map[it->first])
 			{
 				crowd_distance_map[it->first] = eucd_prev_it.at(0);
 				var_distance_map[it->first] = eucd_prev_it.at(1);
@@ -1237,7 +1237,7 @@ pair<map<string, double>, map<string, double>> ParetoObjectives::get_euclidean_c
 
 			eucd_it_next = get_euclidean_distance(_member_struct[it->first], _member_struct[last->first], obj_range);
 			fitness= get_euclidean_fitness(eucd_it_next.at(0), eucd_it_next.at(1));
-			if (fitness > euclidean_fitness_map[it->first])
+			if (fitness < euclidean_fitness_map[it->first])
 			{
 				crowd_distance_map[it->first] = eucd_it_next.at(0);
 				var_distance_map[it->first] = eucd_it_next.at(1);
@@ -1260,7 +1260,7 @@ pair<map<string, double>, map<string, double>> ParetoObjectives::get_euclidean_c
 
 				eucd_prev_it = get_euclidean_distance(_member_struct[it->first], _member_struct[iprev->first], obj_range);
 				fitness = get_euclidean_fitness(eucd_prev_it.at(0), eucd_prev_it.at(1));
-				if (fitness > euclidean_fitness_map[it->first])
+				if (fitness < euclidean_fitness_map[it->first])
 				{
 					crowd_distance_map[it->first] = eucd_prev_it.at(0);
 					var_distance_map[it->first] = eucd_prev_it.at(1);
@@ -1269,7 +1269,7 @@ pair<map<string, double>, map<string, double>> ParetoObjectives::get_euclidean_c
 
 				eucd_it_next = get_euclidean_distance(_member_struct[it->first], _member_struct[inext->first], obj_range);
 				fitness = get_euclidean_fitness(eucd_it_next.at(0), eucd_it_next.at(1));
-				if (fitness > euclidean_fitness_map[it->first])
+				if (fitness < euclidean_fitness_map[it->first])
 				{
 					crowd_distance_map[it->first] = eucd_it_next.at(0);
 					var_distance_map[it->first] = eucd_it_next.at(1);
