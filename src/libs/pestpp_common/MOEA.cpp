@@ -1013,7 +1013,7 @@ double ParetoObjectives::get_euclidean_fitness(double E, double V)
 	if (beta == 0)
 		val = pow(E / exp(pow(V, 0.5)),0.5);
 	else
-		val = pow(E / (beta * pow(V, 0.5) + 1),0.5);
+		val = pow(E,0.5);
 	
 	return val;
 }
@@ -1065,10 +1065,11 @@ pair<map<string, double>, map<string, double>> ParetoObjectives::get_euclidean_c
 	map<string, double> obj_range;
 	for (auto obj_map : obj_member_map)
 	{
-		omap = obj_map.second;
+		/*omap = obj_map.second;
 		sortedset crowd_sorted(omap.begin(), omap.end(), compFunctor);
 		sortedset::iterator start = crowd_sorted.begin(), last = prev(crowd_sorted.end(), 1);
-		obj_range[obj_map.first] = last->second - start->second;
+		obj_range[obj_map.first] = last->second - start->second;*/
+		obj_range[obj_map.first] = 1; //just for debugging
 	}
 
 	for (auto obj_map : obj_member_map)
