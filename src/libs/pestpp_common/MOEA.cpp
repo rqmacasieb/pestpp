@@ -1088,7 +1088,7 @@ pair<map<string, double>, map<string, double>> ParetoObjectives::get_euclidean_c
 
 			eucd_it_next = get_euclidean_distance(_member_struct[start->first], _member_struct[inext->first]);
 			fitness = get_euclidean_fitness(eucd_it_next.at(0), eucd_it_next.at(1));
-			if (eucd_it_next.at(0) > dist[start->first])
+			if (fitness > fit[start->first])
 			{
 				dist[start->first] = eucd_it_next.at(0);
 				var[start->first] = eucd_it_next.at(1);
@@ -1103,7 +1103,7 @@ pair<map<string, double>, map<string, double>> ParetoObjectives::get_euclidean_c
 
 			eucd_prev_it = get_euclidean_distance(_member_struct[last->first], _member_struct[iprev->first]);
 			fitness = get_euclidean_fitness(eucd_prev_it.at(0), eucd_prev_it.at(1));
-			if (eucd_prev_it.at(0) > dist[last->first])
+			if (fitness > fit[last->first])
 			{
 				dist[last->first] = eucd_prev_it.at(0);
 				var[last->first] = eucd_prev_it.at(1);
@@ -1186,7 +1186,7 @@ pair<map<string, double>, map<string, double>> ParetoObjectives::get_euclidean_c
 			{
 				eucd_prev_it = get_euclidean_distance(_member_struct[it->first], _member_struct[start->first]);
 				fitness = get_euclidean_fitness(eucd_prev_it.at(0), eucd_prev_it.at(1));
-				if (eucd_prev_it.at(0) > dist[it->first])
+				if (fitness > fit[it->first])
 				{
 					dist[it->first] = eucd_prev_it.at(0);
 					var[it->first] = eucd_prev_it.at(1);
@@ -1195,7 +1195,7 @@ pair<map<string, double>, map<string, double>> ParetoObjectives::get_euclidean_c
 
 				eucd_it_next = get_euclidean_distance(_member_struct[it->first], _member_struct[last->first]);
 				fitness = get_euclidean_fitness(eucd_it_next.at(0), eucd_it_next.at(1));
-				if (eucd_it_next.at(0) > dist[it->first])
+				if (fitness > fit[it->first])
 				{
 					dist[it->first] = eucd_it_next.at(0);
 					var[it->first] = eucd_it_next.at(1);
@@ -1221,7 +1221,7 @@ pair<map<string, double>, map<string, double>> ParetoObjectives::get_euclidean_c
 
 					eucd_prev_it = get_euclidean_distance(_member_struct[it->first], _member_struct[iprev->first]);
 					fitness = get_euclidean_fitness(eucd_prev_it.at(0), eucd_prev_it.at(1));
-					if (eucd_prev_it.at(0) > dist[it->first])
+					if (fitness > fit[it->first])
 					{
 						dist[it->first] = eucd_prev_it.at(0);
 						var[it->first] = eucd_prev_it.at(1);
@@ -1230,7 +1230,7 @@ pair<map<string, double>, map<string, double>> ParetoObjectives::get_euclidean_c
 
 					eucd_it_next = get_euclidean_distance(_member_struct[it->first], _member_struct[inext->first]);
 					fitness = get_euclidean_fitness(eucd_it_next.at(0), eucd_it_next.at(1));
-					if (eucd_it_next.at(0) > dist[it->first])
+					if (fitness > fit[it->first])
 					{
 						dist[it->first] = eucd_it_next.at(0);
 						var[it->first] = eucd_it_next.at(1);
