@@ -1175,14 +1175,14 @@ pair<map<string, double>, map<string, double>> ParetoObjectives::get_euclidean_c
 
 		//crowding distance calculation for non extreme members;
 		string lex_order = pest_scenario.get_pestpp_options().get_mou_lex_order_by();
-		if ((lex_order == "") && (lex_order != "all"))
+		if ((lex_order == "") && (lex_order != "ALL"))
 			lex_order = obj_names[0];
 		
 
 		vector<double> eucd_prev_it, eucd_it_next, eucd;
-		if ((obj_map.first != lex_order) && (lex_order != "all")) //only do neighborhood selection along the specified objective
+		if ((obj_map.first != lex_order) && (lex_order != "ALL")) //only do neighborhood selection along the specified objective
 			continue;
-		else if ((obj_map.first == lex_order) || (lex_order == "all"))
+		else if ((obj_map.first == lex_order) || (lex_order == "ALL"))
 		{
 			//if unique, compute fitness as usual, through its neighbors, not minding if it is extreme, which will be dealt later using ehvi
 			if (find(nonuniq_obj.begin(), nonuniq_obj.end(), start->second) == nonuniq_obj.end())
