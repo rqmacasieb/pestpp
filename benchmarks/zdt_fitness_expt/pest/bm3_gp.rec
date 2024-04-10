@@ -11,7 +11,7 @@ binary compiled on Apr  9 2024 at 11:29:10
 using control file: "./pest/bm3_gp.pst"
 in directory: "C:\Users\mac732\OneDrive - CSIRO\Documents\GitHub\pestpp-moudev\benchmarks\zdt_fitness_expt"
 on host: "DUMPLING-FL"
-started at 04/10/24 11:17:18
+started at 04/10/24 13:45:45
 
 on host: "DUMPLING-FL"
 
@@ -187,7 +187,7 @@ mou_pso_alpha: 0
 mou_pso_rramp: -1
 mou_pso_rfit: 2
 mou_fit_beta: 1
-mou_max_nn_search: 5
+mou_max_nn_search: 100
 mou_outer_repo_obs_file: ./model/input/outer_repo.archive_2.obs_pop.csv
 mou_hypervolume_extreme: 1e+10
 mou_infill_size: 100
@@ -473,6 +473,6 @@ OBJ_1U                   less_than           1              0       0.353279    
 
 
 pestpp-mou analysis complete...
-started at 04/10/24 11:17:18
-finished at 04/10/24 11:17:19
+started at 04/10/24 13:45:45
+finished at 04/10/24 13:45:46
 took 0 minutes

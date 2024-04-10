@@ -1059,7 +1059,7 @@ map<string, double> ParetoObjectives::get_cluster_crowding_fitness(vector<string
 		//if (members.size() <= pest_scenario.get_pestpp_options().get_mou_max_archive_size())
 		//	min_sd[obj_map.first] = (last->second - start->second) / (members.size());
 		//else
-		min_sd[obj_map.first] = pow(maxmin_dij,0.5)/4;
+		min_sd[obj_map.first] = pow(maxmin_dij,0.5) / 5;
 
 		nonuniq_obj.clear();
 
@@ -1239,7 +1239,7 @@ map<string, double> ParetoObjectives::get_cluster_crowding_fitness(vector<string
 					pnd_ij = nondominance_probability(_member_struct[m], _member_struct[n]);
 					if (pnd_ij <= 0.5)
 					{	
-						pd_ij = dominance_prob_adhoc(_member_struct[n], _member_struct[m]) + dominance_prob_adhoc(_member_struct[m], _member_struct[n]);
+						pd_ij = 1 - dominance_prob_adhoc(_member_struct[n], _member_struct[m]);
 						pnd *= pd_ij;
 
 					}
