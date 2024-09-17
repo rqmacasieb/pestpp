@@ -65,7 +65,7 @@ map<string, map<string, double>> ParetoObjectives::get_member_struct(Observation
 	}
 
 	//add variance info for obj values to member_struct
-	if (prob_pareto) {
+	if (prob_pareto || bgo) {
 		map<double, string> obj_sd_map;
 		map<string, double> t;
 		
@@ -95,7 +95,7 @@ map<string, map<string, double>> ParetoObjectives::get_member_struct(Observation
 
 		}
 	}
-	
+
 
 	//map<string, map<string, double>> member_struct;
 
@@ -140,6 +140,30 @@ map<string, map<string, double>> ParetoObjectives::get_member_struct(Observation
 	}
 	return _member_struct;
 
+}
+
+map<string, double> ParetoObjectives::get_bgo_aqf_map()
+{
+	return bgo_aqf_map;
+}
+
+map<string, map<string, double>> ParetoObjectives::get_bgo_ensemble_struct(map<string, map<string, double>> _member_struct)
+{
+	performance_log->log_event("computing AQF of the current ensemble");
+
+	map<string, map<string,double>> bgo_struct;
+	for (auto o: *obj_names_ptr)
+	{
+		map <string, double> bgo_member;
+		for (auto m : _member_struct)
+		{
+			bgo_member["AQF"] = -get_ei(_member_struct[m.first], o, c_opt);
+			bgo_struct[m.first] = bgo_member;
+			bgo_aqf_map[m.first] = bgo_member["AQF"];
+		}
+	}
+
+	return bgo_struct;
 }
 
 bool ParetoObjectives::compare_two(string& first, string& second, MouEnvType envtyp)
@@ -243,6 +267,17 @@ void ParetoObjectives::drop_duplicates(map<string, map<string, double>>& _member
 			member_struct.erase(d);	
 	}
 }
+
+//map<string, double> ParetoObjectives::get_decision_space_dist(vector<string> nondom, vector<string> dom, ObservationEnsemble& op, ParameterEnsemble& dp)
+//{
+//	map<string, map<string, double>> _member_struct = get_member_struct(op, dp);
+//	return get_decision_space_dist(nondom, dom, _member_struct);
+//}
+//
+//map<string, double> ParetoObjectives::get_decision_space_dist(vector<string> nondom, vector<string> dom, map<string, map<string, double>>& _member_struct)
+//{
+//	return;
+//}
 
 map<string, double> ParetoObjectives::get_mopso_fitness(vector<string> members, ObservationEnsemble& op, ParameterEnsemble& dp)
 {
@@ -398,6 +433,10 @@ void ParetoObjectives::update(ObservationEnsemble& op, ParameterEnsemble& dp, Co
 	//update the member struct container
 	member_struct = get_member_struct(op, dp);
 
+	//setup container for ei values of the members
+	if (bgo)
+		bgo_ensemble_struct = get_bgo_ensemble_struct(member_struct);
+
 	drop_duplicates(member_struct);
 
 	if (member_struct.size() == 0)
@@ -545,6 +584,9 @@ void ParetoObjectives::update(ObservationEnsemble& op, ParameterEnsemble& dp, Co
 		front_map = prob_front_map;
 	}
 	else*/
+	if (bgo)
+		front_map = sort_members_by_dominance_into_fronts(bgo_ensemble_struct);
+	else
 		front_map = sort_members_by_dominance_into_fronts(member_struct);
 
 	return;
@@ -640,6 +682,12 @@ pair<vector<string>, vector<string>> ParetoObjectives::get_nsga2_pareto_dominanc
 		else
 			for (auto front_member : crowd_ordered_front)
 				dom_crowd_ordered.push_back(front_member);
+	}
+	
+	if (bgo)
+	{
+		//vector<string> ordered_ensemble = sort_members_of_bgo_ensemble();
+
 	}
 
 	//now add the infeasible members
@@ -1183,6 +1231,13 @@ map<string, double> ParetoObjectives::get_cluster_crowding_fitness(vector<string
 	return fit_map;
 }
 
+vector<string> ParetoObjectives::sort_members_of_bgo_ensemble(vector<string>& members, map<string, double>& crowd_map,
+	map<string, map<string, double>>& _member_struct)
+{
+	vector<string> ordered_ensemble;
+	return ordered_ensemble;
+}
+
 vector<string> ParetoObjectives::sort_members_by_crowding_distance(int front, vector<string>& members, map<string,double>& crowd_map, 
 	map<string, map<string, double>>& _member_struct)
 {
@@ -1558,7 +1613,7 @@ bool ParetoObjectives::first_equals_second(map<string, double>& first, map<strin
 
 bool ParetoObjectives::first_dominates_second(map<string, double>& first, map<string, double>& second)
 {
-
+	vector<string> objsd = *obs_obj_sd_names_ptr;
 	if (/*prob_pareto*/ ppd_sort)
 	{
 		double pd = dominance_probability(first, second);
@@ -1573,6 +1628,8 @@ bool ParetoObjectives::first_dominates_second(map<string, double>& first, map<st
 	{
 		for (auto f : first)
 		{
+			if (find(objsd.begin(), objsd.end(), f.first) != objsd.end()) 
+				continue; //just to make sure that when in BGO mode, that SDs are not picked up
 			if (f.second > second[f.first])
 				return false;
 		}
@@ -2580,6 +2637,7 @@ void MOEA::initialize()
 	{
 		envtype = MouEnvType::NSGA;
 		prob_pareto = false;
+		bgo = false;
 		objectives.set_prob_pareto(prob_pareto);
 		message(1, "using 'nsga2' env selector");
 	}
@@ -2590,6 +2648,13 @@ void MOEA::initialize()
 		objectives.set_ppd_beta();
 		objectives.set_prob_pareto(prob_pareto);
 		message(1, "using 'nsga2_ppd' env selector");
+	}
+	else if (env == "NSGA_BGO")
+	{
+		envtype = MouEnvType::NSGA;
+		bgo = true;
+		objectives.set_bgo_mode(bgo);
+		message(1, "using 'nsga2_bgo' env selector");
 	}
 	else if (env == "SPEA")
 	{
@@ -2809,7 +2874,7 @@ void MOEA::initialize()
 					}
 					obs_obj_names.push_back(obj_name);
 				}
-				if (prob_pareto) keep_obs_sd.push_back(obj_name + "_SD");
+				if (prob_pareto || bgo) keep_obs_sd.push_back(obj_name + "_SD");
 			}
 			//else if (oset.find(obj_name+"_sd") != oset.end()) //find the corresponding sd observations
 			//{
@@ -2836,7 +2901,7 @@ void MOEA::initialize()
 					}
 					pi_obj_names.push_back(obj_name);
 				}
-				if (prob_pareto) keep_pi_sd.push_back(obj_name + "_SD");
+				if (prob_pareto || bgo) keep_pi_sd.push_back(obj_name + "_SD");
 			}
 		}
 		if (err_sense.size() > 0)
@@ -3344,8 +3409,11 @@ void MOEA::initialize()
 	vector<string> keep;
 	if (envtype == MouEnvType::NSGA)
 	{
-		if (prob_pareto)
-			objectives.prep_expected_distance_lookup_table(op, dp);
+		/*if (prob_pareto)
+			objectives.prep_expected_distance_lookup_table(op, dp);*/
+		if (bgo)
+			get_current_true_solution();
+
 		DomPair dompair = objectives.get_nsga2_pareto_dominance(iter, op, dp, &constraints, false, true, POP_SUM_TAG);
 
 		//drop any duplicates
@@ -3376,9 +3444,13 @@ void MOEA::initialize()
 		message(2, ss.str());
 
 
+		
+
 		//this causes the initial archive pareto summary file to be written
 		objectives.get_nsga2_pareto_dominance(iter, op_archive, dp_archive, &constraints, false, true, ARC_SUM_TAG);
-		objectives.get_nsga2_pareto_dominance(iter, op_archive, dp_archive, &constraints, false, true, ARC_TRIM_SUM_TAG);
+		if (prob_pareto)
+			objectives.get_nsga2_pareto_dominance(iter, op_archive, dp_archive, &constraints, false, true, ARC_TRIM_SUM_TAG);
+
 
 		//set hypervolume partitions of nondom solutions from previous outer iteration
 		if (prob_pareto)
@@ -3432,7 +3504,7 @@ void MOEA::initialize()
 
 				hv_pts = objectives.get_members(op_archive, dp_archive);
 			}
-			objectives.set_hypervolume_partitions(hv_pts);
+				objectives.set_hypervolume_partitions(hv_pts);
 			//objectives.get_ehvi(op, dp);
 		}
 			
@@ -3825,7 +3897,7 @@ void MOEA::iterate_to_solution()
             new_op.append_other_rows(op);
         }
 
-		objectives.prep_expected_distance_lookup_table(new_op, new_dp);
+		//objectives.prep_expected_distance_lookup_table(new_op, new_dp);
 
         if (find(gen_types.begin(),gen_types.end(),MouGenType::PSO) != gen_types.end()) {
             update_pso_pbest(new_dp, new_op);
@@ -4322,7 +4394,12 @@ ParameterEnsemble MOEA::get_updated_pso_velocty(ParameterEnsemble& _dp, vector<s
 		rand2 = stlvec_2_eigenvec(r);
 		cur_real = _dp.get_real_vector(real_name);
 		p_best = pso_pbest_dp.get_real_vector(real_name);
-		g_best = dp_archive.get_real_vector(gbest_solutions[i]);
+
+		if (bgo)
+			g_best = _dp.get_real_vector(gbest_solutions[i]);
+		else
+			g_best = dp_archive.get_real_vector(gbest_solutions[i]);
+
 		if (snames.find(real_name) != snames.end())
 			cur_vel = pso_velocity.get_real_vector(real_name);
 		else {
@@ -4341,57 +4418,142 @@ ParameterEnsemble MOEA::get_updated_pso_velocty(ParameterEnsemble& _dp, vector<s
 
 vector<string> MOEA::get_pso_gbest_solutions(int num_reals, ParameterEnsemble& _dp, ObservationEnsemble& _op)
 {
-
+	vector<string> gbest_solutions;
 	DomPair dompair = objectives.get_nsga2_pareto_dominance(-999, _op, _dp, &constraints, prob_pareto, false);
 	vector<string> nondom_solutions = dompair.first;
-	vector<string> gbest_solutions;
-	double alpha = pest_scenario.get_pestpp_options().get_mou_pso_alpha();
-	//if no non dom solutions, then use the dominated ones...
-	if (nondom_solutions.size() == 0)
-	{
-		nondom_solutions = dompair.second;
-	}
-	if (nondom_solutions.size() == 1)
-	{
-		for (int i = 0; i < num_reals; i++)
-			gbest_solutions.push_back(nondom_solutions[0]);
-		return gbest_solutions;
-	}
-	
-	map<string, double> fitness = objectives.get_mopso_fitness(nondom_solutions, _op, _dp);
-	vector<string> working;
-	string candidate;
-	int count = 0;
-	vector < double> r;
-	bool found;
-	double size = nondom_solutions.size();
-	for (int i = 0; i < num_reals; i++)
-	{
-		count = 0;
-		found = false;
+	vector<string> dom_solutions = dompair.second;
+	double numreals = num_reals;
 
-		
-		
-		while (true)
+	if (bgo)
+	{
+		map<string, double> decspace_dist_map, dist_pct, aqf_pct, aqf_vals = objectives.get_bgo_aqf_map();
+		Eigen::VectorXd dvopt, dvdom;
+		double dist;
+		double lambda = 0.6;
+		vector < double> r;
+		vector<string> working = nondom_solutions;
+		int count = 0;
+		bool found;
+		string candidate;
+
+		decspace_dist_map[nondom_solutions[0]] = 0;
+		for (auto dom : dom_solutions)
 		{
-			working = nondom_solutions;
-			shuffle(working.begin(), working.end(), rand_gen);
-			r = uniform_draws(nondom_solutions.size(), 0.0, 1.0, rand_gen);
-			for (int i = 0; i < r.size(); i++)
-				if (fitness[working[i]] >= r[i])
-				{
-					candidate = working[i];
-					found = true;
-					break;
-				}
-
-			if (found)
-				break;
-			count++;
-			if (count > 1000000)
-				throw_moea_error("MOEA::get_pso_gbest_solutions() seems to be stuck in a infinite loop....");
+			decspace_dist_map[dom] = pow(pow(_dp.get_real_vector(dom).array() - _dp.get_real_vector(nondom_solutions[0]).array(), 2).matrix().sum(), 0.5);
+			working.push_back(dom);
 		}
-		gbest_solutions.push_back(candidate);
+		
+		for (auto m1 : decspace_dist_map)
+		{
+			int count = 0;
+			for (auto m2 : decspace_dist_map)
+			{
+				if (m1.second >= m2.second)
+					count++;
+			}
+			dist_pct[m1.first] = count / numreals;
+
+		}
+
+		for (auto m1 : aqf_vals)
+		{
+			count = 0;
+			for (auto m2 : aqf_vals)
+			{
+				if (m1.second <= m2.second)
+					count++;
+			}
+			aqf_pct[m1.first] = count / numreals;
+
+		}
+
+		double alpha = pest_scenario.get_pestpp_options().get_mou_pso_alpha();
+		map<string, double> fitness;
+		for (auto m : aqf_vals)
+		{
+			if (m.first == nondom_solutions[0])
+				fitness[m.first] = 1.0;
+			else
+				fitness[m.first] = pow(aqf_pct[m.first] * (1 - lambda) + dist_pct[m.first] * lambda, alpha);
+		}
+		
+
+		for (int i = 0; i < num_reals; i++)
+		{
+			count = 0;
+			found = false;
+
+			while (true)
+			{
+				shuffle(working.begin(), working.end(), rand_gen);
+				r = uniform_draws(num_reals, 0.0, 1.0, rand_gen);
+				for (int i = 0; i < r.size(); i++)
+					if (fitness[working[i]] >= r[i])
+					{
+						candidate = working[i];
+						found = true;
+						break;
+					}
+
+				if (found)
+					break;
+				count++;
+				if (count > 1000000)
+					throw_moea_error("MOEA::get_pso_gbest_solutions() seems to be stuck in a infinite loop....");
+			}
+			gbest_solutions.push_back(candidate);
+		}
+	}
+	else
+	{
+		double alpha = pest_scenario.get_pestpp_options().get_mou_pso_alpha();
+		//if no non dom solutions, then use the dominated ones...
+		if (nondom_solutions.size() == 0)
+		{
+			nondom_solutions = dompair.second;
+		}
+		if (nondom_solutions.size() == 1)
+		{
+			for (int i = 0; i < num_reals; i++)
+				gbest_solutions.push_back(nondom_solutions[0]);
+			return gbest_solutions;
+		}
+
+		map<string, double> fitness = objectives.get_mopso_fitness(nondom_solutions, _op, _dp);
+		vector<string> working;
+		string candidate;
+		int count = 0;
+		vector < double> r;
+		bool found;
+		double size = nondom_solutions.size();
+		for (int i = 0; i < num_reals; i++)
+		{
+			count = 0;
+			found = false;
+
+
+
+			while (true)
+			{
+				working = nondom_solutions;
+				shuffle(working.begin(), working.end(), rand_gen);
+				r = uniform_draws(nondom_solutions.size(), 0.0, 1.0, rand_gen);
+				for (int i = 0; i < r.size(); i++)
+					if (fitness[working[i]] >= r[i])
+					{
+						candidate = working[i];
+						found = true;
+						break;
+					}
+
+				if (found)
+					break;
+				count++;
+				if (count > 1000000)
+					throw_moea_error("MOEA::get_pso_gbest_solutions() seems to be stuck in a infinite loop....");
+			}
+			gbest_solutions.push_back(candidate);
+		}
 	}
 	return gbest_solutions;
 }
@@ -4409,7 +4571,12 @@ ParameterEnsemble MOEA::generate_pso_population(int num_members, ParameterEnsemb
 
     }
     message(1, "generating PSO population of size", num_members);
-	vector<string> gbest_solutions = get_pso_gbest_solutions(_dp.shape().first, dp_archive, op_archive);
+	vector<string> gbest_solutions;
+	if (bgo)
+		gbest_solutions = get_pso_gbest_solutions(_dp.shape().first, dp, op);
+	else
+		gbest_solutions = get_pso_gbest_solutions(_dp.shape().first, dp_archive, op_archive);
+	
 	ParameterEnsemble cur_velocity = get_updated_pso_velocty(_dp, gbest_solutions);
 	ParameterEnsemble new_dp(&pest_scenario, &rand_gen, _dp.get_eigen().array() + cur_velocity.get_eigen().array(), _dp.get_real_names(), _dp.get_var_names());
 
@@ -5499,6 +5666,63 @@ pair<Eigen::VectorXd, Eigen::VectorXd> MOEA::sbx_new(double crossover_probabilit
 	}
 	return pair<Eigen::VectorXd, Eigen::VectorXd>(child1, child2);
 
+}
+
+void MOEA::get_current_true_solution()
+{
+	stringstream ss;
+	map<string, map<string, double>> curr_opt;
+	vector<string> tokens;
+
+	//for now, the true solution need to be obtained from the archive of the previous outer repo where PBM was evaluated and nondom solution (curr opt) sorted out
+	string outer_repo_obs_filename = pest_scenario.get_pestpp_options().get_mou_outer_repo_obs_file();
+	if (outer_repo_obs_filename != "")
+	{
+		message(1, "loading outer repository obs from csv file", outer_repo_obs_filename);
+		try
+		{
+			ifstream csv(outer_repo_obs_filename);
+			string line;
+			getline(csv, line);
+
+			while (getline(csv, line))
+			{
+				pest_utils::strip_ip(line);
+				tokens.clear();
+				pest_utils::tokenize(line, tokens, ",", false);
+				map<string, double> vals;
+				int i = 1;
+				for (auto obj : obs_obj_names)
+				{
+					vals[obj] = stod(tokens[i]);
+					i++;
+				}
+				curr_opt[tokens[0]] = vals;
+			}
+
+		}
+		catch (const exception& e)
+		{
+			ss << "error processing outer repository obs file: " << e.what();
+			throw_moea_error(ss.str());
+		}
+		catch (...)
+		{
+			throw_moea_error(string("error processing outer repository obs file"));
+		}
+	}//TO DO: what if the true solution is obtained from the initial ensemble that follows a PBM evaluation -- this is not a problem for now
+	/*else
+	{
+		message(1, "using the initial population for hypervolume partitioning");
+		stringstream ss;
+		ofstream& frec = file_manager.rec_ofstream();
+		ss << "ParetoObjectives::get_hypervolume() for " << op.shape().first << " archive members";
+		performance_log->log_event(ss.str());
+
+		curr_opt = objectives.get_members(op_archive, dp_archive);
+	}*/
+	objectives.set_curr_opt(curr_opt);
+	//objectives.get_ehvi(op, dp);
 }
 
 void MOEA::get_sbx_child_values(const double& p1, const double& p2, const double& lbnd, const double& ubnd, const double& eta, double& rnd, double& c1, double& c2)

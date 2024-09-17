@@ -27,7 +27,7 @@ const string MR_NAME = "_MR_";
 const double CROWDING_EXTREME = 1.0e+30;
 
 enum MouGenType { DE, SBX, PM, PSO, SMP };
-enum MouEnvType { NSGA, SPEA, NSGA_PPD }; //added NSGA_PPD for probabilistic Pareto dominance
+enum MouEnvType { NSGA, SPEA, NSGA_PPD, NSGA_BGO };
 enum MouMateType { RANDOM, TOURNAMENT };
 
 class ParetoObjectives
@@ -46,6 +46,7 @@ public:
 	void get_ehvi(ObservationEnsemble& op, ParameterEnsemble& dp);
 	void update_ppd_criteria(ObservationEnsemble& op, ParameterEnsemble& dp);
 
+	void set_bgo_mode(bool bgo_switch) { bgo = bgo_switch; }
 	//this must be called at least once before the diversity metrixs can be called...
 	void set_pointers(vector<string>& _obj_names, vector<string>& _obs_obj_names, vector<string>& _obs_obj_sd_names, vector<string>& _pi_obj_names, vector<string>& _pi_obj_sd_names, map<string, double>& _obj_dir_mult)
 	{
@@ -60,6 +61,15 @@ public:
 		prep_pareto_summary_file(ARC_TRIM_SUM_TAG);
 	}
 	
+	void set_curr_opt(map<string, map<string,double>>& curr_tobs)
+	{
+		map<string, double> curr;
+		for (auto& c : curr_tobs)
+			curr = c.second;
+		for (auto& o : *obj_names_ptr)
+			c_opt = curr.at(o);
+	}
+
 	void update(ObservationEnsemble& oe, ParameterEnsemble& dp, Constraints* constraints_ptr = nullptr);
 
 	bool compare_two(string& first,string& second, MouEnvType envtyp);
@@ -82,6 +92,7 @@ public:
 	map<string, double> get_mopso_fitness(vector<string> members, ObservationEnsemble& op, ParameterEnsemble& dp);
 
 	double get_ei(map<string, double> phi, string obj, double curr_opt);
+	map<string, double> get_bgo_aqf_map();
 
 	set<string> get_duplicates() { return duplicates;  }
 
@@ -96,8 +107,9 @@ private:
 	vector<string> sort_members_by_crowding_distance(int front, vector<string>& members, map<string, double>& crowd_map, map<string, map<string, double>>& _member_struct);
 	bool first_dominates_second(map<string, double>& first, map<string, double>& second);
 	map<string, map<string, double>> get_member_struct(ObservationEnsemble& oe, ParameterEnsemble& dp);
+	map<string, map<string, double>> get_bgo_ensemble_struct(map<string, map<string, double>> _member_struct);
 	void drop_duplicates(map<string, map<string, double>>& _member_struct);
-	
+		
 	bool first_equals_second(map<string, double>& first, map<string, double>& second);
 
 	map<int, vector<string>> sort_members_by_dominance_into_fronts(map<string, map<string, double>>& _member_struct);
@@ -124,6 +136,8 @@ private:
 	double get_euclidean_fitness(double E, double V);
 	map<string, double> get_cluster_crowding_fitness(vector<string>& members, map<string, map<string, double>>& _member_struct);
 
+	vector<string> sort_members_of_bgo_ensemble(vector<string>& members, map<string, double>& crowd_map, map<string, map<string, double>>& _member_struct);
+
 	map<string, map<string, double>> member_struct;
 	vector<string>* obj_names_ptr;
 	vector<string>* obs_obj_names_ptr;
@@ -149,7 +163,7 @@ private:
 	double dominance_probability(map<string, double>& first, map<string, double>& second);
 	double dominance_prob_adhoc(map<string, double>& first, map<string, double>& second);
 	double nondominance_probability(map<string, double>& first, map<string, double>& second);
-	bool prob_pareto, ppd_sort;
+	bool prob_pareto = false, ppd_sort, bgo = false;
 	double ppd_beta;
 	vector<double> ppd_range;
 
@@ -162,6 +176,10 @@ private:
 	double EHVI;
 	int iter;
 	double get_ehvi(string& member, map<string, map<string, double>>& _member_struct);
+
+	double c_opt;
+	map<string, map<string, double>> bgo_ensemble_struct;
+	map<string, double> bgo_aqf_map;
 };
 
 
@@ -201,7 +219,7 @@ private:
 	int n_adaptive_dvs;
 	map<string, map<string, double>> previous_obj_summary, previous_dv_summary;
 	bool risk_obj;
-	bool prob_pareto = false; //probabilistic pareto dominance
+	bool prob_pareto = false, bgo = false;
 	bool ppd_sort;
 	int restart_iter_offset;
 	int save_every;
@@ -297,6 +315,8 @@ private:
 	bool should_use_multigen();
 
 	void queue_resample_runs(ParameterEnsemble& _dp); //outer iters
+
+	void get_current_true_solution();
 
 };
 

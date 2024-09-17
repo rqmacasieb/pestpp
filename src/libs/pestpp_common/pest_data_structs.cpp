@@ -1517,6 +1517,11 @@ bool PestppOptions::assign_mou_value_by_key(const string& key, const string& val
 		mou_adaptive_ppd = pest_utils::parse_string_arg_to_bool(value);
 		return true;
 	}
+	else if (key == "MOU_BGO_AQF")
+	{
+		mou_bgo_aqf = upper_cp(strip_cp(value));
+		return true;
+	}
 	else if (key == "MOU_POPULATION_SCHEDULE")
     {
 	    mou_population_schedule = org_value;
@@ -1790,6 +1795,7 @@ void PestppOptions::summary(ostream& os) const
 	os << "mou_ppd_beta: " << mou_ppd_beta << endl;
 	os << "mou_fit_gamma: " << mou_fit_gamma << endl;
 	os << "mou_fit_epsilon: " << mou_fit_epsilon << endl;
+	os << "mou_bgo_aqf: " << mou_bgo_aqf << endl;
 	os << "mou_population_schedule: " << mou_population_schedule << endl;
 	os << "mou_simplex_reflections:" << mou_simplex_reflections << endl;
 	os << "mou_simplex_factors: " << endl;
@@ -1993,6 +1999,7 @@ void PestppOptions::set_defaults()
 	set_mou_adaptive_ppd(false);
 	set_mou_resample_every(-1);
 	set_mou_resample_command("");
+	set_mou_bgo_aqf("EI");
 	set_mou_population_schedule("");
 	set_mou_simplex_reflections(10);
 	set_mou_simplex_factors(vector<double>{0.5, 0.6, 0.7, 0.8});
