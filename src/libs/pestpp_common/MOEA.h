@@ -52,7 +52,7 @@ public:
 		ParameterEnsemble& dp, Constraints* constraints_ptr = nullptr, bool report=true, string sum_tag=string());
 	void set_bgo_mode(bool bgo_switch) { bgo = bgo_switch; }
 	map<string, double> get_enbgo_fitness_map() { return enbgo_fitness_map; }
-	map<string, double> ParetoObjectives::get_bgo_aqf_map() { return bgo_aqf_map; }
+	map<string, double> get_bgo_aqf_map() { return bgo_aqf_map; }
 	void update_bgo_ensemble(ObservationEnsemble& op, ParameterEnsemble& dp, Constraints* constraints_ptr);
 
 	void write_bgo_ensemble_summary(string& sum_tag, int generation, ObservationEnsemble& op, ParameterEnsemble& dp, Constraints* constr_ptr);
