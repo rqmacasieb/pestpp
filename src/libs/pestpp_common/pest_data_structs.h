@@ -438,6 +438,8 @@ public:
 	void set_mou_resample_command(string _rescmd) { mou_resample_command = _rescmd; }
 	string get_mou_bgo_aqf() const { return mou_bgo_aqf; }
 	void set_mou_bgo_aqf(string name) { mou_bgo_aqf = name; }
+	double get_mou_bgo_lambda() const { return mou_bgo_lambda; }
+	void set_mou_bgo_lambda(double val) { mou_bgo_lambda = val; }
 	string get_mou_population_schedule() const {return mou_population_schedule;}
     void set_mou_population_schedule(string fname) {mou_population_schedule = fname;}
 	int get_mou_simplex_reflections() const { return mou_simplex_reflections; }
@@ -782,6 +784,7 @@ private:
 	double mou_fit_epsilon;
 	bool mou_adaptive_ppd;
 	string mou_bgo_aqf;
+	double mou_bgo_lambda;
 	string mou_outer_repo_obs_file;
 	int mou_max_nn_search;
 	int mou_infill_size;

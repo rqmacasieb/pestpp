@@ -20,6 +20,8 @@
 const string POP_SUM_TAG = "pareto.summary.csv";
 const string ARC_SUM_TAG = "pareto.archive.summary.csv";
 const string ARC_TRIM_SUM_TAG = "pareto.trimmed.archive.summary.csv";
+const string BGO_POP_SUM_TAG = "ensemble.summary.csv";
+const string BGO_ARC_SUM_TAG = "ensemble.archive.summary.csv";
 const string RISK_NAME = "_RISK_";
 const string DE_F_NAME = "_DE_F_";
 const string CR_NAME = "_CR_";
@@ -38,27 +40,44 @@ public:
 
 	pair<vector<string>, vector<string>> get_nsga2_pareto_dominance(int generation, ObservationEnsemble& op, 
 		ParameterEnsemble& dp, Constraints* constraints_ptr=nullptr, bool ppd=false, bool report=true, string sum_tag=string());
-	
+
 	map<string, map<string, double>> get_members(ObservationEnsemble& op, ParameterEnsemble& dp) { return get_member_struct(op, dp); };
 	void set_ppd_beta() { ppd_beta = pest_scenario.get_pestpp_options().get_mou_ppd_beta(); }
 	void set_prob_pareto(bool ppd) { prob_pareto = ppd; }
 	void set_hypervolume_partitions(map<string, map<string, double>> _hv_parts);
 	void get_ehvi(ObservationEnsemble& op, ParameterEnsemble& dp);
 	void update_ppd_criteria(ObservationEnsemble& op, ParameterEnsemble& dp);
-
+	
+	pair<vector<string>, vector<string>> get_bgo_ensemble(int generation, ObservationEnsemble& op, 
+		ParameterEnsemble& dp, Constraints* constraints_ptr = nullptr, bool report=true, string sum_tag=string());
 	void set_bgo_mode(bool bgo_switch) { bgo = bgo_switch; }
+	map<string, double> get_enbgo_fitness_map() { return enbgo_fitness_map; }
+	map<string, double> ParetoObjectives::get_bgo_aqf_map() { return bgo_aqf_map; }
+	void update_bgo_ensemble(ObservationEnsemble& op, ParameterEnsemble& dp, Constraints* constraints_ptr);
+
+	void write_bgo_ensemble_summary(string& sum_tag, int generation, ObservationEnsemble& op, ParameterEnsemble& dp, Constraints* constr_ptr);
+	void prep_bgo_ensemble_summary_file(string summary_tag);
 	//this must be called at least once before the diversity metrixs can be called...
 	void set_pointers(vector<string>& _obj_names, vector<string>& _obs_obj_names, vector<string>& _obs_obj_sd_names, vector<string>& _pi_obj_names, vector<string>& _pi_obj_sd_names, map<string, double>& _obj_dir_mult)
 	{
 		obj_names_ptr = &_obj_names;
-		obs_obj_names_ptr = &_obs_obj_names; 
+		obs_obj_names_ptr = &_obs_obj_names;
 		obs_obj_sd_names_ptr = &_obs_obj_sd_names;
-		pi_obj_names_ptr = &_pi_obj_names; 
+		pi_obj_names_ptr = &_pi_obj_names;
 		pi_obj_sd_names_ptr = &_pi_obj_sd_names;
 		obj_dir_mult_ptr = &_obj_dir_mult;
-		prep_pareto_summary_file(POP_SUM_TAG);
-		prep_pareto_summary_file(ARC_SUM_TAG);
-		prep_pareto_summary_file(ARC_TRIM_SUM_TAG);
+		if (bgo)
+		{
+			prep_bgo_ensemble_summary_file(BGO_POP_SUM_TAG);
+			prep_bgo_ensemble_summary_file(BGO_ARC_SUM_TAG);
+		}
+		else
+		{
+			prep_pareto_summary_file(POP_SUM_TAG);
+			prep_pareto_summary_file(ARC_SUM_TAG);
+			prep_pareto_summary_file(ARC_TRIM_SUM_TAG);
+		}
+		
 	}
 	
 	void set_curr_opt(map<string, map<string,double>>& curr_tobs)
@@ -76,6 +95,7 @@ public:
 
 	map<string, double> get_spea2_fitness(int generation, ObservationEnsemble& op, ParameterEnsemble& dp, 
 		Constraints* constraints_ptr = nullptr, bool report = true, string sum_tag = string());
+	
 	map<string, double> get_spea2_kth_nn_crowding_distance(ObservationEnsemble& oe, ParameterEnsemble& dp);
 	 
 	void get_spea2_archive_names_to_keep(int num_members, vector<string>& keep, const ObservationEnsemble& op, const ParameterEnsemble& dp);
@@ -92,7 +112,6 @@ public:
 	map<string, double> get_mopso_fitness(vector<string> members, ObservationEnsemble& op, ParameterEnsemble& dp);
 
 	double get_ei(map<string, double> phi, string obj, double curr_opt);
-	map<string, double> get_bgo_aqf_map();
 
 	set<string> get_duplicates() { return duplicates;  }
 
@@ -121,6 +140,7 @@ private:
 		vector<string>>&solutions_dominated_map, map<string, int>& num_dominating_map, bool dup_as_dom=false);
 
 	bool compare_two_nsga(string& first, string& second);
+	bool compare_two_bgo(string& first, string& second);
 	bool compare_two_spea(string& first, string& second);
 
 	//sort all members in member struct
@@ -136,7 +156,7 @@ private:
 	double get_euclidean_fitness(double E, double V);
 	map<string, double> get_cluster_crowding_fitness(vector<string>& members, map<string, map<string, double>>& _member_struct);
 
-	vector<string> sort_members_of_bgo_ensemble(vector<string>& members, map<string, double>& crowd_map, map<string, map<string, double>>& _member_struct);
+	map<int, string> sort_members_of_bgo_ensemble(map<string, map<string, double>>& _ensemble_struct, ParameterEnsemble& dp);
 
 	map<string, map<string, double>> member_struct;
 	vector<string>* obj_names_ptr;
@@ -149,12 +169,14 @@ private:
 
 	map<string, map<string, double>> feas_member_struct;
 	map<int, vector<string>> front_map;
+	map <int, string> bgo_repo_map;
 	map<int, vector<string>> prob_front_map;
 	map<string, double> crowd_map, expected_crowd_map, var_crowd_map, fitness_map, probnondom_map, min_sd, nn_map;
-	map<string, int> member_front_map;
+	map<string, int> member_front_map, bgo_member_repo_map;
 	map<string, double> member_cvar;
 	map<string, double> infeas;
 	vector<string> infeas_ordered;
+	map<string, double> enbgo_fitness_map;
 	map<string, double> spea2_constrained_fitness_map;
 	map<string, double> spea2_unconstrained_fitness_map;
 	
@@ -179,7 +201,7 @@ private:
 
 	double c_opt;
 	map<string, map<string, double>> bgo_ensemble_struct;
-	map<string, double> bgo_aqf_map;
+	map<string, double> bgo_aqf_map, decspace_dist_map;
 };
 
 
@@ -246,6 +268,7 @@ private:
 	void update_sim_maps(ParameterEnsemble& _dp, ObservationEnsemble& _op);
 	void fill_populations_from_maps(ParameterEnsemble& new_dp, ObservationEnsemble& new_op );
 
+	void update_archive_bgo(ObservationEnsemble& _op, ParameterEnsemble& _dp);
 	void update_archive_nsga(ObservationEnsemble& _op, ParameterEnsemble& _dp);
 	void update_archive_spea(ObservationEnsemble& _op, ParameterEnsemble& _dp);
 
