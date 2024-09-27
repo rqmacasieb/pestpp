@@ -2,7 +2,7 @@ library(laGP)
 
 ndim <- 50
 
-cur_opt <- read.csv("outer_repo.archive.obs_pop.csv")
+cur_opt <- read.csv("mic_outer.obs_pop.csv")
 cur_opt <- cur_opt$func
 
 

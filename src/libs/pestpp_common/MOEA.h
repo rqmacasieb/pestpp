@@ -156,7 +156,8 @@ private:
 	double get_euclidean_fitness(double E, double V);
 	map<string, double> get_cluster_crowding_fitness(vector<string>& members, map<string, map<string, double>>& _member_struct);
 
-	map<int, string> sort_members_of_bgo_ensemble(map<string, map<string, double>>& _ensemble_struct, ParameterEnsemble& dp);
+	map<int, string> sort_members_of_bgo_ensemble(map<string, map<string, double>>& _ensemble_struct, 
+		ParameterEnsemble& dp, ObservationEnsemble& _op, Constraints* constraints_ptr);
 
 	map<string, map<string, double>> member_struct;
 	vector<string>* obj_names_ptr;

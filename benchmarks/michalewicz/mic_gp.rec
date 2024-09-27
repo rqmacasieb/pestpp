@@ -6,12 +6,12 @@
 
 
 version: 5.2.5
-binary compiled on Sep 26 2024 at 09:46:35
+binary compiled on Sep 27 2024 at 14:32:59
 
 using control file: "mic_gp.pst"
 in directory: "C:\Users\mac732\OneDrive - CSIRO\Documents\GitHub\pestpp-moudev\benchmarks\michalewicz"
 on host: "DUMPLING-FL"
-started at 09/26/24 09:46:41
+started at 09/27/24 14:43:19
 
 on host: "DUMPLING-FL"
 
@@ -44,7 +44,7 @@ PEST Control Information
     facparmax = 10
     facorig = 0.001
     phiredswh = 0.1
-    noptmax = 5
+    noptmax = 20
     phiredstp = 0.01
     nphistp = 3
     nphinored = 3
@@ -164,9 +164,9 @@ sqp_scale_facs:
 
 ...pestpp-mou options:
 mou_generator: pso
-mou_population_size: 20
-mou_dv_population_file: mic.dv_pop.csv
-mou_obs_population_restart_file: mic.obs_pop.csv
+mou_population_size: 100
+mou_dv_population_file: sogp_mic.dv_pop.csv
+mou_obs_population_restart_file: sogp_mic.obs_pop.csv
 mou_objectives: 
   FUNC
 mou_max_archive_size: 100
@@ -185,7 +185,7 @@ mou_pso_alpha: 1
 mou_pso_rramp: -500
 mou_pso_rfit: 2
 mou_max_nn_search: 100
-mou_outer_repo_obs_file: mic.outer.obs_pop.csv
+mou_outer_repo_obs_file: mic_outer.obs_pop.csv
 mou_hypervolume_extreme: 1e+10
 mou_infill_size: 100
 mou_adaptive_ppd: 0
@@ -282,7 +282,7 @@ da_noptmax_schedule:
 
 
 Model command line(s):- 
-    MODELRUN.bat
+    R CMD BATCH SOGP_1.R
 
 Model interface files:-
     template files:
@@ -382,11 +382,26 @@ PEST SVD Information
 
   ---  initializing MOEA process  ---  
 ...population schedule: generation,population size:
-...   0, 20
-...   1, 20
-...   2, 20
-...   3, 20
-...   4, 20
+...   0, 100
+...   1, 100
+...   2, 100
+...   3, 100
+...   4, 100
+...   5, 100
+...   6, 100
+...   7, 100
+...   8, 100
+...   9, 100
+...   10, 100
+...   11, 100
+...   12, 100
+...   13, 100
+...   14, 100
+...   15, 100
+...   16, 100
+...   17, 100
+...   18, 100
+...   19, 100
 ...using 'nsga2_bgo' env selector
 ...using binary tournament mating pool selector
 ...saving generation specific populations and archives every nth generation 1
@@ -408,91 +423,77 @@ X41 X42 X43 X44 X45 X46 X47 X48 X49 X50
 name                 sense          value          
 FUNC                 less_than      0              
 ...using particle swarm generator
-...loading dv population from csv file mic.dv_pop.csv
-...dv population with 100 members read from 'mic.dv_pop.csv'
+...loading dv population from csv file sogp_mic.dv_pop.csv
+...dv population with 100 members read from 'sogp_mic.dv_pop.csv'
 
-...'mou_population_size' arg passed, truncated dv population to  20
-...previous generation numbers detected in dv population, fast forwarding generation counter to 1
-...loading obs population from csv file mic.obs_pop.csv
-...obs population with 100 members read from 'mic.obs_pop.csv'
+...previous generation numbers detected in dv population, fast forwarding generation counter to 20
+...loading obs population from csv file sogp_mic.obs_pop.csv
+...obs population with 100 members read from 'sogp_mic.obs_pop.csv'
 
 ... saved observation population to  mic_gp.0.obs_pop.csv
 
   ---  initial population decision variable summary:  ---  
 decision variable        ubnd      lbnd      mean   standard devation         min         max
-X1                          5        -5  -3.32654             2.13534          -5   0.0535855
-X2                          5        -5  -1.62431             2.00816          -5     3.96612
-X3                          5        -5-0.0790415             1.29596    -2.05955     2.25628
-X4                          5        -5   2.87605              2.7121    -2.60388           5
-X5                          5        -5   2.46176             3.32199          -5           5
-X6                          5        -5  -3.83714             1.08575          -5    -1.45573
-X7                          5        -5   2.86944             2.87409    -4.53153           5
-X8                          5        -5  -1.02441             2.86098    -4.43087     4.81734
-X9                          5        -5  -4.17977             1.30222          -5    0.102568
-X10                         5        -5    1.8395             3.18064    -4.86758     4.53529
-X11                         5        -5   2.46652             1.59631    -2.49644           5
-X12                         5        -5 -0.786493              3.1852    -4.19863     4.75702
-X13                         5        -5 -0.774365              2.6131          -5     4.99389
-X14                         5        -5   3.99551             2.41517    -2.31669           5
-X15                         5        -5  0.112347             1.12126     -1.5986     4.27017
-X16                         5        -5  -1.99457             2.22918          -5      1.4574
-X17                         5        -5 -0.541784              3.3767     -4.8712           5
-X18                         5        -5   3.48932             2.13686    -1.15223           5
-X19                         5        -5  -1.82719             2.52602    -3.71029      2.7767
-X20                         5        -5  -3.79343             1.57264     -4.7986     1.19654
-X21                         5        -5   4.20511             1.01918     1.63058           5
-X22                         5        -5 -0.278301             1.77163    -2.04094     2.69953
-X23                         5        -5   1.84795             1.43252    -1.36129           5
-X24                         5        -5 -0.649049             2.55886          -5     3.69503
-X25                         5        -5   3.59812             1.87118     -1.5049           5
-X26                         5        -5  0.664275             2.39702     -4.5226     3.03775
-X27                         5        -5  -2.29335             2.49296    -4.13438     3.12174
-X28                         5        -5  -2.81714             1.75388          -5      0.5222
-X29                         5        -5   1.29895             2.30229          -5           5
-X30                         5        -5 -0.783902             2.32594    -4.60653     4.13714
-X31                         5        -5 -0.694411             1.93573          -5     1.90471
-X32                         5        -5  0.499497             2.44263    -4.46973     4.17147
-X33                         5        -5  -3.04289             3.29442          -5           5
-X34                         5        -5  -3.46696             2.54037          -5     1.67541
-X35                         5        -5  0.815502             1.29132    -2.11855     4.37588
-X36                         5        -5   1.45495            0.944353    0.102144     4.48038
-X37                         5        -5   1.17262             2.72321    -3.55612           5
-X38                         5        -5   2.42331             3.13984          -5           5
-X39                         5        -5  -2.96748             2.54804          -5      2.8478
-X40                         5        -5 -0.323455             2.69489    -4.73416           5
-X41                         5        -5   1.45004             2.02114    -4.94303           5
-X42                         5        -5  0.511057             3.10625     -2.6495     4.92593
-X43                         5        -5   1.84927             1.59797     -2.8129           5
-X44                         5        -5  -3.25613             2.54991          -5      4.6729
-X45                         5        -5  0.976857             1.86962    -0.38744     4.00481
-X46                         5        -5  -3.60357             1.32825          -5     1.14725
-X47                         5        -5  -3.32441             2.63598    -4.92508     3.24452
-X48                         5        -5 -0.505693             1.97475    -3.89413      2.8741
-X49                         5        -5   2.31512             1.27932    0.997236           5
-X50                         5        -5 -0.484968             2.09424          -5    0.972874
+X1                          5        -5 -0.110643             3.07818          -5           5
+X2                          5        -5-0.0354286             3.28857          -5           5
+X3                          5        -5  0.190641             3.00222          -5           5
+X4                          5        -5-0.0853811             2.91247          -5           5
+X5                          5        -5 -0.040111             3.04955          -5           5
+X6                          5        -5 -0.247946             3.23747          -5           5
+X7                          5        -5  0.226886             2.92044          -5           5
+X8                          5        -5 0.0751873              2.9817          -5           5
+X9                          5        -5 -0.603713             3.29479          -5           5
+X10                         5        -5 -0.343736             3.25359          -5           5
+X11                         5        -5   0.37052              3.1127          -5           5
+X12                         5        -5-0.0219646             3.29298          -5           5
+X13                         5        -5  0.169879             3.13165          -5           5
+X14                         5        -5  0.186095             3.15977          -5           5
+X15                         5        -5  0.153342             3.11798          -5           5
+X16                         5        -5 0.0293587             3.02048          -5           5
+X17                         5        -5-0.0645241             3.21681          -5           5
+X18                         5        -5 -0.169344             3.19861          -5           5
+X19                         5        -5   0.30327             3.19116          -5           5
+X20                         5        -5 -0.231245              2.9661          -5           5
+X21                         5        -5-0.0709824              3.2394          -5           5
+X22                         5        -5 -0.327543             3.26623          -5           5
+X23                         5        -5 -0.377529             3.31796          -5           5
+X24                         5        -5 -0.218377             3.04415          -5           5
+X25                         5        -5  0.420219             3.17494          -5           5
+X26                         5        -5-0.0946778             3.17309          -5           5
+X27                         5        -5 -0.162793             3.18645          -5           5
+X28                         5        -5 -0.150953              3.1852          -5           5
+X29                         5        -5  -0.60121              3.0448          -5           5
+X30                         5        -5  0.359592             3.02654          -5           5
+X31                         5        -5 -0.168538             3.27324          -5           5
+X32                         5        -5 -0.220605             3.19823          -5           5
+X33                         5        -5 -0.408787             3.44891          -5           5
+X34                         5        -5  0.262578             3.34807          -5           5
+X35                         5        -5   0.16591             3.03002          -5           5
+X36                         5        -5  0.171048              3.2939          -5           5
+X37                         5        -5  0.462445             3.16462          -5           5
+X38                         5        -5  0.264894             3.33907          -5           5
+X39                         5        -5 -0.644903             3.03892          -5           5
+X40                         5        -5   0.11072             3.17924          -5           5
+X41                         5        -5 -0.020093             3.38539          -5           5
+X42                         5        -5 -0.360307             3.16312          -5           5
+X43                         5        -5-0.0423465             3.06086          -5           5
+X44                         5        -5 -0.239718             3.06186          -5           5
+X45                         5        -5  0.251507             3.27374          -5           5
+X46                         5        -5 -0.100789             3.17651          -5           5
+X47                         5        -5  0.182782             3.17734          -5           5
+X48                         5        -5 -0.305868             3.12062          -5           5
+X49                         5        -5 -0.128638             3.26319          -5           5
+X50                         5        -5 -0.457333             2.92433          -5           5
 
 
   ---  initial population objective function summary:  ---  
 seeking optimal trade-off point for single 'optimal' chance point runs
-using member GEN=1_MEMBER=95_PSO as single, 'optimal' point
+using member GEN=20_MEMBER=1906_PSO as single, 'optimal' point
    with distance of 0 from optimal trade - off
 objective function   direction         mean      std dev          min          max         knee
 
-FUNC                  minimize   -0.4232362     0.294601     -1.46436    -0.120187     -1.46436
+FUNC                  minimize    -1.339169    0.9570069     -4.57074    -0.103336     -4.57074
 
 ... saved initial dv population to  mic_gp.0.dv_pop.csv
 ...performing initial ensemble sorting
-...loading outer repository obs from csv file mic.outer.obs_pop.csv
-...wrote ensemble summary to mic_gp.ensemble.summary.csv
-initialized archives with 20 ensemble members
-...saved decision variable population of size 20 X 50 to 'mic_gp.archive.dv_pop.csv'
-...saved generation-specific decision variable population of size 20 X 50 to 'mic_gp.0.archive.dv_pop.csv'
-...saved observation population of size 20 X 3 to 'mic_gp.archive.obs_pop.csv'
-...saved generation-specific observation population of size 20 X 3 to 'mic_gp.0.archive.obs_pop.csv'
-...number of initial feasible solutions: 20
-
-  ---  initialization complete  ---  
-
-  ---  starting generation  1  ---  
-...generating PSO population of size 20
-...running population of size  20
+...loading outer repository obs from csv file mic_outer.obs_pop.csv

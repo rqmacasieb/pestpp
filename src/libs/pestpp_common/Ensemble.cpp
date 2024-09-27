@@ -595,7 +595,7 @@ void Ensemble::fill_moment_maps(map<string, double>& mean_map, map<string, doubl
 {
     mean_map.clear();
     std_map.clear();
-	cout << reals; //debug only. delete later
+	//cout << reals; //debug only. delete later
 	Eigen::VectorXd mean = reals.colwise().mean();
 	Eigen::MatrixXd mean_diff = get_eigen_anomalies();
 	//std = mean_diff.array().pow(2).colwise().sum().sqrt();

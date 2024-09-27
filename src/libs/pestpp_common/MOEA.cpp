@@ -809,7 +809,7 @@ pair<vector<string>, vector<string>> ParetoObjectives::get_bgo_ensemble(int gene
 		throw runtime_error("ParetoObjectives::get_bgo_ensemble() error: bgo_ensemble_struct is empty");
 
 	performance_log->log_event("ensemble sorting");
-	bgo_repo_map = sort_members_of_bgo_ensemble(bgo_ensemble_struct, dp);
+	bgo_repo_map = sort_members_of_bgo_ensemble(bgo_ensemble_struct, dp, op, constraints_ptr);
 	bgo_member_repo_map.clear();
 	
 	int max_arc_size = pest_scenario.get_pestpp_options().get_mou_max_archive_size();
@@ -1516,7 +1516,8 @@ map<string, double> ParetoObjectives::get_cluster_crowding_fitness(vector<string
 	return fit_map;
 }
 
-map<int, string> ParetoObjectives::sort_members_of_bgo_ensemble(map<string, map<string, double>>& _ensemble_struct, ParameterEnsemble& dp)
+map<int, string> ParetoObjectives::sort_members_of_bgo_ensemble(map<string, map<string, double>>& _ensemble_struct, 
+	ParameterEnsemble& dp, ObservationEnsemble& op, Constraints* constraints_ptr)
 {
 	double numreals = dp.shape().first;
 	int repo_size = pest_scenario.get_pestpp_options().get_mou_max_archive_size();
@@ -1565,6 +1566,24 @@ map<int, string> ParetoObjectives::sort_members_of_bgo_ensemble(map<string, map<
 
 		if (selected == 0) //the first selection is the one with max aqf value
 		{
+			if (mx == 0)
+			{
+				cout << "...all members offer zero improvement. Comparing objective values instead." << endl;
+
+				pair<vector<string>, vector<string>> dom = get_nsga2_pareto_dominance(-999, op, dp, constraints_ptr, prob_pareto, false);
+				mxid = dom.first[0];
+
+				if (dom.first.size() >  1)
+				{
+					stringstream ss;
+					ss << "ERROR: ParetoObjectives::sort_members_of_bgo_ensemble: too many current optimum";
+					ss << dom.first.size() << "solutions to begin ensemble sorting" << endl;
+					file_manager.rec_ofstream() << ss.str();
+					cout << ss.str();
+					throw runtime_error(ss.str());
+				}
+			}
+
 			decspace_dist_map[mxid] = 0.0;
 			enbgo_fitness_map[mxid] = 1.0;
 			selected_members.push_back(mxid);
