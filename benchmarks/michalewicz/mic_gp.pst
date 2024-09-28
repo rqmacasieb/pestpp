@@ -6,7 +6,7 @@ restart estimation
  10  2  .3  .01  8 
  10  10  .001
  .1
- 20   .01  3  3	.01  3 
+ 5   .01  3  3	.01  3 
  1   1   1 
 * parameter groups
 decvar	absolute  1.00  0.0		switch  	1 	parabolic
@@ -69,7 +69,7 @@ func		0		1	l_obj
 func_sd		0		1	obs
 EI			0		1	obs
 * model command line
-R CMD BATCH SOGP_1.R
+MODELRUN.BAT
 * model input/output
 dv_tpl.dat dv.dat
 gp_output.ins gp_output.dat
@@ -81,8 +81,8 @@ gp_output.ins gp_output.dat
 ++mou_bgo_aqf(EI)
 ++mou_bgo_lambda(0.6)
 ++mou_generator(pso)
-++mou_population_size(100)
-++mou_max_archive_size(100)
+++mou_population_size(20)
+++mou_max_archive_size(20)
 ++mou_dv_population_file(sogp_mic.dv_pop.csv)
 ++mou_obs_population_restart_file(sogp_mic.obs_pop.csv)
 ++mou_outer_repo_obs_file(mic_outer.obs_pop.csv)

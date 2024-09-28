@@ -4480,7 +4480,7 @@ void MOEA::iterate_to_solution()
 				DomPair dompair = objectives.get_bgo_ensemble(iter, new_op, new_dp, &constraints,  true, BGO_POP_SUM_TAG);
 
 				if (should_use_multigen()) {
-					message(2, "keeping all feasible nondom members from multi-generational population");
+					message(2, "keeping all feasible members from multi-generational population");
 					keep = dompair.first;
 				}
 				else {
@@ -4501,6 +4501,12 @@ void MOEA::iterate_to_solution()
 					new_op_repo.keep_rows(keep);
 					update_archive_bgo(new_op_repo, new_dp_repo);
 				}
+
+				message(1, "resizing current populations to ", keep.size());
+				new_dp.keep_rows(keep);
+				new_op.keep_rows(keep);
+				dp = new_dp;
+				op = new_op;
 
 			}
 			else
