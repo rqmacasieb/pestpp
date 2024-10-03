@@ -795,10 +795,65 @@ map<string, double> ParetoObjectives::get_spea2_fitness(int generation, Observat
 	return spea2_constrained_fitness_map;
 }
 
+vector<pair<string, double>> ParetoObjectives::sort_by_aqf(ObservationEnsemble& op,
+	ParameterEnsemble& dp, Constraints* constraints_ptr)
+{
+	stringstream ss;
+	ofstream& frec = file_manager.rec_ofstream();
+	ss << "ParetoObjectives::sort_by_aqf for " << op.shape().first << " population members";
+	performance_log->log_event(ss.str());
+	update_bgo_ensemble(op, dp, constraints_ptr);
+	
+	if (bgo_ensemble_struct.size() == 0)
+		throw runtime_error("ParetoObjectives::sort_by_aqf() error: bgo_ensemble_struct is empty");
+
+	performance_log->log_event("ensemble sorting of AQF values for gbest updating");
+
+	map<string, double> aqf_vals = bgo_aqf_map, norm_aqf;
+
+	double mx = 0;
+	for (auto aqf : aqf_vals)
+	{
+		if (aqf.second < 0)
+			mx = aqf.second;
+	}
+
+	if (mx == 0)
+		mx = 1.0;
+
+	for (auto aqf : aqf_vals)
+	{
+		norm_aqf[aqf.first] = aqf.second / mx;
+	}
+
+	sortedset aqf_sorted(norm_aqf.begin(), norm_aqf.end(), compFunctor);
+
+	vector<pair<string, double>> sorted_aqf;
+	for (auto es : aqf_sorted)
+	{
+		for (auto en : norm_aqf)
+		{
+			if (es.second == en.second)
+			{
+				sorted_aqf.push_back(en);
+			}
+		}
+	}
+	
+	return sorted_aqf;
+
+}
+
 pair<vector<string>, vector<string>> ParetoObjectives::get_bgo_ensemble(int generation, ObservationEnsemble& op,
 	ParameterEnsemble& dp, Constraints* constraints_ptr, bool report, string sum_tag)
 {
+	double lambda;
 	iter = generation;
+	if (iter != -999)
+		lambda = pest_scenario.get_pestpp_options().get_mou_bgo_lambda();
+	else
+		lambda = 0.0;
+
 	stringstream ss;
 	ofstream& frec = file_manager.rec_ofstream();
 	ss << "ParetoObjectives::get_bgo_ensemble() for " << op.shape().first << " population members";
@@ -809,7 +864,7 @@ pair<vector<string>, vector<string>> ParetoObjectives::get_bgo_ensemble(int gene
 		throw runtime_error("ParetoObjectives::get_bgo_ensemble() error: bgo_ensemble_struct is empty");
 
 	performance_log->log_event("ensemble sorting");
-	bgo_repo_map = sort_members_of_bgo_ensemble(bgo_ensemble_struct, dp, op, constraints_ptr);
+	bgo_repo_map = sort_members_of_bgo_ensemble(bgo_ensemble_struct, dp, op, constraints_ptr, lambda);
 	bgo_member_repo_map.clear();
 	
 	int max_arc_size = pest_scenario.get_pestpp_options().get_mou_max_archive_size();
@@ -1517,7 +1572,7 @@ map<string, double> ParetoObjectives::get_cluster_crowding_fitness(vector<string
 }
 
 map<int, string> ParetoObjectives::sort_members_of_bgo_ensemble(map<string, map<string, double>>& _ensemble_struct, 
-	ParameterEnsemble& dp, ObservationEnsemble& op, Constraints* constraints_ptr)
+	ParameterEnsemble& dp, ObservationEnsemble& op, Constraints* constraints_ptr, double lambda)
 {
 	double numreals = dp.shape().first;
 	int repo_size = pest_scenario.get_pestpp_options().get_mou_max_archive_size();
@@ -1526,8 +1581,7 @@ map<int, string> ParetoObjectives::sort_members_of_bgo_ensemble(map<string, map<
 
 	map<int, string> repo_map;
 	map<string, double> dist_map, dist_pct, aqf_pct, fitness_map, aqf_vals = get_bgo_aqf_map();
-	double dist, lambda = pest_scenario.get_pestpp_options().get_mou_bgo_lambda();
-	double alpha = pest_scenario.get_pestpp_options().get_mou_pso_alpha();
+	double dist, alpha = pest_scenario.get_pestpp_options().get_mou_pso_alpha();
 	
 	enbgo_fitness_map.clear();
 	decspace_dist_map.clear();
@@ -5076,6 +5130,8 @@ vector<string> MOEA::get_pso_gbest_solutions(int num_reals, ParameterEnsemble& _
 
 	if (bgo)
 	{
+		//vector<pair<string, double>> sorted_aqf = objectives.sort_by_aqf(_op, _dp, &constraints);
+
 		DomPair dompair = objectives.get_bgo_ensemble(-999, _op, _dp, &constraints, false);
 		vector < double> r;
 		vector<string> working = dompair.first;

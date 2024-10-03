@@ -54,6 +54,7 @@ public:
 	map<string, double> get_enbgo_fitness_map() { return enbgo_fitness_map; }
 	map<string, double> get_bgo_aqf_map() { return bgo_aqf_map; }
 	void update_bgo_ensemble(ObservationEnsemble& op, ParameterEnsemble& dp, Constraints* constraints_ptr);
+	vector<pair<string, double>> sort_by_aqf(ObservationEnsemble& op, ParameterEnsemble& dp, Constraints* constraints_ptr);
 
 	void write_bgo_ensemble_summary(string& sum_tag, int generation, ObservationEnsemble& op, ParameterEnsemble& dp, Constraints* constr_ptr);
 	void prep_bgo_ensemble_summary_file(string summary_tag);
@@ -157,7 +158,7 @@ private:
 	map<string, double> get_cluster_crowding_fitness(vector<string>& members, map<string, map<string, double>>& _member_struct);
 
 	map<int, string> sort_members_of_bgo_ensemble(map<string, map<string, double>>& _ensemble_struct, 
-		ParameterEnsemble& dp, ObservationEnsemble& _op, Constraints* constraints_ptr);
+		ParameterEnsemble& dp, ObservationEnsemble& _op, Constraints* constraints_ptr, double lambda);
 
 	map<string, map<string, double>> member_struct;
 	vector<string>* obj_names_ptr;
