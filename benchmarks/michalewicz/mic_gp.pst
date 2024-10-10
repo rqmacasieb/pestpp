@@ -70,6 +70,7 @@ func_sd		0		1	obs
 EI			0		1	obs
 * model command line
 MODELRUN.BAT
+#python MIC.py
 * model input/output
 dv_tpl.dat dv.dat
 gp_output.ins gp_output.dat
@@ -83,6 +84,8 @@ gp_output.ins gp_output.dat
 ++mou_generator(pso)
 ++mou_population_size(20)
 ++mou_max_archive_size(20)
+++mou_resample_every(1)
+++mou_resample_command(MODELRUN2.BAT)
 ++mou_dv_population_file(sogp_mic.dv_pop.csv)
 ++mou_obs_population_restart_file(sogp_mic.obs_pop.csv)
 ++mou_outer_repo_obs_file(mic_outer.obs_pop.csv)

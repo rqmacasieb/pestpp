@@ -1,0 +1,246 @@
+ptf !
+         1        50         1
+         1         0
+        18         1(15G14.0)                   -1  Recharge
+ ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     !
+ ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     !
+ ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     !
+ ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     !
+ ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     !
+ ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     !
+ ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     !
+ ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     !
+ ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     !
+ ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     !
+ ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     !
+ ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     !
+ ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     !
+ ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     !
+ ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     !
+ ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     !
+ ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     !
+ ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     !
+ ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     !
+ ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     !
+ ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     !
+ ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     !
+ ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     !
+ ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     !
+ ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     !
+ ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     !
+ ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     !
+ ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     !
+ ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     !
+ ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     !
+ ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     !
+ ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     !
+ ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     !
+ ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     !
+ ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     !
+ ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     !
+ ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     !
+ ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     !
+ ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     !
+ ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     !
+ ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     !
+ ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     !
+ ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     !
+ ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     !
+ ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     !
+ ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     !
+ ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     !
+ ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     !
+ ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     !
+ ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     !
+ ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     !
+ ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     !
+ ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     !
+ ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     !
+ ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     !
+ ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     !
+ ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     !
+ ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     !
+ ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     !
+ ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     !
+ ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     !
+ ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     !
+ ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     !
+ ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     !
+ ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     !
+ ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     !
+ ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     !
+ ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     !
+ ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     !
+ ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     !
+ ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     !
+ ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     !
+ ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     !
+ ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     !
+ ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     !
+ ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     !
+ ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     !
+ ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     !
+ ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     !
+ ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     !
+ ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     !
+ ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     !
+ ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     !
+ ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     !
+ ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     !
+ ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     !
+ ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     !
+ ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     !
+ ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     !
+ ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     !
+ ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     !
+ ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     !
+ ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     !
+ ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     !
+ ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     !
+ ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     !
+ ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     !
+ ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     !
+ ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     !
+ ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     !
+ ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     !
+ ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     !
+ ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     !
+ ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     !
+ ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     !
+ ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     !
+ ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     !
+ ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     !
+ ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     !
+ ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     !
+ ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     !
+ ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     !
+ ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     !
+ ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     !
+ ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     !
+ ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     !
+ ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     !
+ ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     !
+ ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     !
+ ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     !
+         2         0
+        18         1(15G14.0)                   -1  Recharge
+ ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     !
+ ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     !
+ ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     !
+ ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     !
+ ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     !
+ ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     !
+ ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     !
+ ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     !
+ ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     !
+ ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     !
+ ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     !
+ ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     !
+ ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     !
+ ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     !
+ ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     !
+ ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     !
+ ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     !
+ ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     !
+ ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     !
+ ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     !
+ ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     !
+ ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     !
+ ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     !
+ ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     !
+ ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     !
+ ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     !
+ ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     !
+ ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     !
+ ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     !
+ ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     !
+ ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     !
+ ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     !
+ ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     !
+ ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     !
+ ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     !
+ ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     !
+ ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     !
+ ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     !
+ ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     !
+ ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     !
+ ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     !
+ ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     !
+ ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     !
+ ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     !
+ ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     !
+ ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     !
+ ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     !
+ ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     !
+ ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     !
+ ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     !
+ ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     !
+ ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     !
+ ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     !
+ ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     !
+ ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     !
+ ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     !
+ ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     !
+ ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     !
+ ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     !
+ ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     !
+ ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     !
+ ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     !
+ ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     !
+ ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     !
+ ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     !
+ ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     !
+ ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     !
+ ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     !
+ ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     !
+ ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     !
+ ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     !
+ ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     !
+ ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     !
+ ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     !
+ ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     !
+ ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     !
+ ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     !
+ ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     !
+ ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     !
+ ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     !
+ ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     !
+ ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     !
+ ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     !
+ ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     !
+ ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     !
+ ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     !
+ ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     !
+ ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     !
+ ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     !
+ ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     !
+ ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     !
+ ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     !
+ ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     !
+ ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     !
+ ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     !
+ ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     !
+ ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     !
+ ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     !
+ ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     !
+ ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     !
+ ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     !
+ ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     !
+ ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     !
+ ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     !
+ ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     !
+ ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     !
+ ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     !
+ ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     !
+ ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     !
+ ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     !
+ ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     !
+ ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     !
+ ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     !
+ ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     !
+ ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     !
+ ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     !
+ ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     !
+ ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     !
+ ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     !
+ ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     ! ! RCH_9     !

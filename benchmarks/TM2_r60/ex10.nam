@@ -1,0 +1,15 @@
+LIST     3 output.dat
+DIS          105 discret.dat
+BAS6     1 bas6.dat
+LPF           31 lpf1.dat
+PCG   23 pcg2.dat
+WEL   12 wel.dat
+DRN   13 drn.dat
+RIV   14 riv.dat
+GHB   17 ghb.dat
+RCH   18 rch.dat
+LMT6          66 lmt6.dat
+OC                 22 oc.dat
+DATA(BINARY)  50 budget.dat
+DATA(BINARY)  51 heads.dat
+DATA(BINARY)  52 ddown.dat

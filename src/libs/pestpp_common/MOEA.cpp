@@ -2351,10 +2351,10 @@ double ParetoObjectives::get_ehvi(string& member, map<string, map<string, double
 
 
 MOEA::MOEA(Pest &_pest_scenario, FileManager &_file_manager, OutputFileWriter &_output_file_writer, 
-	PerformanceLog *_performance_log, RunManagerAbstract* _run_mgr_ptr)
+	PerformanceLog *_performance_log, RunManagerAbstract* _run_mgr_ptr, RunManagerAbstract* _infill_run_mgr_ptr)
 	: pest_scenario(_pest_scenario), file_manager(_file_manager),
 	output_file_writer(_output_file_writer), performance_log(_performance_log),
-	run_mgr_ptr(_run_mgr_ptr), constraints(_pest_scenario, &_file_manager, _output_file_writer, *_performance_log),
+	run_mgr_ptr(_run_mgr_ptr), infill_run_mgr_ptr(_infill_run_mgr_ptr), constraints(_pest_scenario, &_file_manager, _output_file_writer, *_performance_log),
 	objectives(_pest_scenario,_file_manager,_performance_log)
 	
 {
@@ -3019,6 +3019,18 @@ void MOEA::queue_resample_runs(ParameterEnsemble& _dp)
 	//insert outer iter scripts
 }
 
+void MOEA::queue_infill_runs(ParameterEnsemble& _dp)
+{
+	stringstream ss;
+	if (constraints.should_retrain(iter))
+	{
+		dp.transform_ip(ParameterEnsemble::transStatus::NUM);
+		Parameters pars = pest_scenario.get_ctl_parameters();
+		Parameters opars;
+		pest_scenario.get_base_par_tran_seq().ctl2numeric_ip(pars);
+		Observations obs = pest_scenario.get_ctl_observations();
+	}
+}
 
 void MOEA::queue_chance_runs(ParameterEnsemble& _dp)
 {
@@ -3062,6 +3074,208 @@ void MOEA::queue_chance_runs(ParameterEnsemble& _dp)
 	}
 }
 
+ObservationEnsemble MOEA::run_infill_candidates(ParameterEnsemble& dv_candidates)
+{
+	ofstream& frec = file_manager.rec_ofstream();
+	stringstream ss;
+	ss << "queuing " << dv_candidates.shape().first << " candidate solutions";
+	performance_log->log_event(ss.str());
+	run_mgr_ptr->reinitialize();
+
+	map<int, int> real_run_ids;
+
+	try
+	{
+		real_run_ids = dv_candidates.add_runs(run_mgr_ptr);
+	}
+	catch (const exception& e)
+	{
+		stringstream ss;
+		ss << "run_ensemble() error queueing runs: " << e.what();
+		throw_moea_error(ss.str());
+	}
+	catch (...)
+	{
+		throw_moea_error(string("run_ensembles() error queueing runs"));
+	}
+
+	performance_log->log_event("making runs");
+	try
+	{
+
+		run_mgr_ptr->run();
+	}
+	catch (const exception& e)
+	{
+		stringstream ss;
+		ss << "error running ensembles: " << e.what();
+		throw_moea_error(ss.str());
+	}
+	catch (...)
+	{
+		throw_moea_error(string("error running ensembles"));
+	}
+
+	performance_log->log_event("processing runs");
+	vector<int> failed_real_indices;
+
+	ObservationEnsemble _oe(&pest_scenario, &rand_gen);
+	_oe.reserve(dv_candidates.get_real_names(), pest_scenario.get_ctl_ordered_obs_names());
+
+	try
+	{
+		failed_real_indices = _oe.update_from_runs(real_run_ids, run_mgr_ptr);
+	}
+	catch (const exception& e)
+	{
+		stringstream ss;
+		ss << "error processing dv candidate runs: " << e.what();
+		throw_moea_error(ss.str());
+	}
+	catch (...)
+	{
+		stringstream ss;
+		ss << "error processing dv candidate runs";
+		throw_moea_error(ss.str());
+	}
+
+	if (pest_scenario.get_pestpp_options().get_ies_debug_fail_subset())
+		failed_real_indices.push_back(real_run_ids.size() - 1);
+
+	if (failed_real_indices.size() > 0)
+	{
+		stringstream ss;
+		vector<string> par_real_names = dp.get_real_names();
+		vector<string> obs_real_names = op.get_real_names();
+		vector<string> failed_par_names, failed_obs_names;
+		string oname, pname;
+		ss << "the following dv candidate runs failed -->";
+		for (auto& i : failed_real_indices)
+		{
+			pname = par_real_names[i];
+			oname = obs_real_names[i];
+			failed_par_names.push_back(pname);
+			failed_obs_names.push_back(oname);
+			ss << pname << ":" << oname << ',';
+		}
+		string s = ss.str();
+		message(1, s);
+		if (failed_real_indices.size() == _oe.shape().first)
+		{
+			message(0, "WARNING: all dv candidate runs failed");
+			_oe = ObservationEnsemble(&pest_scenario);
+
+		}
+		else
+		{
+			performance_log->log_event("dropping failed realizations");
+			//_oe.drop_rows(failed_real_indices);
+			//pe_lams[i].drop_rows(failed_real_indices);
+			_oe.drop_rows(failed_obs_names);
+			dv_candidates.drop_rows(failed_par_names);
+			//update scale_vals 
+			/*vector<double> new_scale_vals;
+			for (int i = 0; i < real_names.size(); i++)
+				if (find(failed_real_indices.begin(), failed_real_indices.end(), i) == failed_real_indices.end())
+					new_scale_vals.push_back(scale_vals[i]);
+			scale_vals = new_scale_vals;*/
+		}
+	}
+
+
+	return _oe;
+
+
+}
+
+vector<int> MOEA::run_infills(ParameterEnsemble& _dp, ObservationEnsemble& _op, bool allow_chance)
+{
+	ofstream& frec = file_manager.rec_ofstream();
+	stringstream ss;
+	ss << "running " << _dp.shape().first << " candidate infill solutions";
+	performance_log->log_event(ss.str());
+	infill_run_mgr_ptr->reinitialize();
+
+	map<int, int> real_run_ids;
+	try
+	{
+		real_run_ids = _dp.add_runs(infill_run_mgr_ptr);
+	}
+	catch (const exception& e)
+	{
+		stringstream ss;
+		ss << "run_infills() error queueing runs: " << e.what();
+		throw_moea_error(ss.str());
+	}
+	catch (...)
+	{
+		throw_moea_error(string("run_infills() error queueing runs"));
+	}
+	performance_log->log_event("making infill runs");
+	try
+	{
+		//add condition to do resample runs using different command specified
+		infill_run_mgr_ptr->run();
+	}
+	catch (const exception& e)
+	{
+		stringstream ss;
+		ss << "error running infills: " << e.what();
+		throw_moea_error(ss.str());
+	}
+	catch (...)
+	{
+		throw_moea_error(string("error running infills"));
+	}
+
+	performance_log->log_event("processing runs");
+
+	vector<int> failed_real_indices;
+	try
+	{
+		failed_real_indices = _op.update_from_runs(real_run_ids, infill_run_mgr_ptr);
+	}
+	catch (const exception& e)
+	{
+		stringstream ss;
+		ss << "error processing runs: " << e.what();
+		throw_moea_error(ss.str());
+	}
+	catch (...)
+	{
+		throw_moea_error(string("error processing runs"));
+	}
+	//for testing
+	if (pest_scenario.get_pestpp_options().get_ies_debug_fail_subset())
+		failed_real_indices.push_back(0);
+
+	if (failed_real_indices.size() > 0)
+	{
+		stringstream ss;
+		vector<string> par_real_names = _dp.get_real_names();
+		vector<string> obs_real_names = _op.get_real_names();
+		ss << "the following par:obs realization infill runs failed: ";
+		for (auto& i : failed_real_indices)
+		{
+			ss << par_real_names[i] << ":" << obs_real_names[i] << ',';
+		}
+		performance_log->log_event(ss.str());
+		message(1, "failed infill realizations: ", failed_real_indices.size());
+		string s = ss.str();
+		message(1, s);
+		performance_log->log_event("dropping failed infill realizations");
+		_dp.drop_rows(failed_real_indices);
+		_op.drop_rows(failed_real_indices);
+	}
+
+	if (allow_chance)
+	{
+		constraints.process_runs(infill_run_mgr_ptr, iter);
+		constraints.update_chance_offsets();
+	}
+	return failed_real_indices;
+}
+
 vector<int> MOEA::run_population(ParameterEnsemble& _dp, ObservationEnsemble& _op, bool allow_chance)
 {
 	run_mgr_ptr->reinitialize();
@@ -3069,9 +3283,20 @@ vector<int> MOEA::run_population(ParameterEnsemble& _dp, ObservationEnsemble& _o
 	if (allow_chance)
 		queue_chance_runs(_dp);
 
+
+	//TO DO: insert queue_resample_runs here
+	/*if (bgo)
+		queue_infill_runs(_dp);*/
+
+
 	//queue up outer iter runs
-	/*if (iter % pest_scenario.get_pestpp_options().get_mou_resample_every() == 0)
-		queue_resample_runs(_dp);*/
+	vector<int> failed_real_indices;
+	if (iter % pest_scenario.get_pestpp_options().get_mou_resample_every() == 0)
+	{
+		failed_real_indices = run_infills(_dp, _op, allow_chance);
+		return failed_real_indices;
+	}
+
 
 	message(1, "running population of size ", _dp.shape().first);
 	stringstream ss;
@@ -3096,6 +3321,7 @@ vector<int> MOEA::run_population(ParameterEnsemble& _dp, ObservationEnsemble& _o
 	performance_log->log_event("making runs");
 	try
 	{
+		//add condition to do resample runs using different command specified
 		run_mgr_ptr->run();
 	}
 	catch (const exception& e)
@@ -3111,7 +3337,7 @@ vector<int> MOEA::run_population(ParameterEnsemble& _dp, ObservationEnsemble& _o
 
 	performance_log->log_event("processing runs");
 	
-	vector<int> failed_real_indices;
+	
 	try
 	{
 		failed_real_indices = _op.update_from_runs(real_run_ids, run_mgr_ptr);
@@ -4455,10 +4681,12 @@ void MOEA::iterate_to_solution()
 
 		//generate offspring
 		ParameterEnsemble new_dp = generate_population();
+		//TO DO inside generate_population should be the sampling method utilising greedy sampling
 		
 		//run offspring thru the model while also running risk runs, possibly at many points in dec var space	
 		ObservationEnsemble new_op(&pest_scenario, &rand_gen);
 		new_op.reserve(new_dp.get_real_names(), op.get_var_names());
+
 		run_population(new_dp, new_op, true);
 
 		save_populations(new_dp, new_op);

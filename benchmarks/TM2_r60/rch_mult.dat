@@ -1,0 +1,4 @@
+RCH_1
+Constant        .0000528    RECHARGE Multiplier array for period 1
+RCH_2
+Constant        .0000528    RECHARGE Multiplier array for period 2

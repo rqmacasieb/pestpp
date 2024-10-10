@@ -2277,6 +2277,18 @@ bool Constraints::should_update_chance(int iter)
 	return false;
 }
 
+bool Constraints::should_retrain(int iter)
+{
+	/* this is a total hack - it tries to determine if it is time to update the chance
+	information, like should we queue up some JCO pertubation runs for FOSM chances or
+	should we queue up some stack runs for stack-based chances*/
+	
+	if (iter == 0)
+		return true;
+	else if ((iter) % pest_scenario.get_pestpp_options().get_mou_resample_every() == 0)
+		return true;
+	return false;
+}
 
 void Constraints::postsolve_obs_constraints_report(Observations& old_obs, Observations& new_obs, string tag, int iter, 
 									map<string,string> status_map, map<string,double> price_map)

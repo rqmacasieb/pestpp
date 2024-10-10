@@ -214,7 +214,7 @@ public:
 	
 	static mt19937_64 rand_engine;
 	MOEA(Pest &_pest_scenario, FileManager &_file_manager, OutputFileWriter &_output_file_writer,
-		PerformanceLog *_performance_log, RunManagerAbstract* _run_mgr_ptr);
+		PerformanceLog *_performance_log, RunManagerAbstract* _run_mgr_ptr, RunManagerAbstract* _infill_run_mgr_ptr);
 	void initialize();
     void iterate_to_solution();
 	void finalize();
@@ -257,6 +257,7 @@ private:
 	OutputFileWriter &output_file_writer;
 	PerformanceLog *performance_log;
 	RunManagerAbstract* run_mgr_ptr;
+	RunManagerAbstract* infill_run_mgr_ptr;
 	const ObservationInfo *obs_info_ptr;
 
 	ParameterEnsemble dp, dp_archive;
@@ -284,6 +285,8 @@ private:
 
 	void sanity_checks();
 	vector<int> run_population(ParameterEnsemble& _dp, ObservationEnsemble& _op, bool allow_chance);
+	ObservationEnsemble run_infill_candidates(ParameterEnsemble& dv_candidates);
+	vector<int> run_infills(ParameterEnsemble& _dp, ObservationEnsemble& _op, bool allow_chance);
 
 	void queue_chance_runs(ParameterEnsemble& _dp);
 	ObservationEnsemble get_chance_shifted_op(ParameterEnsemble& _dp, ObservationEnsemble& _op, string& opt_member);
@@ -340,6 +343,8 @@ private:
 	bool should_use_multigen();
 
 	void queue_resample_runs(ParameterEnsemble& _dp); //outer iters
+
+	void queue_infill_runs(ParameterEnsemble& _dp);
 
 	void get_current_true_solution();
 

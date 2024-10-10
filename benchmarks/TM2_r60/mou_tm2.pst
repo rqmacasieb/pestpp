@@ -1,0 +1,68 @@
+pcf
+* control data 
+norestart estimation
+ 16  7   2   1   5 
+ 6   2  single nopoint
+ 10  2  .3  .01  8 
+ 10  10  .001
+ .1
+ 10   .01  3  3   .01  3 
+ 1   1   1 
+* parameter groups
+g1 		relative  0.01  0.0 	always_2  	1 	parabolic
+pumping	absolute  1.00  0.0		switch  	1 	parabolic	
+* parameter data
+vani_1	log		factor      77.5823            51.9938           115.764		g1	1	0	1
+ss_2    log		factor      9.968648E-06       9.451250E-08      1.051437E-03	g1	1	0	1
+sy_3    log		factor      0.254220           0.234872          0.275163    	g1	1	0	1
+hk_4    log		factor      20.6253            15.8449           26.8478    	g1	1	0	1
+ghb_5   log		factor      100.960            0.836331          12187.6 		g1	1	0	1
+drn_6   log		factor     	27.4163            6.70986           112.022    	g1	1	0	1
+drn_7   log		factor      245.309            121.189           496.551   		g1	1	0	1
+riv_8   log		factor      331.887            294.338           374.226    	g1	1	0	1
+rch_9   log		factor      5.281967E-05       5.125162E-05      5.443570E-05	g1	1	0	1
+ghb_10  log		factor      25.0623            0.161316          3893.72 		g1	1	0	1
+WEL_1   none    relative  	500            	   0               	 9000           pumping  -1   0   1
+WEL_2   none    relative  	500           	   0               	 9000           pumping  -1   0   1
+WEL_3   none    relative  	500                0                 9000           pumping  -1   0   1
+WEL_4   none    relative  	500            	   0                 9000           pumping  -1   0   1
+WEL_5   none    relative  	500            	   0                 15000          pumping  -1   0   1
+WEL_6   none    relative  	500            	   0                 15000          pumping  -1   0   1
+* Observation groups
+less_obj
+greater_obj
+less_than
+greater_than
+drawdown
+* Observation data
+OBS1_3	 2      1   drawdown
+OBS2_3	 2      1   drawdown
+OBS3_3	 2      1   drawdown
+WL1_3	 2      1   less_than
+WL2_3	 2      1   less_than
+obj_1    20000  1   greater_obj
+obj_2    5      1   less_obj
+* model command line
+MODELRUN2.BAT
+* model input/output
+lpf1tpl.dat lpf1.dat
+DRNTPL.DAT drn.dat
+ghbtpl.dat ghb.dat
+rivtpl.dat riv.dat
+rchtpl.dat rch.dat
+weltpl.dat wel.dat
+ddconstr.ins modelout.dat
+OBJ.ins objective.dat
+* prior information
+pi_1  1.0 * WEL_1 + 1.0 * WEL_2 + 1.0 * WEL_3 + 1.0 * WEL_4 + 1.0 * WEL_5 = 20000.00    1.0      greater_than
+++opt_dec_var_groups(pumping)
+++opt_constraint_groups(less_than,greater_than)
+++mou_objectives(obj_1,obj_2)
+++panther_agent_freeze_on_fail(True)
+++mou_save_population_every(1)
+++opt_chance_points(all)
+++opt_stack_size(20)
+++mou_generator(pso)
+++mou_population_size(20)
+++opt_recalc_chance_every(1)
+++opt_risk(0.6)

@@ -6,12 +6,12 @@
 
 
 version: 5.2.5
-binary compiled on Oct  3 2024 at 12:12:29
+binary compiled on Oct 10 2024 at 14:11:34
 
 using control file: "mic_gp.pst"
 in directory: "C:\Users\mac732\OneDrive - CSIRO\Documents\GitHub\pestpp-moudev\benchmarks\michalewicz"
 on host: "DUMPLING-FL"
-started at 10/03/24 12:14:58
+started at 10/10/24 16:44:59
 
 on host: "DUMPLING-FL"
 
@@ -187,7 +187,7 @@ mou_pso_rfit: 2
 mou_max_nn_search: 100
 mou_outer_repo_obs_file: mic_outer.obs_pop.csv
 mou_hypervolume_extreme: 1e+10
-mou_infill_size: 100
+mou_infill_size: 50
 mou_adaptive_ppd: 0
 mou_ppd_beta: 0.5
 mou_fit_gamma: 0.25
@@ -379,118 +379,3 @@ PEST SVD Information
 
 
 
-
-  ---  initializing MOEA process  ---  
-...population schedule: generation,population size:
-...   0, 20
-...   1, 20
-...   2, 20
-...   3, 20
-...   4, 20
-...using 'nsga2_bgo' env selector
-...using binary tournament mating pool selector
-...saving generation specific populations and archives every nth generation 1
-'opt_dec_var_groups' passed, using 50 adjustable parameters as decision variables
-decision variables:
-X1 X2 X3 X4 X5 X6 X7 X8 X9 X10 
-X11 X12 X13 X14 X15 X16 X17 X18 X19 X20 
-X21 X22 X23 X24 X25 X26 X27 X28 X29 X30 
-X31 X32 X33 X34 X35 X36 X37 X38 X39 X40 
-X41 X42 X43 X44 X45 X46 X47 X48 X49 X50 
-
-...number of decision variables:  50
-...max run fail:  3
-...'opt_chance_points' = SINGLE, evaluting chance at representative point
-...using the following observations as objectives: 
-                          FUNC   minimize
-
-  ---  observation constraints and/or objectives ---  
-name                 sense          value          
-FUNC                 less_than      0              
-...using particle swarm generator
-...loading dv population from csv file sogp_mic.dv_pop.csv
-...dv population with 100 members read from 'sogp_mic.dv_pop.csv'
-
-...'mou_population_size' arg passed, truncated dv population to  20
-...loading obs population from csv file sogp_mic.obs_pop.csv
-...obs population with 100 members read from 'sogp_mic.obs_pop.csv'
-
-... saved observation population to  mic_gp.0.obs_pop.csv
-
-  ---  initial population decision variable summary:  ---  
-decision variable        ubnd      lbnd      mean   standard devation         min         max
-X1                          5        -5  0.157467             2.71693    -4.65407      4.7322
-X2                          5        -5 -0.309779             3.31416      -4.659     4.74693
-X3                          5        -5  0.318687             2.38421    -4.76261     4.75084
-X4                          5        -5 -0.411435             2.85831    -4.92575     3.99531
-X5                          5        -5 -0.483375             3.02766    -4.65295     3.71881
-X6                          5        -5  0.323471              2.9358    -4.48089     4.97979
-X7                          5        -5  0.815703             2.76063     -3.9109      4.8767
-X8                          5        -5  0.642379             2.41545      -3.435     4.76829
-X9                          5        -5 -0.396831             3.15265    -4.63041     4.79378
-X10                         5        -5   0.70541             2.97434    -4.59861     4.81469
-X11                         5        -5  0.922011             2.52741    -3.88361     4.67911
-X12                         5        -5 -0.164829             2.83026    -4.99944     4.95302
-X13                         5        -5  0.421334             2.26109    -3.69376     4.19778
-X14                         5        -5 -0.257657             3.13389    -4.60431      4.2244
-X15                         5        -5 -0.750682              2.7805     -4.8631     3.99487
-X16                         5        -5   1.37578             2.62071    -4.82784     4.50487
-X17                         5        -5 -0.864501             2.75841     -4.8712     4.45937
-X18                         5        -5   1.23711             2.91482    -4.41159     4.42743
-X19                         5        -5 0.0447629             2.82415    -4.58316      4.8567
-X20                         5        -5  0.453117             2.61096    -4.25215     4.74018
-X21                         5        -5  -0.38111             2.71903    -4.06388      4.1902
-X22                         5        -5 -0.123829              2.6089    -4.02159     4.88659
-X23                         5        -5  -0.49508             2.88319    -4.82212     4.78301
-X24                         5        -5 -0.156806             2.55441    -4.56084     4.52873
-X25                         5        -5 -0.296541              3.2088    -4.96992     4.53183
-X26                         5        -5   -0.3077             2.74038    -4.93223     4.02941
-X27                         5        -5-0.0258302             2.88049     -4.3136     4.95063
-X28                         5        -5 -0.255516              2.5471    -4.23064     4.11595
-X29                         5        -5   1.02005             2.88207    -4.60577     4.70643
-X30                         5        -5 -0.443677             2.58923    -4.60653     3.94458
-X31                         5        -5 -0.404699             3.12978    -4.93724     4.89481
-X32                         5        -5   1.08104              2.4061    -3.76717     4.61001
-X33                         5        -5 -0.154919              2.6487    -4.35331     4.99468
-X34                         5        -5  -0.45395             3.41741    -4.92325     4.38479
-X35                         5        -5  0.373786             2.23483    -3.04698     4.84883
-X36                         5        -5  0.121724             2.75448    -4.34516     4.94818
-X37                         5        -5  0.744931             2.63703    -3.75815     4.54114
-X38                         5        -5   0.55198             2.67425    -4.69784     4.48052
-X39                         5        -5  -1.00284             1.96772    -4.77246      2.0254
-X40                         5        -5 0.0574219              3.0185    -4.84563     4.82661
-X41                         5        -50.00935955             3.38052    -4.84761      4.9352
-X42                         5        -5 -0.936207             2.71073    -4.91223     3.29739
-X43                         5        -5  0.312698              2.4606    -3.67465      4.7115
-X44                         5        -5  -0.42932             3.47166    -4.80239     4.96684
-X45                         5        -5  0.773027             3.09364     -4.6983     4.95635
-X46                         5        -5 -0.894883             3.03238    -4.93001     4.99473
-X47                         5        -5 0.0156031             3.05704    -4.79746     4.64591
-X48                         5        -5 -0.932003             2.55637    -4.45731     3.13744
-X49                         5        -5  0.262695             2.77097    -4.50603     4.83814
-X50                         5        -5 -0.594384             2.91867     -4.5579     4.79351
-
-
-  ---  initial population objective function summary:  ---  
-seeking optimal trade-off point for single 'optimal' chance point runs
-using member GEN=0_MEMBER=26 as single, 'optimal' point
-   with distance of 0 from optimal trade - off
-objective function   direction         mean      std dev          min          max         knee
-
-FUNC                  minimize    -1.357815    0.8859753     -3.70141    -0.149691     -3.70141
-
-... saved initial dv population to  mic_gp.0.dv_pop.csv
-...performing initial ensemble sorting
-...loading outer repository obs from csv file mic_outer.obs_pop.csv
-...wrote ensemble summary to mic_gp.ensemble.summary.csv
-initialized archives with 20 ensemble members
-...saved decision variable population of size 20 X 50 to 'mic_gp.archive.dv_pop.csv'
-...saved generation-specific decision variable population of size 20 X 50 to 'mic_gp.0.archive.dv_pop.csv'
-...saved observation population of size 20 X 3 to 'mic_gp.archive.obs_pop.csv'
-...saved generation-specific observation population of size 20 X 3 to 'mic_gp.0.archive.obs_pop.csv'
-...number of initial feasible solutions: 20
-
-  ---  initialization complete  ---  
-
-  ---  starting generation  1  ---  
-...generating PSO population of size 20

@@ -1998,12 +1998,12 @@ void PestppOptions::set_defaults()
 	set_mou_outer_repo_obs_file("");
 	set_mou_max_nn_search(get_mou_population_size());
 	set_mou_hypervolume_extreme(1e+10);
-	set_mou_infill_size(100);
+	set_mou_infill_size(get_mou_population_size()/2);
 	set_mou_ppd_beta(0.5);
 	set_mou_fit_epsilon(0.05);
 	set_mou_fit_gamma(0.25);
 	set_mou_adaptive_ppd(false);
-	set_mou_resample_every(-1);
+	set_mou_resample_every(1);
 	set_mou_resample_command("");
 	set_mou_bgo_aqf("EI");
 	set_mou_bgo_lambda(0.6);
