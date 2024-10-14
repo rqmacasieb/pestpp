@@ -12,8 +12,8 @@ import csv
 func = bf.Michalewicz(n_dimensions=50)
 point = pd.read_csv("dv.dat").values.reshape(-1).tolist()
 
-val = [[func(point)], [0], [0]]
+val = [["x"], [func(point)], [0], [0]]
 
-with open('hf_output.dat', 'w+', newline = '') as file:
+with open('output.dat', 'w+', newline = '') as file:
     writer = csv.writer(file)
     writer.writerows(val)

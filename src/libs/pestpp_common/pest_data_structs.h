@@ -420,6 +420,10 @@ public:
 	void set_mou_max_nn_search(int val) { mou_max_nn_search = val; }
 	string get_mou_outer_repo_obs_file() const { return mou_outer_repo_obs_file; }
 	void set_mou_outer_repo_obs_file(string name) { mou_outer_repo_obs_file = name; }
+	string get_mou_bgo_dv_training_file() const { return mou_bgo_dv_training_file; }
+	void set_mou_bgo_dv_training_file(string name) { mou_bgo_dv_training_file = name; }
+	string get_mou_bgo_obs_training_file() const { return mou_bgo_obs_training_file; }
+	void set_mou_bgo_obs_training_file(string name) { mou_bgo_obs_training_file = name; }
 	double get_mou_hypervolume_extreme() const { return mou_hypervolume_extreme; }
 	void set_mou_hypervolume_extreme(double val) { mou_hypervolume_extreme = val; }
 	int get_mou_infill_size() const { return mou_infill_size; }
@@ -786,6 +790,8 @@ private:
 	string mou_bgo_aqf;
 	double mou_bgo_lambda;
 	string mou_outer_repo_obs_file;
+	string mou_bgo_dv_training_file;
+	string mou_bgo_obs_training_file;
 	int mou_max_nn_search;
 	int mou_infill_size;
 	double mou_hypervolume_extreme;

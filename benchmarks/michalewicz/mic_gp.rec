@@ -6,12 +6,12 @@
 
 
 version: 5.2.5
-binary compiled on Oct 10 2024 at 14:11:34
+binary compiled on Oct 14 2024 at 12:30:18
 
 using control file: "mic_gp.pst"
 in directory: "C:\Users\mac732\OneDrive - CSIRO\Documents\GitHub\pestpp-moudev\benchmarks\michalewicz"
 on host: "DUMPLING-FL"
-started at 10/10/24 16:44:59
+started at 10/14/24 12:30:24
 
 on host: "DUMPLING-FL"
 
@@ -44,7 +44,7 @@ PEST Control Information
     facparmax = 10
     facorig = 0.001
     phiredswh = 0.1
-    noptmax = 5
+    noptmax = 2
     phiredstp = 0.01
     nphistp = 3
     nphinored = 3
@@ -187,13 +187,15 @@ mou_pso_rfit: 2
 mou_max_nn_search: 100
 mou_outer_repo_obs_file: mic_outer.obs_pop.csv
 mou_hypervolume_extreme: 1e+10
-mou_infill_size: 50
+mou_infill_size: 5
 mou_adaptive_ppd: 0
 mou_ppd_beta: 0.5
 mou_fit_gamma: 0.25
 mou_fit_epsilon: 0.05
 mou_bgo_aqf: EI
-mou_bgo_lambda: 0.6
+mou_bgo_lambda: 0
+mou_bgo_dv_training_file: mic.dv_training.csv
+mou_bgo_obs_training_file: mic.obs_training.csv
 mou_population_schedule: 
 mou_simplex_reflections:10
 mou_simplex_factors: 
@@ -282,7 +284,7 @@ da_noptmax_schedule:
 
 
 Model command line(s):- 
-    MODELRUN.BAT
+    MODELRUN2.BAT
 
 Model interface files:-
     template files:
@@ -291,9 +293,9 @@ Model interface files:-
       dv.dat
 
     instruction files:
-      gp_output.ins
+      output.ins
     model output files:
-      gp_output.dat
+      output.dat
 
 
 Parameter group information
@@ -379,3 +381,444 @@ PEST SVD Information
 
 
 
+
+  ---  initializing MOEA process  ---  
+...population schedule: generation,population size:
+...   0, 20
+...   1, 20
+...using 'nsga2_bgo' env selector
+...using binary tournament mating pool selector
+...saving generation specific populations and archives every nth generation 1
+'opt_dec_var_groups' passed, using 50 adjustable parameters as decision variables
+decision variables:
+X1 X2 X3 X4 X5 X6 X7 X8 X9 X10 
+X11 X12 X13 X14 X15 X16 X17 X18 X19 X20 
+X21 X22 X23 X24 X25 X26 X27 X28 X29 X30 
+X31 X32 X33 X34 X35 X36 X37 X38 X39 X40 
+X41 X42 X43 X44 X45 X46 X47 X48 X49 X50 
+
+...number of decision variables:  50
+...max run fail:  3
+...'opt_chance_points' = SINGLE, evaluting chance at representative point
+...using the following observations as objectives: 
+                          FUNC   minimize
+
+  ---  observation constraints and/or objectives ---  
+name                 sense          value          
+FUNC                 less_than      0              
+...using particle swarm generator
+...loading dv population from csv file sogp_mic.dv_pop.csv
+...dv population with 100 members read from 'sogp_mic.dv_pop.csv'
+
+...'mou_population_size' arg passed, truncated dv population to  20
+...loading obs population from csv file sogp_mic.obs_pop.csv
+...obs population with 100 members read from 'sogp_mic.obs_pop.csv'
+
+...loading training dataset from csv file mic.dv_training.csv
+...loading dv population from csv file mic.dv_training.csv
+...dv training dataset with 200 members read from 'mic.dv_training.csv'
+
+...loading obs population from csv file mic.obs_training.csv
+...obs training dataset with 200 members read from 'mic.obs_training.csv'
+
+... saved observation population to  mic_gp.0.obs_pop.csv
+
+  ---  initial population decision variable summary:  ---  
+decision variable        ubnd      lbnd      mean   standard devation         min         max
+X1                          5        -5  0.157467             2.71693    -4.65407      4.7322
+X2                          5        -5 -0.309779             3.31416      -4.659     4.74693
+X3                          5        -5  0.318687             2.38421    -4.76261     4.75084
+X4                          5        -5 -0.411435             2.85831    -4.92575     3.99531
+X5                          5        -5 -0.483375             3.02766    -4.65295     3.71881
+X6                          5        -5  0.323471              2.9358    -4.48089     4.97979
+X7                          5        -5  0.815703             2.76063     -3.9109      4.8767
+X8                          5        -5  0.642379             2.41545      -3.435     4.76829
+X9                          5        -5 -0.396831             3.15265    -4.63041     4.79378
+X10                         5        -5   0.70541             2.97434    -4.59861     4.81469
+X11                         5        -5  0.922011             2.52741    -3.88361     4.67911
+X12                         5        -5 -0.164829             2.83026    -4.99944     4.95302
+X13                         5        -5  0.421334             2.26109    -3.69376     4.19778
+X14                         5        -5 -0.257657             3.13389    -4.60431      4.2244
+X15                         5        -5 -0.750682              2.7805     -4.8631     3.99487
+X16                         5        -5   1.37578             2.62071    -4.82784     4.50487
+X17                         5        -5 -0.864501             2.75841     -4.8712     4.45937
+X18                         5        -5   1.23711             2.91482    -4.41159     4.42743
+X19                         5        -5 0.0447629             2.82415    -4.58316      4.8567
+X20                         5        -5  0.453117             2.61096    -4.25215     4.74018
+X21                         5        -5  -0.38111             2.71903    -4.06388      4.1902
+X22                         5        -5 -0.123829              2.6089    -4.02159     4.88659
+X23                         5        -5  -0.49508             2.88319    -4.82212     4.78301
+X24                         5        -5 -0.156806             2.55441    -4.56084     4.52873
+X25                         5        -5 -0.296541              3.2088    -4.96992     4.53183
+X26                         5        -5   -0.3077             2.74038    -4.93223     4.02941
+X27                         5        -5-0.0258302             2.88049     -4.3136     4.95063
+X28                         5        -5 -0.255516              2.5471    -4.23064     4.11595
+X29                         5        -5   1.02005             2.88207    -4.60577     4.70643
+X30                         5        -5 -0.443677             2.58923    -4.60653     3.94458
+X31                         5        -5 -0.404699             3.12978    -4.93724     4.89481
+X32                         5        -5   1.08104              2.4061    -3.76717     4.61001
+X33                         5        -5 -0.154919              2.6487    -4.35331     4.99468
+X34                         5        -5  -0.45395             3.41741    -4.92325     4.38479
+X35                         5        -5  0.373786             2.23483    -3.04698     4.84883
+X36                         5        -5  0.121724             2.75448    -4.34516     4.94818
+X37                         5        -5  0.744931             2.63703    -3.75815     4.54114
+X38                         5        -5   0.55198             2.67425    -4.69784     4.48052
+X39                         5        -5  -1.00284             1.96772    -4.77246      2.0254
+X40                         5        -5 0.0574219              3.0185    -4.84563     4.82661
+X41                         5        -50.00935955             3.38052    -4.84761      4.9352
+X42                         5        -5 -0.936207             2.71073    -4.91223     3.29739
+X43                         5        -5  0.312698              2.4606    -3.67465      4.7115
+X44                         5        -5  -0.42932             3.47166    -4.80239     4.96684
+X45                         5        -5  0.773027             3.09364     -4.6983     4.95635
+X46                         5        -5 -0.894883             3.03238    -4.93001     4.99473
+X47                         5        -5 0.0156031             3.05704    -4.79746     4.64591
+X48                         5        -5 -0.932003             2.55637    -4.45731     3.13744
+X49                         5        -5  0.262695             2.77097    -4.50603     4.83814
+X50                         5        -5 -0.594384             2.91867     -4.5579     4.79351
+
+
+  ---  initial population objective function summary:  ---  
+seeking optimal trade-off point for single 'optimal' chance point runs
+using member GEN=0_MEMBER=26 as single, 'optimal' point
+   with distance of 0 from optimal trade - off
+objective function   direction         mean      std dev          min          max         knee
+
+FUNC                  minimize    -1.357815    0.8859753     -3.70141    -0.149691     -3.70141
+
+... saved initial dv population to  mic_gp.0.dv_pop.csv
+...performing initial pareto dominance sort
+...loading outer repository obs from csv file mic_outer.obs_pop.csv
+...wrote pareto summary to mic_gp.pareto.summary.csv
+initialized archives with 1 nondominated members
+...wrote pareto summary to mic_gp.pareto.archive.summary.csv
+...saved decision variable population of size 1 X 50 to 'mic_gp.archive.dv_pop.csv'
+...saved generation-specific decision variable population of size 1 X 50 to 'mic_gp.0.archive.dv_pop.csv'
+...saved observation population of size 1 X 3 to 'mic_gp.archive.obs_pop.csv'
+...saved generation-specific observation population of size 1 X 3 to 'mic_gp.0.archive.obs_pop.csv'
+...number of initial feasible solutions: 1
+
+  ---  initialization complete  ---  
+
+  ---  starting generation  1  ---  
+...generating PSO population of size 20
+...saved augmented infill-training decision variable dataset of size 200 X 50 to 'mic_gp.training.dv_pop.csv'
+...saved augmented infill-training observation dataset of size 200 X 3 to 'mic_gp.training.obs_pop.csv'
+...wrote ensemble summary to mic_gp.1.infill_search.summary.csv
+greedy selection picked GEN=1_MEMBER=11_PSO. Current infill size: 1
+...saved augmented infill-training decision variable dataset of size 201 X 50 to 'mic_gp.training.dv_pop.csv'
+...saved augmented infill-training observation dataset of size 201 X 3 to 'mic_gp.training.obs_pop.csv'
+...wrote ensemble summary to mic_gp.1.infill_search.summary.csv
+greedy selection picked GEN=1_MEMBER=7_PSO. Current infill size: 2
+...saved augmented infill-training decision variable dataset of size 202 X 50 to 'mic_gp.training.dv_pop.csv'
+...saved augmented infill-training observation dataset of size 202 X 3 to 'mic_gp.training.obs_pop.csv'
+...wrote ensemble summary to mic_gp.1.infill_search.summary.csv
+greedy selection picked GEN=1_MEMBER=8_PSO. Current infill size: 3
+...saved augmented infill-training decision variable dataset of size 203 X 50 to 'mic_gp.training.dv_pop.csv'
+...saved augmented infill-training observation dataset of size 203 X 3 to 'mic_gp.training.obs_pop.csv'
+...wrote ensemble summary to mic_gp.1.infill_search.summary.csv
+greedy selection picked GEN=1_MEMBER=18_PSO. Current infill size: 4
+...saved augmented infill-training decision variable dataset of size 204 X 50 to 'mic_gp.training.dv_pop.csv'
+...saved augmented infill-training observation dataset of size 204 X 3 to 'mic_gp.training.obs_pop.csv'
+...wrote ensemble summary to mic_gp.1.infill_search.summary.csv
+greedy selection picked GEN=1_MEMBER=10_PSO. Current infill size: 5
+...greedy selection finished with 5 selected infills. Proceeding with complex runs...
+...running population of size  5
+...saved augmented infill-training decision variable dataset of size 205 X 50 to 'mic_gp.1.training.dv_pop.csv'
+...saved augmented infill-training observation dataset of size 205 X 3 to 'mic_gp.1.training.obs_pop.csv'
+...saved decision variable population of size 5 X 50 to 'mic_gp.dv_pop.csv'
+...saved generation-specific decision variable population of size 5 X 50 to 'mic_gp.1.dv_pop.csv'
+...saved observation population of size 5 X 3 to 'mic_gp.obs_pop.csv'
+...saved generation-specific observation population of size 5 X 3 to 'mic_gp.1.obs_pop.csv'
+...pareto dominance sorting combined parent-child populations of size  25
+...wrote pareto summary to mic_gp.pareto.summary.csv
+updating archive
+all nondominated members in already in archive
+...resizing current populations to  20
+
+  ---  generation 1 decision variable summary:  ---  
+decision variable        ubnd      lbnd      mean   standard devation         min         max
+X1                          5        -5  0.028858             2.77675    -4.65407      4.7322
+X2                          5        -5 0.0168865              3.2381      -4.659     4.74693
+X3                          5        -5  0.189781             1.98023    -3.48647      3.7888
+X4                          5        -5 -0.384675             3.04521    -4.92575     3.99531
+X5                          5        -5 -0.844358             3.11658          -5     3.71881
+X6                          5        -5  0.454443             2.84316    -4.48089     4.97979
+X7                          5        -5  0.299096             2.58174     -3.9109     4.46524
+X8                          5        -5  0.609265             2.54844    -4.37337     4.76829
+X9                          5        -5 -0.191716             2.94147    -4.33096     4.79378
+X10                         5        -5  0.389014             2.90444    -4.59861     4.81469
+X11                         5        -5  0.942003             2.78181    -3.88361           5
+X12                         5        -5 -0.161363             2.96756    -4.99944           5
+X13                         5        -5  0.194963             2.57726          -5     4.19778
+X14                         5        -5 -0.540882             3.17712    -4.60431      4.2244
+X15                         5        -5-0.0843474             2.81792     -4.8631           5
+X16                         5        -5    0.9329              2.7082    -4.82784     4.50487
+X17                         5        -5 -0.938815             2.64484     -4.8712     4.45937
+X18                         5        -5   1.08199             3.04103          -5     4.42743
+X19                         5        -5   0.46878             2.97098    -4.58316           5
+X20                         5        -5  0.837976             2.69165    -4.25215           5
+X21                         5        -5 -0.374667             2.80436          -5      4.1902
+X22                         5        -5 -0.304001             2.66719    -4.03835     4.88659
+X23                         5        -5 -0.732106             2.80125    -4.82212     4.78301
+X24                         5        -5-0.0387782             2.34407    -3.60972     4.52873
+X25                         5        -5 -0.362949             3.48035          -5     4.99773
+X26                         5        -5 -0.852698             2.76514          -5     4.02941
+X27                         5        -5 -0.336613             2.94166          -5     4.51984
+X28                         5        -5 -0.631182             2.74638    -4.78642     4.11595
+X29                         5        -5  0.939556             2.85169    -4.60577     4.70643
+X30                         5        -5   -0.3317             2.55835    -4.60653     4.24522
+X31                         5        -5 0.0941033             3.31814    -4.93724           5
+X32                         5        -5  0.874018             2.63879    -4.31594     4.61001
+X33                         5        -5 -0.215402             2.57642    -4.35331     4.26062
+X34                         5        -5 -0.708984             3.58981          -5     4.38479
+X35                         5        -5  0.326995             2.17333    -3.04698     4.84883
+X36                         5        -5  0.961251             2.75592    -4.27246           5
+X37                         5        -5   1.23414             2.26036    -3.55612     4.54114
+X38                         5        -5  0.631271             2.91722    -4.69784     4.78046
+X39                         5        -5 -0.975026             2.14435    -4.77246     2.74428
+X40                         5        -5  0.365189             3.04598    -4.84563     4.82661
+X41                         5        -5  0.434264             3.25808    -4.84761      4.9352
+X42                         5        -5 -0.931607             2.72969          -5     3.29739
+X43                         5        -5  0.271462             2.70521          -5      4.7115
+X44                         5        -5 -0.827695             3.41009    -4.80239     4.96684
+X45                         5        -5   0.71949             3.10007          -5     4.95635
+X46                         5        -5 -0.602258             3.08591    -4.46114     4.99473
+X47                         5        -5 -0.385825             3.15551          -5     4.64591
+X48                         5        -5 -0.846712              2.7817    -4.46317     3.95345
+X49                         5        -5  0.341959             2.55178    -3.52692     4.83814
+X50                         5        -5 -0.648616              3.1054          -5     4.79351
+
+
+  ---  generation 1 decision variable change summary:  ---  
+decision variable  mean change   % change max change   % change min change   % change
+X1                    0.128609    81.6736          0          0          0          0
+X2                   -0.326665          0          0          0          0          0
+X3                    0.128906    40.4492    0.96204    20.2499   -1.27614          0
+X4                    -0.02676          0          0          0          0          0
+X5                    0.360983          0          0          0    0.34705          0
+X6                   -0.130972   -40.4896          0          0          0          0
+X7                    0.516607    63.3328    0.41146    8.43726          0          0
+X8                   0.0331142    5.15492          0          0   0.938374          0
+X9                   -0.205114          0          0          0   -0.29945          0
+X10                   0.316395    44.8527          0          0          0          0
+X11                  -0.019992   -2.16831   -0.32089   -6.85793          0          0
+X12                -0.00346655          0   -0.04698  -0.948512          0          0
+X13                   0.226371    53.7272          0          0    1.30624          0
+X14                   0.283225          0          0          0          0          0
+X15                  -0.666335          0   -1.00513   -25.1605          0          0
+X16                   0.442879    32.1911          0          0          0          0
+X17                   0.074314          0          0          0          0          0
+X18                   0.155115    12.5385          0          0    0.58841          0
+X19                  -0.424017   -947.249    -0.1433   -2.95056          0          0
+X20                  -0.384859   -84.9359   -0.25982   -5.48123          0          0
+X21                -0.00644297          0          0          0    0.93612          0
+X22                   0.180172          0          0          0  0.0167613          0
+X23                   0.237027          0          0          0          0          0
+X24                  -0.118028          0          0          0   -0.95112          0
+X25                  0.0664077          0  -0.465897   -10.2805    0.03008          0
+X26                   0.544998          0          0          0    0.06777          0
+X27                   0.310783          0    0.43079    8.70172     0.6864          0
+X28                   0.375666          0          0          0   0.555775          0
+X29                  0.0804915    7.89096          0          0          0          0
+X30                  -0.111977          0  -0.300645   -7.62172          0          0
+X31                  -0.498802          0   -0.10519   -2.14901          0          0
+X32                   0.207024    19.1504          0          0   0.548775          0
+X33                  0.0604836          0   0.734055    14.6967          0          0
+X34                   0.255035          0          0          0    0.07675          0
+X35                  0.0467906     12.518          0          0          0          0
+X36                  -0.839528     -689.7   -0.05182   -1.04725    -0.0727          0
+X37                  -0.489209   -65.6717          0          0   -0.20203          0
+X38                 -0.0792912   -14.3649  -0.299937   -6.69424          0          0
+X39                 -0.0278173          0  -0.718883   -35.4934          0          0
+X40                  -0.307767   -535.976          0          0          0          0
+X41                  -0.424905    -4539.8          0          0          0          0
+X42                    -0.0046          0          0          0    0.08777          0
+X43                   0.041236    13.1872          0          0    1.32535          0
+X44                   0.398375          0          0          0          0          0
+X45                  0.0535369    6.92562          0          0     0.3017          0
+X46                  -0.292625          0          0          0   -0.46887          0
+X47                   0.401428    2572.75          0          0    0.20254          0
+X48                 -0.0852914          0  -0.816009   -26.0088 0.00586087          0
+X49                 -0.0792646   -30.1737          0          0   -0.97911          0
+X50                  0.0542321          0          0          0     0.4421          0
+
+
+  ---  generation 1 objective function summary:  ---  
+seeking optimal trade-off point for single 'optimal' chance point runs
+using member GEN=0_MEMBER=26 as single, 'optimal' point
+   with distance of 0 from optimal trade - off
+objective function   direction         mean      std dev          min          max         knee
+
+FUNC                  minimize    -1.456238    0.8538769     -3.70141   -0.4358548     -3.70141
+
+
+  ---  generation 1 objective function change summary:  ---  
+objective function   mean change    % change  max change    % change  min change    % change knee change    % change
+FUNC                   0.0984232           0    0.286164           0           0           0           0           0
+
+...number of feasible solutions at the end of generation 1: 25
+
+  ---  starting generation  2  ---  
+...generating PSO population of size 20
+...saved augmented infill-training decision variable dataset of size 205 X 50 to 'mic_gp.training.dv_pop.csv'
+...saved augmented infill-training observation dataset of size 205 X 3 to 'mic_gp.training.obs_pop.csv'
+...wrote ensemble summary to mic_gp.2.infill_search.summary.csv
+greedy selection picked GEN=2_MEMBER=26_PSO. Current infill size: 1
+...saved augmented infill-training decision variable dataset of size 206 X 50 to 'mic_gp.training.dv_pop.csv'
+...saved augmented infill-training observation dataset of size 206 X 3 to 'mic_gp.training.obs_pop.csv'
+...wrote ensemble summary to mic_gp.2.infill_search.summary.csv
+greedy selection picked GEN=2_MEMBER=28_PSO. Current infill size: 2
+...saved augmented infill-training decision variable dataset of size 207 X 50 to 'mic_gp.training.dv_pop.csv'
+...saved augmented infill-training observation dataset of size 207 X 3 to 'mic_gp.training.obs_pop.csv'
+...wrote ensemble summary to mic_gp.2.infill_search.summary.csv
+greedy selection picked GEN=2_MEMBER=35_PSO. Current infill size: 3
+...saved augmented infill-training decision variable dataset of size 208 X 50 to 'mic_gp.training.dv_pop.csv'
+...saved augmented infill-training observation dataset of size 208 X 3 to 'mic_gp.training.obs_pop.csv'
+...wrote ensemble summary to mic_gp.2.infill_search.summary.csv
+greedy selection picked GEN=2_MEMBER=38_PSO. Current infill size: 4
+...saved augmented infill-training decision variable dataset of size 209 X 50 to 'mic_gp.training.dv_pop.csv'
+...saved augmented infill-training observation dataset of size 209 X 3 to 'mic_gp.training.obs_pop.csv'
+...wrote ensemble summary to mic_gp.2.infill_search.summary.csv
+greedy selection picked GEN=2_MEMBER=32_PSO. Current infill size: 5
+...greedy selection finished with 5 selected infills. Proceeding with complex runs...
+...running population of size  5
+...saved augmented infill-training decision variable dataset of size 210 X 50 to 'mic_gp.2.training.dv_pop.csv'
+...saved augmented infill-training observation dataset of size 210 X 3 to 'mic_gp.2.training.obs_pop.csv'
+...saved decision variable population of size 5 X 50 to 'mic_gp.dv_pop.csv'
+...saved generation-specific decision variable population of size 5 X 50 to 'mic_gp.2.dv_pop.csv'
+...saved observation population of size 5 X 3 to 'mic_gp.obs_pop.csv'
+...saved generation-specific observation population of size 5 X 3 to 'mic_gp.2.obs_pop.csv'
+...pareto dominance sorting combined parent-child populations of size  25
+...wrote pareto summary to mic_gp.pareto.summary.csv
+updating archive
+all nondominated members in already in archive
+...resizing current populations to  20
+
+  ---  generation 2 decision variable summary:  ---  
+decision variable        ubnd      lbnd      mean   standard devation         min         max
+X1                          5        -5 -0.426497             2.81707          -5      4.7322
+X2                          5        -5 -0.316643             3.23039      -4.659     4.74693
+X3                          5        -5  0.473066             1.91842    -3.48647      3.7888
+X4                          5        -5 -0.529793             2.98346    -4.92575     3.99531
+X5                          5        -5 -0.844358             3.11658          -5     3.71881
+X6                          5        -5  0.118581             3.06244          -5     4.97979
+X7                          5        -5  0.165425             2.76774     -4.8264     4.46524
+X8                          5        -5  0.267822             2.63841    -4.37337     4.76829
+X9                          5        -5 -0.179483             2.94576    -4.33096     4.79378
+X10                         5        -5  0.371623             2.90773    -4.59861     4.81469
+X11                         5        -5  0.656685             2.63999    -3.88361     4.67911
+X12                         5        -5     0.245             3.08763    -4.99944           5
+X13                         5        -5-0.0563895             2.62648          -5     4.19778
+X14                         5        -5 -0.105068             3.30682    -4.60431           5
+X15                         5        -5 -0.130469             2.74082     -4.8631     4.07758
+X16                         5        -5   1.28508             2.71556    -4.82784     4.68752
+X17                         5        -5 -0.783403             2.72988     -4.8712     4.45937
+X18                         5        -5   1.34985             2.71161    -4.41159     4.42743
+X19                         5        -5  0.340508             2.82434    -4.58316      4.8567
+X20                         5        -5  0.553615             2.53265    -4.25215     4.74018
+X21                         5        -5-0.0892467              2.6023    -4.06388      4.1902
+X22                         5        -5 -0.366194             2.73928    -4.09068     4.88659
+X23                         5        -5 -0.640511             2.78723    -4.82212     4.78301
+X24                         5        -5 -0.103369             2.35641    -3.60972     4.52873
+X25                         5        -5 0.0216013             3.36989    -4.96992     4.99773
+X26                         5        -5 -0.926754             2.81468          -5     4.02941
+X27                         5        -5  0.114467             2.88309     -4.3136     4.51984
+X28                         5        -5 -0.389465             2.76418    -4.78642     4.11595
+X29                         5        -5  0.844612             2.80796    -4.60577     4.70643
+X30                         5        -5 -0.584004             2.33348    -4.60653     3.08734
+X31                         5        -5 -0.157017             3.12158    -4.93724     4.89481
+X32                         5        -5  0.880639             2.63518    -4.31594     4.61001
+X33                         5        -5 -0.196471             2.61041    -4.35331     4.63925
+X34                         5        -5 -0.708984             3.58981          -5     4.38479
+X35                         5        -5  0.422284             2.23671    -3.04698     4.84883
+X36                         5        -5  0.859883             2.65783    -4.27246           5
+X37                         5        -5   1.21917             2.26151    -3.55612     4.54114
+X38                         5        -5  0.314665              2.7906    -4.69784     4.48052
+X39                         5        -5  -1.30387             2.05103    -4.77246      2.0254
+X40                         5        -5  0.278529             3.04114    -4.84563     4.82661
+X41                         5        -5  0.379129              3.2594    -4.84761      4.9352
+X42                         5        -5 -0.669568             2.57365    -4.78023     3.29739
+X43                         5        -5  -0.20902             2.74513          -5      4.7115
+X44                         5        -5 -0.696859             3.32605    -4.80239     4.96684
+X45                         5        -5  0.626224             3.08701          -5     4.95635
+X46                         5        -5 -0.563652             3.05201    -4.46114     4.99473
+X47                         5        -5 -0.721509             3.26935          -5     4.64591
+X48                         5        -5 -0.540639             2.70259    -4.45731     3.95345
+X49                         5        -5   0.42818             2.52927    -3.52692     4.83814
+X50                         5        -5 -0.537292             2.98498     -4.5579     4.79351
+
+
+  ---  generation 2 decision variable change summary:  ---  
+decision variable  mean change   % change max change   % change min change   % change
+X1                    0.455355    1577.91          0          0    0.34593          0
+X2                     0.33353    1975.13          0          0          0          0
+X3                   -0.283285    -149.27          0          0          0          0
+X4                    0.145118          0          0          0          0          0
+X5                           0          0          0          0          0          0
+X6                    0.335862    73.9063          0          0    0.51911          0
+X7                    0.133671    44.6915          0          0   0.915495          0
+X8                    0.341443    56.0418          0          0          0          0
+X9                  -0.0122327          0          0          0          0          0
+X10                  0.0173909    4.47051          0          0          0          0
+X11                   0.285318    30.2884    0.32089     6.4178          0          0
+X12                  -0.406362          0          0          0          0          0
+X13                   0.251353    128.923          0          0          0          0
+X14                  -0.435814          0    -0.7756     -18.36          0          0
+X15                  0.0461212          0   0.922424    18.4485          0          0
+X16                  -0.352184   -37.7515  -0.182653   -4.05458          0          0
+X17                  -0.155412          0          0          0          0          0
+X18                  -0.267859   -24.7561          0          0   -0.58841          0
+X19                   0.128272     27.363     0.1433      2.866          0          0
+X20                   0.284362    33.9343    0.25982     5.1964          0          0
+X21                  -0.285421          0          0          0   -0.93612          0
+X22                  0.0621935          0          0          0  0.0523262          0
+X23                 -0.0915951          0          0          0          0          0
+X24                  0.0645904          0          0          0          0          0
+X25                   -0.38455          0          0          0   -0.03008          0
+X26                  0.0740564          0          0          0          0          0
+X27                  -0.451081          0          0          0    -0.6864          0
+X28                  -0.241717          0          0          0          0          0
+X29                  0.0949439    10.1052          0          0          0          0
+X30                   0.252304          0    1.15788     27.275          0          0
+X31                    0.25112    266.856    0.10519     2.1038          0          0
+X32                -0.00662065  -0.757496          0          0          0          0
+X33                 -0.0189313          0  -0.378626   -8.88664          0          0
+X34                          0          0          0          0          0          0
+X35                 -0.0952889   -29.1408          0          0          0          0
+X36                   0.101368    10.5455          0          0          0          0
+X37                  0.0149683    1.21286          0          0          0          0
+X38                   0.316606    50.1537   0.299937    6.27423          0          0
+X39                   0.328844          0   0.718883    26.1957          0          0
+X40                  0.0866596    23.7301          0          0          0          0
+X41                   0.055136    12.6964          0          0          0          0
+X42                  -0.262039          0          0          0   -0.21977          0
+X43                   0.480482    176.998          0          0          0          0
+X44                  -0.130837          0          0          0          0          0
+X45                  0.0932657    12.9628          0          0          0          0
+X46                 -0.0386061          0          0          0          0          0
+X47                   0.335684          0          0          0          0          0
+X48                  -0.306073          0          0          0-0.00586087          0
+X49                 -0.0862203   -25.2136          0          0          0          0
+X50                  -0.111325          0          0          0    -0.4421          0
+
+
+  ---  generation 2 objective function summary:  ---  
+seeking optimal trade-off point for single 'optimal' chance point runs
+using member GEN=0_MEMBER=26 as single, 'optimal' point
+   with distance of 0 from optimal trade - off
+objective function   direction         mean      std dev          min          max         knee
+
+FUNC                  minimize    -1.479757    0.8316358     -3.70141    -0.526775     -3.70141
+
+
+  ---  generation 2 objective function change summary:  ---  
+objective function   mean change    % change  max change    % change  min change    % change knee change    % change
+FUNC                   0.0235195           0   0.0909202           0           0           0           0           0
+
+...number of feasible solutions at the end of generation 2: 25
+
+
+pestpp-mou analysis complete...
+started at 10/14/24 12:30:24
+finished at 10/14/24 12:34:15
+took 3.83333 minutes

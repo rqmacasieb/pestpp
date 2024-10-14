@@ -22,6 +22,8 @@ const string ARC_SUM_TAG = "pareto.archive.summary.csv";
 const string ARC_TRIM_SUM_TAG = "pareto.trimmed.archive.summary.csv";
 const string BGO_POP_SUM_TAG = "ensemble.summary.csv";
 const string BGO_ARC_SUM_TAG = "ensemble.archive.summary.csv";
+const string BGO_TRAINING_SUM_TAG = "training_dataset.summary.csv";
+const string BGO_SELECTION_SUM_TAG = "infill_search.summary.csv";
 const string RISK_NAME = "_RISK_";
 const string DE_F_NAME = "_DE_F_";
 const string CR_NAME = "_CR_";
@@ -58,6 +60,9 @@ public:
 
 	void write_bgo_ensemble_summary(string& sum_tag, int generation, ObservationEnsemble& op, ParameterEnsemble& dp, Constraints* constr_ptr);
 	void prep_bgo_ensemble_summary_file(string summary_tag);
+	void write_training_summary(int generation, int inner_iter, ParameterEnsemble& dt, ObservationEnsemble& ot, string sum_tag);
+	void prep_bgo_training_summary_file(string summary_tag);
+
 	//this must be called at least once before the diversity metrixs can be called...
 	void set_pointers(vector<string>& _obj_names, vector<string>& _obs_obj_names, vector<string>& _obs_obj_sd_names, vector<string>& _pi_obj_names, vector<string>& _pi_obj_sd_names, map<string, double>& _obj_dir_mult)
 	{
@@ -67,17 +72,19 @@ public:
 		pi_obj_names_ptr = &_pi_obj_names;
 		pi_obj_sd_names_ptr = &_pi_obj_sd_names;
 		obj_dir_mult_ptr = &_obj_dir_mult;
-		if (bgo)
+		/*if (bgo)
 		{
 			prep_bgo_ensemble_summary_file(BGO_POP_SUM_TAG);
 			prep_bgo_ensemble_summary_file(BGO_ARC_SUM_TAG);
+			prep_bgo_training_summary_file(BGO_TRAINING_SUM_TAG);
+
 		}
 		else
-		{
-			prep_pareto_summary_file(POP_SUM_TAG);
-			prep_pareto_summary_file(ARC_SUM_TAG);
-			prep_pareto_summary_file(ARC_TRIM_SUM_TAG);
-		}
+		{*/
+		prep_pareto_summary_file(POP_SUM_TAG);
+		prep_pareto_summary_file(ARC_SUM_TAG);
+		//prep_pareto_summary_file(ARC_TRIM_SUM_TAG);
+		//}
 		
 	}
 	
@@ -233,6 +240,8 @@ private:
 	string population_dv_file, population_obs_restart_file;
 	string dv_pop_file_tag = "dv_pop";
 	string obs_pop_file_tag = "obs_pop";
+	string training_dv_file_tag = "training.dv_pop";
+	string training_obs_file_tag = "training.obs_pop";
 	string lineage_tag = "lineage.csv";
 	chancePoints chancepoints;
 	FileManager &file_manager; 
@@ -260,8 +269,8 @@ private:
 	RunManagerAbstract* infill_run_mgr_ptr;
 	const ObservationInfo *obs_info_ptr;
 
-	ParameterEnsemble dp, dp_archive;
-	ObservationEnsemble op, op_archive;
+	ParameterEnsemble dp, dp_archive, dt;
+	ObservationEnsemble op, op_archive, ot;
 
 	map<string,Eigen::VectorXd> par_sim_map, obs_sim_map, pso_velocity_map;
 
@@ -270,6 +279,7 @@ private:
 
 	void update_sim_maps(ParameterEnsemble& _dp, ObservationEnsemble& _op);
 	void fill_populations_from_maps(ParameterEnsemble& new_dp, ObservationEnsemble& new_op );
+	vector<string> fill_infill_ensemble(ParameterEnsemble& _dp, ObservationEnsemble& _op);
 
 	void update_archive_bgo(ObservationEnsemble& _op, ParameterEnsemble& _dp);
 	void update_archive_nsga(ObservationEnsemble& _op, ParameterEnsemble& _dp);
@@ -285,8 +295,7 @@ private:
 
 	void sanity_checks();
 	vector<int> run_population(ParameterEnsemble& _dp, ObservationEnsemble& _op, bool allow_chance);
-	ObservationEnsemble run_infill_candidates(ParameterEnsemble& dv_candidates);
-	vector<int> run_infills(ParameterEnsemble& _dp, ObservationEnsemble& _op, bool allow_chance);
+	vector<int> run_surrogate(ParameterEnsemble& _dp, ObservationEnsemble& _op);
 
 	void queue_chance_runs(ParameterEnsemble& _dp);
 	ObservationEnsemble get_chance_shifted_op(ParameterEnsemble& _dp, ObservationEnsemble& _op, string& opt_member);
@@ -295,6 +304,7 @@ private:
     ParameterEnsemble get_initial_pso_velocities(int num_members);
     void update_pso_velocity_map(ParameterEnsemble& _pso_velocity);
     void initialize_population_schedule();
+	void initialize_training_dataset();
 	bool initialize_dv_population();
 	void initialize_obs_restart_population();
 
@@ -319,6 +329,8 @@ private:
 	string get_new_member_name(string tag = string());
 
 	void save_populations(ParameterEnsemble& _dp, ObservationEnsemble& _op, string tag = string());
+	void save_training_dataset(ParameterEnsemble& _dp, ObservationEnsemble& _op, string tag = string());
+
 	void gauss_mutation_ip(ParameterEnsemble& _dp);
 	pair<Eigen::VectorXd, Eigen::VectorXd> sbx(double probability, double eta_m, int idx1, int idx2);
 	pair<Eigen::VectorXd, Eigen::VectorXd> sbx_new(double crossover_probability, double di, Eigen::VectorXd& parent1,

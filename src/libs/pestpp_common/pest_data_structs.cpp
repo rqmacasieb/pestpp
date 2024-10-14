@@ -1454,14 +1454,25 @@ bool PestppOptions::assign_mou_value_by_key(const string& key, const string& val
 		convert_ip(value, mou_pso_rfit);
 		return true;
 		}
+	
+	else if (key == "MOU_MAX_NN_SEARCH")
+	{
+		convert_ip(value, mou_max_nn_search);
+		return true;
+		}
 	else if (key == "MOU_OUTER_REPO_OBS_FILE")
 	{
 		mou_outer_repo_obs_file = org_value;
 		return true;
-		}
-	else if (key == "MOU_MAX_NN_SEARCH")
+	}
+	else if (key == "MOU_BGO_DV_TRAINING_FILE")
 	{
-		convert_ip(value, mou_max_nn_search);
+		mou_bgo_dv_training_file = org_value;
+		return true;
+		}
+	else if (key == "MOU_BGO_OBS_TRAINING_FILE")
+	{
+		mou_bgo_obs_training_file = org_value;
 		return true;
 		}
 	else if (key == "MOU_HYPERVOLUME_EXTREME")
@@ -1802,6 +1813,8 @@ void PestppOptions::summary(ostream& os) const
 	os << "mou_fit_epsilon: " << mou_fit_epsilon << endl;
 	os << "mou_bgo_aqf: " << mou_bgo_aqf << endl;
 	os << "mou_bgo_lambda: " << mou_bgo_lambda << endl;
+	os << "mou_bgo_dv_training_file: " << mou_bgo_dv_training_file << endl;
+	os << "mou_bgo_obs_training_file: " << mou_bgo_obs_training_file << endl;
 	os << "mou_population_schedule: " << mou_population_schedule << endl;
 	os << "mou_simplex_reflections:" << mou_simplex_reflections << endl;
 	os << "mou_simplex_factors: " << endl;
@@ -1998,7 +2011,7 @@ void PestppOptions::set_defaults()
 	set_mou_outer_repo_obs_file("");
 	set_mou_max_nn_search(get_mou_population_size());
 	set_mou_hypervolume_extreme(1e+10);
-	set_mou_infill_size(get_mou_population_size()/2);
+	set_mou_infill_size(0.0);
 	set_mou_ppd_beta(0.5);
 	set_mou_fit_epsilon(0.05);
 	set_mou_fit_gamma(0.25);
@@ -2006,7 +2019,9 @@ void PestppOptions::set_defaults()
 	set_mou_resample_every(1);
 	set_mou_resample_command("");
 	set_mou_bgo_aqf("EI");
-	set_mou_bgo_lambda(0.6);
+	set_mou_bgo_dv_training_file("");
+	set_mou_bgo_obs_training_file("");
+	set_mou_bgo_lambda(0.0);
 	set_mou_population_schedule("");
 	set_mou_simplex_reflections(10);
 	set_mou_simplex_factors(vector<double>{0.5, 0.6, 0.7, 0.8});

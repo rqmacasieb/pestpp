@@ -179,10 +179,10 @@ bool ParetoObjectives::compare_two(string& first, string& second, MouEnvType env
 	if (infeas.find(second) != infeas.end())
 		return true;
 	if (envtyp == MouEnvType::NSGA)
-		if (bgo) 
+		/*if (bgo) 
 			return compare_two_bgo(first, second);
-		else
-			return compare_two_nsga(first, second);
+		else*/
+		return compare_two_nsga(first, second);
 	else if (envtyp == MouEnvType::SPEA)
 		return compare_two_spea(first, second);
 	else
@@ -872,13 +872,9 @@ pair<vector<string>, vector<string>> ParetoObjectives::get_bgo_ensemble(int gene
 	int count = 0;
 	for (auto en : bgo_repo_map)
 	{
-		
 			keep.push_back(en.second);
 			count++;
 			bgo_member_repo_map[en.second] = count;
-		
-			
-		
 	}
 
 	//record discarded members
@@ -1072,6 +1068,57 @@ void ParetoObjectives::prep_bgo_ensemble_summary_file(string summary_tag)
 	for (auto objsd : *obs_obj_sd_names_ptr)
 		sum << "," << pest_utils::lower_cp(objsd);
 	sum << ",importance_rank,AQF,distance_to_maxAQF,importance,is_feasible,feasible_distance" << endl;
+}
+
+void ParetoObjectives::write_training_summary(int generation, int inner_iter, ParameterEnsemble& dt, ObservationEnsemble& ot, string sum_tag)
+{
+	//save a summary of all the training dataset
+	if (!file_manager.check_ofile_tag_exists(sum_tag))
+		file_manager.open_ofile_ext(sum_tag);
+	ofstream& sum = file_manager.get_ofstream(sum_tag);
+
+	Eigen::RowVectorXd obs_vals, dv_vals;
+	for (auto member : ot.get_real_names())
+	{
+		sum << generation << "," << inner_iter << "," << pest_utils::lower_cp(member);
+	
+		for (int i = 0; i < ot.shape().second; i++)
+		{
+			obs_vals = ot.get_eigen(vector<string>{member}, vector<string>());
+			sum << "," << obs_vals[i];
+		}
+		
+		for (int i = 0; i < dt.shape().second; i++)
+		{
+			dv_vals = dt.get_eigen(vector<string>{member}, vector<string>());;
+			sum << "," << dv_vals[i];
+		}
+		sum << endl;
+	}
+
+	cout << "...wrote all-generation training dataset to " << file_manager.get_base_filename() << "." << sum_tag << endl;
+	file_manager.rec_ofstream() << "...wrote all-generation training dataset to " << file_manager.get_base_filename() << "." << sum_tag << endl;
+
+}
+
+void ParetoObjectives::prep_bgo_training_summary_file(string summary_tag)
+{
+	file_manager.open_ofile_ext(summary_tag);
+	ofstream& sum = file_manager.get_ofstream(summary_tag);
+	vector<string> obsnames = pest_scenario.get_ctl_ordered_nz_obs_names();
+	
+	sum << "generation,inner_iter,member";
+	for (auto obs : obsnames)
+		sum << "," << pest_utils::lower_cp(obs);
+	/*for (auto obj : *pi_obj_names_ptr)
+		sum << "," << pest_utils::lower_cp(obj);
+	for (auto objsd : *obs_obj_sd_names_ptr)
+		sum << "," << pest_utils::lower_cp(objsd);*/
+
+	vector<string> parnames = pest_scenario.get_ctl_ordered_par_names();
+	for (auto dv : parnames)
+		sum << "," << pest_utils::lower_cp(dv);
+	sum << endl;
 }
 
 void ParetoObjectives::write_pareto_summary(string& sum_tag, int generation, ObservationEnsemble& op, ParameterEnsemble& dp, Constraints* constr_ptr)
@@ -2367,6 +2414,11 @@ MOEA::MOEA(Pest &_pest_scenario, FileManager &_file_manager, OutputFileWriter &_
 	dp_archive.set_pest_scenario(&pest_scenario);
 	op_archive.set_rand_gen(&rand_gen);
 	op_archive.set_pest_scenario_ptr(&pest_scenario);
+
+	dt.set_rand_gen(&rand_gen);
+	dt.set_pest_scenario(&pest_scenario);
+	ot.set_rand_gen(&rand_gen);
+	ot.set_pest_scenario_ptr(&pest_scenario);
 }
 
 
@@ -3074,125 +3126,125 @@ void MOEA::queue_chance_runs(ParameterEnsemble& _dp)
 	}
 }
 
-ObservationEnsemble MOEA::run_infill_candidates(ParameterEnsemble& dv_candidates)
+//ObservationEnsemble MOEA::run_infill_candidates(ParameterEnsemble& dv_candidates)
+//{
+//	ofstream& frec = file_manager.rec_ofstream();
+//	stringstream ss;
+//	ss << "queuing " << dv_candidates.shape().first << " candidate solutions";
+//	performance_log->log_event(ss.str());
+//	run_mgr_ptr->reinitialize();
+//
+//	map<int, int> real_run_ids;
+//
+//	try
+//	{
+//		real_run_ids = dv_candidates.add_runs(run_mgr_ptr);
+//	}
+//	catch (const exception& e)
+//	{
+//		stringstream ss;
+//		ss << "run_ensemble() error queueing runs: " << e.what();
+//		throw_moea_error(ss.str());
+//	}
+//	catch (...)
+//	{
+//		throw_moea_error(string("run_ensembles() error queueing runs"));
+//	}
+//
+//	performance_log->log_event("making runs");
+//	try
+//	{
+//
+//		run_mgr_ptr->run();
+//	}
+//	catch (const exception& e)
+//	{
+//		stringstream ss;
+//		ss << "error running ensembles: " << e.what();
+//		throw_moea_error(ss.str());
+//	}
+//	catch (...)
+//	{
+//		throw_moea_error(string("error running ensembles"));
+//	}
+//
+//	performance_log->log_event("processing runs");
+//	vector<int> failed_real_indices;
+//
+//	ObservationEnsemble _oe(&pest_scenario, &rand_gen);
+//	_oe.reserve(dv_candidates.get_real_names(), pest_scenario.get_ctl_ordered_obs_names());
+//
+//	try
+//	{
+//		failed_real_indices = _oe.update_from_runs(real_run_ids, run_mgr_ptr);
+//	}
+//	catch (const exception& e)
+//	{
+//		stringstream ss;
+//		ss << "error processing dv candidate runs: " << e.what();
+//		throw_moea_error(ss.str());
+//	}
+//	catch (...)
+//	{
+//		stringstream ss;
+//		ss << "error processing dv candidate runs";
+//		throw_moea_error(ss.str());
+//	}
+//
+//	if (pest_scenario.get_pestpp_options().get_ies_debug_fail_subset())
+//		failed_real_indices.push_back(real_run_ids.size() - 1);
+//
+//	if (failed_real_indices.size() > 0)
+//	{
+//		stringstream ss;
+//		vector<string> par_real_names = dp.get_real_names();
+//		vector<string> obs_real_names = op.get_real_names();
+//		vector<string> failed_par_names, failed_obs_names;
+//		string oname, pname;
+//		ss << "the following dv candidate runs failed -->";
+//		for (auto& i : failed_real_indices)
+//		{
+//			pname = par_real_names[i];
+//			oname = obs_real_names[i];
+//			failed_par_names.push_back(pname);
+//			failed_obs_names.push_back(oname);
+//			ss << pname << ":" << oname << ',';
+//		}
+//		string s = ss.str();
+//		message(1, s);
+//		if (failed_real_indices.size() == _oe.shape().first)
+//		{
+//			message(0, "WARNING: all dv candidate runs failed");
+//			_oe = ObservationEnsemble(&pest_scenario);
+//
+//		}
+//		else
+//		{
+//			performance_log->log_event("dropping failed realizations");
+//			//_oe.drop_rows(failed_real_indices);
+//			//pe_lams[i].drop_rows(failed_real_indices);
+//			_oe.drop_rows(failed_obs_names);
+//			dv_candidates.drop_rows(failed_par_names);
+//			//update scale_vals 
+//			/*vector<double> new_scale_vals;
+//			for (int i = 0; i < real_names.size(); i++)
+//				if (find(failed_real_indices.begin(), failed_real_indices.end(), i) == failed_real_indices.end())
+//					new_scale_vals.push_back(scale_vals[i]);
+//			scale_vals = new_scale_vals;*/
+//		}
+//	}
+//
+//
+//	return _oe;
+//
+//
+//}
+
+vector<int> MOEA::run_surrogate(ParameterEnsemble& _dp, ObservationEnsemble& _op)
 {
 	ofstream& frec = file_manager.rec_ofstream();
 	stringstream ss;
-	ss << "queuing " << dv_candidates.shape().first << " candidate solutions";
-	performance_log->log_event(ss.str());
-	run_mgr_ptr->reinitialize();
-
-	map<int, int> real_run_ids;
-
-	try
-	{
-		real_run_ids = dv_candidates.add_runs(run_mgr_ptr);
-	}
-	catch (const exception& e)
-	{
-		stringstream ss;
-		ss << "run_ensemble() error queueing runs: " << e.what();
-		throw_moea_error(ss.str());
-	}
-	catch (...)
-	{
-		throw_moea_error(string("run_ensembles() error queueing runs"));
-	}
-
-	performance_log->log_event("making runs");
-	try
-	{
-
-		run_mgr_ptr->run();
-	}
-	catch (const exception& e)
-	{
-		stringstream ss;
-		ss << "error running ensembles: " << e.what();
-		throw_moea_error(ss.str());
-	}
-	catch (...)
-	{
-		throw_moea_error(string("error running ensembles"));
-	}
-
-	performance_log->log_event("processing runs");
-	vector<int> failed_real_indices;
-
-	ObservationEnsemble _oe(&pest_scenario, &rand_gen);
-	_oe.reserve(dv_candidates.get_real_names(), pest_scenario.get_ctl_ordered_obs_names());
-
-	try
-	{
-		failed_real_indices = _oe.update_from_runs(real_run_ids, run_mgr_ptr);
-	}
-	catch (const exception& e)
-	{
-		stringstream ss;
-		ss << "error processing dv candidate runs: " << e.what();
-		throw_moea_error(ss.str());
-	}
-	catch (...)
-	{
-		stringstream ss;
-		ss << "error processing dv candidate runs";
-		throw_moea_error(ss.str());
-	}
-
-	if (pest_scenario.get_pestpp_options().get_ies_debug_fail_subset())
-		failed_real_indices.push_back(real_run_ids.size() - 1);
-
-	if (failed_real_indices.size() > 0)
-	{
-		stringstream ss;
-		vector<string> par_real_names = dp.get_real_names();
-		vector<string> obs_real_names = op.get_real_names();
-		vector<string> failed_par_names, failed_obs_names;
-		string oname, pname;
-		ss << "the following dv candidate runs failed -->";
-		for (auto& i : failed_real_indices)
-		{
-			pname = par_real_names[i];
-			oname = obs_real_names[i];
-			failed_par_names.push_back(pname);
-			failed_obs_names.push_back(oname);
-			ss << pname << ":" << oname << ',';
-		}
-		string s = ss.str();
-		message(1, s);
-		if (failed_real_indices.size() == _oe.shape().first)
-		{
-			message(0, "WARNING: all dv candidate runs failed");
-			_oe = ObservationEnsemble(&pest_scenario);
-
-		}
-		else
-		{
-			performance_log->log_event("dropping failed realizations");
-			//_oe.drop_rows(failed_real_indices);
-			//pe_lams[i].drop_rows(failed_real_indices);
-			_oe.drop_rows(failed_obs_names);
-			dv_candidates.drop_rows(failed_par_names);
-			//update scale_vals 
-			/*vector<double> new_scale_vals;
-			for (int i = 0; i < real_names.size(); i++)
-				if (find(failed_real_indices.begin(), failed_real_indices.end(), i) == failed_real_indices.end())
-					new_scale_vals.push_back(scale_vals[i]);
-			scale_vals = new_scale_vals;*/
-		}
-	}
-
-
-	return _oe;
-
-
-}
-
-vector<int> MOEA::run_infills(ParameterEnsemble& _dp, ObservationEnsemble& _op, bool allow_chance)
-{
-	ofstream& frec = file_manager.rec_ofstream();
-	stringstream ss;
-	ss << "running " << _dp.shape().first << " candidate infill solutions";
+	ss << "running surrogate for " << _dp.shape().first << " candidate infills";
 	performance_log->log_event(ss.str());
 	infill_run_mgr_ptr->reinitialize();
 
@@ -3204,14 +3256,14 @@ vector<int> MOEA::run_infills(ParameterEnsemble& _dp, ObservationEnsemble& _op, 
 	catch (const exception& e)
 	{
 		stringstream ss;
-		ss << "run_infills() error queueing runs: " << e.what();
+		ss << "run_surrogate() error queueing runs: " << e.what();
 		throw_moea_error(ss.str());
 	}
 	catch (...)
 	{
-		throw_moea_error(string("run_infills() error queueing runs"));
+		throw_moea_error(string("run_surrogate() error queueing runs"));
 	}
-	performance_log->log_event("making infill runs");
+	performance_log->log_event("making surrogate runs");
 	try
 	{
 		//add condition to do resample runs using different command specified
@@ -3220,15 +3272,15 @@ vector<int> MOEA::run_infills(ParameterEnsemble& _dp, ObservationEnsemble& _op, 
 	catch (const exception& e)
 	{
 		stringstream ss;
-		ss << "error running infills: " << e.what();
+		ss << "error running ensemble: " << e.what();
 		throw_moea_error(ss.str());
 	}
 	catch (...)
 	{
-		throw_moea_error(string("error running infills"));
+		throw_moea_error(string("error running ensemble"));
 	}
 
-	performance_log->log_event("processing runs");
+	performance_log->log_event("processing surrogate runs");
 
 	vector<int> failed_real_indices;
 	try
@@ -3268,11 +3320,11 @@ vector<int> MOEA::run_infills(ParameterEnsemble& _dp, ObservationEnsemble& _op, 
 		_op.drop_rows(failed_real_indices);
 	}
 
-	if (allow_chance)
+	/*if (allow_chance)
 	{
 		constraints.process_runs(infill_run_mgr_ptr, iter);
 		constraints.update_chance_offsets();
-	}
+	}*/
 	return failed_real_indices;
 }
 
@@ -3282,22 +3334,7 @@ vector<int> MOEA::run_population(ParameterEnsemble& _dp, ObservationEnsemble& _o
 	//queue up any chance related runs
 	if (allow_chance)
 		queue_chance_runs(_dp);
-
-
-	//TO DO: insert queue_resample_runs here
-	/*if (bgo)
-		queue_infill_runs(_dp);*/
-
-
-	//queue up outer iter runs
-	vector<int> failed_real_indices;
-	if (iter % pest_scenario.get_pestpp_options().get_mou_resample_every() == 0)
-	{
-		failed_real_indices = run_infills(_dp, _op, allow_chance);
-		return failed_real_indices;
-	}
-
-
+		
 	message(1, "running population of size ", _dp.shape().first);
 	stringstream ss;
 	ss << "queuing " << _dp.shape().first << " runs";
@@ -3337,7 +3374,7 @@ vector<int> MOEA::run_population(ParameterEnsemble& _dp, ObservationEnsemble& _o
 
 	performance_log->log_event("processing runs");
 	
-	
+	vector<int> failed_real_indices;
 	try
 	{
 		failed_real_indices = _op.update_from_runs(real_run_ids, run_mgr_ptr);
@@ -3940,6 +3977,9 @@ void MOEA::initialize()
 	initialize_dv_population();
 	
 	initialize_obs_restart_population();
+
+	if (bgo)
+		initialize_training_dataset();
 	
 	try
 	{
@@ -4190,60 +4230,60 @@ void MOEA::initialize()
 		message(0, s);
 	}
 	
-	if (bgo)
-	{
-		message(1, "performing initial ensemble sorting");
-		objectives.set_pointers(obj_names, obs_obj_names, obs_obj_sd_names, pi_obj_names, pi_obj_sd_names, obj_dir_mult);
-		vector<string> keep;
-		
-		//EnBGO currently works for NSGA only
-		
-		get_current_true_solution();
+	//if (bgo)
+	//{
+	//	message(1, "performing initial ensemble sorting");
+	//	objectives.set_pointers(obj_names, obs_obj_names, obs_obj_sd_names, pi_obj_names, pi_obj_sd_names, obj_dir_mult);
+	//	vector<string> keep;
+	//	
+	//	//EnBGO currently works for NSGA only
+	//	
+	//	get_current_true_solution();
 
-		DomPair ensemble = objectives.get_bgo_ensemble(iter, op, dp, &constraints, true, BGO_POP_SUM_TAG);
+	//	DomPair ensemble = objectives.get_bgo_ensemble(iter, op, dp, &constraints, true, BGO_POP_SUM_TAG);
 
-		//drop any duplicates
-		keep.clear();
-		for (auto en : ensemble.first)
-		{
-			keep.push_back(en);
-		}
-		for (auto en : ensemble.second)
-		{
-			keep.push_back(en);
-		}
-		if (keep.size() == 0)
-		{
-			throw_moea_error("initial sorting yielded zero valid solutions");
-		}
-		dp.keep_rows(keep);
-		op.keep_rows(keep);
+	//	//drop any duplicates
+	//	keep.clear();
+	//	for (auto en : ensemble.first)
+	//	{
+	//		keep.push_back(en);
+	//	}
+	//	for (auto en : ensemble.second)
+	//	{
+	//		keep.push_back(en);
+	//	}
+	//	if (keep.size() == 0)
+	//	{
+	//		throw_moea_error("initial sorting yielded zero valid solutions");
+	//	}
+	//	dp.keep_rows(keep);
+	//	op.keep_rows(keep);
 
-		//initialize op and dp archives
-		op_archive = ObservationEnsemble(&pest_scenario, &rand_gen,
-			op.get_eigen(ensemble.first, vector<string>()), ensemble.first, op.get_var_names());
-		dp_archive = ParameterEnsemble(&pest_scenario, &rand_gen,
-			dp.get_eigen(ensemble.first, vector<string>()), ensemble.first, dp.get_var_names());
+	//	//initialize op and dp archives
+	//	op_archive = ObservationEnsemble(&pest_scenario, &rand_gen,
+	//		op.get_eigen(ensemble.first, vector<string>()), ensemble.first, op.get_var_names());
+	//	dp_archive = ParameterEnsemble(&pest_scenario, &rand_gen,
+	//		dp.get_eigen(ensemble.first, vector<string>()), ensemble.first, dp.get_var_names());
 
-		ss.str("");
-		ss << "initialized archives with " << ensemble.first.size() << " ensemble members";
-		message(2, ss.str());
-
-
+	//	ss.str("");
+	//	ss << "initialized archives with " << ensemble.first.size() << " ensemble members";
+	//	message(2, ss.str());
 
 
-		////this causes the initial archive pareto summary file to be written
-		//objectives.get_nsga2_pareto_dominance(iter, op_archive, dp_archive, &constraints, false, true, ARC_SUM_TAG);
-		//
 
 
-	
+	//	////this causes the initial archive pareto summary file to be written
+	//	//objectives.get_nsga2_pareto_dominance(iter, op_archive, dp_archive, &constraints, false, true, ARC_SUM_TAG);
+	//	//
 
 
-		
-	}
-	else
-	{
+	//
+
+
+	//	
+	//}
+	//else
+	//{
 
 		//do an initial pareto dominance sort
 		message(1, "performing initial pareto dominance sort");
@@ -4390,7 +4430,7 @@ void MOEA::initialize()
 			}
 
 		}
-	}
+	//}
     save_populations(dp_archive, op_archive, "archive");
 
 
@@ -4635,6 +4675,78 @@ ParameterEnsemble MOEA::generate_population()
 	return new_pop;
 }
 
+vector<string> MOEA::fill_infill_ensemble(ParameterEnsemble& _dp, ObservationEnsemble& _op)
+{
+	int infill_size = pest_scenario.get_pestpp_options().get_mou_infill_size();
+	if (infill_size == 0.0)
+	{
+		infill_size = pest_scenario.get_pestpp_options().get_mou_population_size() / 2;
+		message(1, "infill size not specified. Setting infill size to half the population size: ", infill_size);
+	}
+	if (infill_size > _dp.shape().first)
+		throw_moea_error("Chosen infill size exceeds the population size!");
+
+	int count = 0;
+	ParameterEnsemble dtemp = dt, rdp = _dp;
+	ObservationEnsemble otemp = ot, rop = _op;
+	vector<string> keep, picks;
+	Eigen::MatrixXd pick;
+	stringstream tag;
+	tag << iter << "." << BGO_SELECTION_SUM_TAG;
+
+
+	objectives.prep_bgo_ensemble_summary_file(tag.str());
+	while (count < infill_size)
+	{
+		save_training_dataset(dtemp, otemp);
+		//objectives.write_training_summary(iter, count, dtemp, otemp, BGO_TRAINING_SUM_TAG);
+		run_surrogate(rdp, rop);
+		
+		DomPair dompair = objectives.get_bgo_ensemble(count, rop, rdp, &constraints, true, tag.str());
+		string pick_name = dompair.first[0];
+		picks.push_back(pick_name);
+
+		keep = dtemp.get_real_names();
+		pick = _dp.get_eigen(vector<string>{pick_name}, vector<string>());
+		ParameterEnsemble new_dt(&pest_scenario, &rand_gen, pick, { pick_name }, _dp.get_var_names());
+		new_dt.append_other_rows(dtemp);
+		dtemp = new_dt;
+
+		//remove chosen infill from the pool to be rerun
+		keep.clear();
+		for (auto k : rdp.get_real_names())
+		{
+			if (k == pick_name)
+				continue;
+			keep.push_back(k);
+		}
+		rdp.keep_rows(keep);
+
+		keep = otemp.get_real_names();
+		pick = _op.get_eigen(vector<string>{pick_name}, vector<string>());
+		ObservationEnsemble new_ot(&pest_scenario, &rand_gen, pick, { pick_name }, _op.get_var_names());
+		new_ot.append_other_rows(otemp);
+		otemp = new_ot;
+
+		//remove chosen infill from the pool to be rerun
+		keep.clear();
+		for (auto k : rop.get_real_names())
+		{
+			if (k == pick_name)
+				continue;
+			keep.push_back(k);
+		}
+		rop.keep_rows(keep);
+		count++;
+
+		message(2, "greedy selection picked " + pick_name + ". Current infill size: " + to_string(count));
+	}
+
+	message(1, "greedy selection finished with " + to_string(count) + " selected infills. Proceeding with complex runs...");
+	return picks;
+
+}
+
 void MOEA::fill_populations_from_maps(ParameterEnsemble& new_dp, ObservationEnsemble& new_op )
 {
     vector<string> rnames;
@@ -4687,8 +4799,22 @@ void MOEA::iterate_to_solution()
 		ObservationEnsemble new_op(&pest_scenario, &rand_gen);
 		new_op.reserve(new_dp.get_real_names(), op.get_var_names());
 
+		if (bgo)
+		{
+			vector<string> picks = fill_infill_ensemble(new_dp, new_op);
+			new_dp.keep_rows(picks);
+			new_op.keep_rows(picks);
+		}
+
 		run_population(new_dp, new_op, true);
 
+		if (bgo)
+		{
+			dt.append_other_rows(new_dp);
+			ot.append_other_rows(new_op);
+			save_training_dataset(dt, ot, to_string(iter));
+		}
+		
 		save_populations(new_dp, new_op);
         update_sim_maps(new_dp,new_op);
 
@@ -4756,43 +4882,43 @@ void MOEA::iterate_to_solution()
 
 		if (envtype == MouEnvType::NSGA)
 		{
-			if (bgo)
-			{
-				message(1, "ensemble sorting combined parent-child populations of size ", new_dp.shape().first);
-				DomPair dompair = objectives.get_bgo_ensemble(iter, new_op, new_dp, &constraints,  true, BGO_POP_SUM_TAG);
+			//if (bgo)
+			//{
+			//	message(1, "ensemble sorting combined parent-child populations of size ", new_dp.shape().first);
+			//	DomPair dompair = objectives.get_bgo_ensemble(iter, new_op, new_dp, &constraints,  true, BGO_POP_SUM_TAG);
 
-				if (should_use_multigen()) {
-					message(2, "keeping all feasible members from multi-generational population");
-					keep = dompair.first;
-				}
-				else {
-					keep.clear();
-					for (auto en : dompair.first) {
-						if (keep.size() >= num_members)
-							break;
-						keep.push_back(en);
-					}
-				}
+			//	if (should_use_multigen()) {
+			//		message(2, "keeping all feasible members from multi-generational population");
+			//		keep = dompair.first;
+			//	}
+			//	else {
+			//		keep.clear();
+			//		for (auto en : dompair.first) {
+			//			if (keep.size() >= num_members)
+			//				break;
+			//			keep.push_back(en);
+			//		}
+			//	}
 
-				if (keep.size() > 0)
-				{
-					//update the archive of nondom members
-					ParameterEnsemble new_dp_repo = new_dp;
-					new_dp_repo.keep_rows(keep);
-					ObservationEnsemble new_op_repo = new_op;
-					new_op_repo.keep_rows(keep);
-					update_archive_bgo(new_op_repo, new_dp_repo);
-				}
+			//	if (keep.size() > 0)
+			//	{
+			//		//update the archive of nondom members
+			//		ParameterEnsemble new_dp_repo = new_dp;
+			//		new_dp_repo.keep_rows(keep);
+			//		ObservationEnsemble new_op_repo = new_op;
+			//		new_op_repo.keep_rows(keep);
+			//		update_archive_bgo(new_op_repo, new_dp_repo);
+			//	}
 
-				message(1, "resizing current populations to ", keep.size());
-				new_dp.keep_rows(keep);
-				new_op.keep_rows(keep);
-				dp = new_dp;
-				op = new_op;
+			//	message(1, "resizing current populations to ", keep.size());
+			//	new_dp.keep_rows(keep);
+			//	new_op.keep_rows(keep);
+			//	dp = new_dp;
+			//	op = new_op;
 
-			}
-			else
-			{
+			//}
+			//else
+			//{
 				message(1, "pareto dominance sorting combined parent-child populations of size ", new_dp.shape().first);
 				DomPair dompair = objectives.get_nsga2_pareto_dominance(iter, new_op, new_dp, &constraints, prob_pareto, true, POP_SUM_TAG);
 				//the ordering must not be by fitness
@@ -4833,7 +4959,7 @@ void MOEA::iterate_to_solution()
 				new_op.keep_rows(keep);
 				dp = new_dp;
 				op = new_op;
-			}
+			//}
 
 
 
@@ -5006,6 +5132,85 @@ void MOEA::initialize_population_schedule()
     {
         frec << "...   " << i << ", " << population_schedule.at(i) << endl;
     }
+}
+void MOEA::initialize_training_dataset()
+{
+	stringstream ss;
+	string dt_filename = pest_scenario.get_pestpp_options().get_mou_bgo_dv_training_file();
+
+	//load training dv
+	message(1, "loading training dataset from csv file", dt_filename);
+	string par_ext = pest_utils::lower_cp(dt_filename).substr(dt_filename.size() - 3, dt_filename.size());
+	performance_log->log_event("processing dv training file " + dt_filename);
+	if (par_ext.compare("csv") == 0)
+	{
+		message(1, "loading dv population from csv file", dt_filename);
+		try
+		{
+			dt.from_csv(dt_filename);
+		}
+		catch (const exception& e)
+		{
+			ss << "error processing dt training file: " << e.what();
+			throw_moea_error(ss.str());
+		}
+		catch (...)
+		{
+			throw_moea_error(string("error processing dt training file"));
+		}
+	}
+	else
+	{
+		ss << "unrecognized dv training file extension " << par_ext << ", looking for csv"/*, jcb, or jco"*/;
+		throw_moea_error(ss.str());
+	}
+
+	ss.str("");
+	ss << "dv training dataset with " << dt.shape().first << " members read from '" << dt_filename << "'" << endl;
+	message(1, ss.str());
+
+	if (dt.shape().first == 0)
+	{
+		throw_moea_error("zero members found in dv training file");
+	}
+
+	//load training obs
+	string ot_filename = pest_scenario.get_pestpp_options().get_mou_bgo_obs_training_file();
+	par_ext = pest_utils::lower_cp(ot_filename).substr(ot_filename.size() - 3, ot_filename.size());
+	performance_log->log_event("processing obs training file " + ot_filename);
+	if (par_ext.compare("csv") == 0)
+	{
+		message(1, "loading obs population from csv file", ot_filename);
+		try
+		{
+			ot.from_csv(ot_filename);
+		}
+		catch (const exception& e)
+		{
+			ss << "error processing obs training file: " << e.what();
+			throw_moea_error(ss.str());
+		}
+		catch (...)
+		{
+			throw_moea_error(string("error processing obs training file"));
+		}
+	}
+	else
+	{
+		ss << "unrecognized obs training file extension " << par_ext << ", looking for csv"/*, jcb, or jco"*/;
+		throw_moea_error(ss.str());
+	}
+
+	ss.str("");
+	ss << "obs training dataset with " << ot.shape().first << " members read from '" << ot_filename << "'" << endl;
+	message(1, ss.str());
+	if (ot.shape().first == 0)
+	{
+		throw_moea_error("zero members found in obs training file");
+	}
+
+	if (dt.shape().first != ot.shape().first)
+		throw_moea_error("dv training dataset size is not equal to obs training dataset size");
 }
 
 bool MOEA::initialize_dv_population()
@@ -6124,6 +6329,42 @@ ParameterEnsemble MOEA::generate_sbx_population(int num_members, ParameterEnsemb
         }
     }
 	return tmp_dp;
+}
+
+void MOEA::save_training_dataset(ParameterEnsemble& _dp, ObservationEnsemble& _op, string tag)
+{
+	//save current training dataset with highest EI member added assuming it is true
+	stringstream ss;
+	string fname;
+	_dp.reset_org_real_names();
+	ss << file_manager.get_base_filename();
+	if (tag.size() > 0)
+	{
+		ss << "." << tag;
+	}
+	ss << "." << training_dv_file_tag << ".csv";
+	_dp.to_csv(ss.str());
+
+	string name = ss.str();
+	ss.str("");
+	ss << "saved augmented infill-training decision variable dataset of size " << _dp.shape().first << " X " << _dp.shape().second << " to '" << name << "'";
+	message(1, ss.str());
+
+	ss.str("");
+	_op.reset_org_real_names();
+	ss << file_manager.get_base_filename();
+	if (tag.size() > 0)
+	{
+		ss << "." << tag;
+	}
+	ss << "." << training_obs_file_tag << ".csv";
+	_op.to_csv(ss.str());
+	
+	name = ss.str();
+	ss.str("");
+	ss << "saved augmented infill-training observation dataset of size " << _op.shape().first << " X " << _op.shape().second << " to '" << name << "'";
+	message(1, ss.str());
+	
 }
 
 void MOEA::save_populations(ParameterEnsemble& _dp, ObservationEnsemble& _op, string tag)

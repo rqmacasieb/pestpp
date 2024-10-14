@@ -1,6 +1,5 @@
 @ECHO OFF
 
-echo $path
-python MIC.py > NUL
+python MIC.py
 
 :end

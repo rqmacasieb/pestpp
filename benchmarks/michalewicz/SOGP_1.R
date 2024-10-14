@@ -7,7 +7,11 @@ cur_opt <- cur_opt$func
 
 
 #get training data points
-training_data <- read.csv("trainingdata.csv")
+training_dv <- read.csv("mic_gp.training.dv_pop.csv")
+training_obs <- read.csv("mic_gp.training.obs_pop.csv")
+
+training_data <- cbind(training_dv, training_obs)
+#training_data <- read.csv("trainingdata.csv")
 
 #set training data for objectives
 for (i in 1:ndim) {
@@ -34,4 +38,4 @@ if (f1.alc$s2 > 0){
 
 output <- c(f1.alc$mean, sqrt(f1.alc$s2), EI)
 
-write.csv(output, "gp_output.dat", quote = F, row.names = F)
+write.csv(output, "output.dat", quote = F, row.names = F)
