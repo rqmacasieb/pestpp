@@ -1052,8 +1052,8 @@ void ParetoObjectives::write_bgo_ensemble_summary(string& sum_tag, int generatio
 		}
 		sum << endl;
 	}
-	cout << "...wrote ensemble summary to " << file_manager.get_base_filename() << "." << sum_tag << endl;
-	file_manager.rec_ofstream() << "...wrote ensemble summary to " << file_manager.get_base_filename() << "." << sum_tag << endl;
+	cout << "...wrote BGO ensemble summary to " << file_manager.get_base_filename() << "." << sum_tag << endl;
+	file_manager.rec_ofstream() << "...wrote BGO ensemble summary to " << file_manager.get_base_filename() << "." << sum_tag << endl;
 }
 
 void ParetoObjectives::prep_bgo_ensemble_summary_file(string summary_tag)
@@ -4294,9 +4294,7 @@ void MOEA::initialize()
 		{
 			/*if (prob_pareto)
 				objectives.prep_expected_distance_lookup_table(op, dp);*/
-			if (bgo)
-				get_current_true_solution();
-
+		
 			DomPair dompair = objectives.get_nsga2_pareto_dominance(iter, op, dp, &constraints, false, true, POP_SUM_TAG);
 
 			//drop any duplicates
@@ -4325,9 +4323,6 @@ void MOEA::initialize()
 			ss.str("");
 			ss << "initialized archives with " << dompair.first.size() << " nondominated members";
 			message(2, ss.str());
-
-
-
 
 			//this causes the initial archive pareto summary file to be written
 			objectives.get_nsga2_pareto_dominance(iter, op_archive, dp_archive, &constraints, false, true, ARC_SUM_TAG);
@@ -4677,12 +4672,19 @@ ParameterEnsemble MOEA::generate_population()
 
 vector<string> MOEA::fill_infill_ensemble(ParameterEnsemble& _dp, ObservationEnsemble& _op)
 {
+	message(2, "starting surrogate-assisted greedy selection of infills");
+
 	int infill_size = pest_scenario.get_pestpp_options().get_mou_infill_size();
 	if (infill_size == 0.0)
 	{
 		infill_size = pest_scenario.get_pestpp_options().get_mou_population_size() / 2;
 		message(1, "infill size not specified. Setting infill size to half the population size: ", infill_size);
 	}
+	else if (infill_size == 1.0)
+		message(1, "performing classic BGO algorithm with one-at-a-time infill sampling");
+	else
+		message(1, "Using specified infill from control file: ", infill_size);
+	
 	if (infill_size > _dp.shape().first)
 		throw_moea_error("Chosen infill size exceeds the population size!");
 
@@ -4694,14 +4696,16 @@ vector<string> MOEA::fill_infill_ensemble(ParameterEnsemble& _dp, ObservationEns
 	stringstream tag;
 	tag << iter << "." << BGO_SELECTION_SUM_TAG;
 
-
 	objectives.prep_bgo_ensemble_summary_file(tag.str());
+	get_current_true_solution();
 	while (count < infill_size)
 	{
+		
 		save_training_dataset(dtemp, otemp);
 		//objectives.write_training_summary(iter, count, dtemp, otemp, BGO_TRAINING_SUM_TAG);
 		run_surrogate(rdp, rop);
-		
+		//save_batch(rdp, rop, to_string(count));
+
 		DomPair dompair = objectives.get_bgo_ensemble(count, rop, rdp, &constraints, true, tag.str());
 		string pick_name = dompair.first[0];
 		picks.push_back(pick_name);
@@ -4742,7 +4746,7 @@ vector<string> MOEA::fill_infill_ensemble(ParameterEnsemble& _dp, ObservationEns
 		message(2, "greedy selection picked " + pick_name + ". Current infill size: " + to_string(count));
 	}
 
-	message(1, "greedy selection finished with " + to_string(count) + " selected infills. Proceeding with complex runs...");
+	message(2, "greedy selection finished with " + to_string(count) + " selected infills. Proceeding with complex runs...");
 	return picks;
 
 }
@@ -5418,90 +5422,90 @@ void MOEA::update_pso_pbest(ParameterEnsemble& _dp, ObservationEnsemble& _op)
 	ParameterEnsemble tdp = _dp;
 	ObservationEnsemble top = _op;
 
-	if (bgo)
+	//if (bgo)
+	//{
+	//	objectives.update_bgo_ensemble(top, tdp, &constraints);
+	//	objectives.get_bgo_ensemble(-999, _op, _dp, &constraints, false);
+	//	Eigen::VectorXd real;
+	//	string f, s;
+	//	vector<string> names = _dp.get_real_names();
+	//	set<string> snames(names.begin(), names.end());
+	//	names.clear();
+	//	bool new_dom_old;
+	//	//vector<string> new_pbest_names;
+	//	//pso_pbest_dp = _dp;
+	//	//pso_pbest_op = _op;
+	//	set<string> duplicates = objectives.get_duplicates();
+
+	//	for (auto lm : current_pso_lineage_map)
+	//	{
+
+	//		f = lm.second; s = lm.first;
+	//		if ((snames.find(f) == snames.end()) || (snames.find(s) == snames.end()))
+	//		{
+	//			names.push_back(f);
+	//		}
+	//		else if ((duplicates.find(f) != duplicates.end()) || (duplicates.find(s) != duplicates.end()))
+	//		{
+	//			names.push_back(f);
+	//		}
+	//		else
+	//		{
+	//			new_dom_old = objectives.compare_two(f, s, envtype);
+	//			if (!new_dom_old)
+	//			{
+	//				real = pso_pbest_dp.get_real_vector(s);
+	//				tdp.update_real_ip(f, real);
+	//				real = pso_pbest_op.get_real_vector(s);
+	//				top.update_real_ip(f, real);
+	//			}
+	//			//new_pbest_names.push_back(lm.first);
+
+	//		}
+	//	}
+	//}
+	//else
+	//{
+	objectives.update(top, tdp, &constraints);
+	objectives.get_nsga2_pareto_dominance(-999, _op, _dp, &constraints, prob_pareto, false);
+	Eigen::VectorXd real;
+	string f, s;
+	vector<string> names = _dp.get_real_names();
+	set<string> snames(names.begin(), names.end());
+	names.clear();
+	bool new_dom_old;
+	//vector<string> new_pbest_names;
+	//pso_pbest_dp = _dp;
+	//pso_pbest_op = _op;
+	set<string> duplicates = objectives.get_duplicates();
+
+	for (auto lm : current_pso_lineage_map)
 	{
-		objectives.update_bgo_ensemble(top, tdp, &constraints);
-		objectives.get_bgo_ensemble(-999, _op, _dp, &constraints, false);
-		Eigen::VectorXd real;
-		string f, s;
-		vector<string> names = _dp.get_real_names();
-		set<string> snames(names.begin(), names.end());
-		names.clear();
-		bool new_dom_old;
-		//vector<string> new_pbest_names;
-		//pso_pbest_dp = _dp;
-		//pso_pbest_op = _op;
-		set<string> duplicates = objectives.get_duplicates();
 
-		for (auto lm : current_pso_lineage_map)
+		f = lm.second; s = lm.first;
+		if ((snames.find(f) == snames.end()) || (snames.find(s) == snames.end()))
 		{
+			names.push_back(f);
+		}
+		else if ((duplicates.find(f) != duplicates.end()) || (duplicates.find(s) != duplicates.end()))
+		{
+			names.push_back(f);
+		}
+		else
+		{
+			new_dom_old = objectives.compare_two(f, s, envtype);
+			if (!new_dom_old)
+			{
+				real = pso_pbest_dp.get_real_vector(s);
+				tdp.update_real_ip(f, real);
+				real = pso_pbest_op.get_real_vector(s);
+				top.update_real_ip(f, real);
+			}
+			//new_pbest_names.push_back(lm.first);
 
-			f = lm.second; s = lm.first;
-			if ((snames.find(f) == snames.end()) || (snames.find(s) == snames.end()))
-			{
-				names.push_back(f);
-			}
-			else if ((duplicates.find(f) != duplicates.end()) || (duplicates.find(s) != duplicates.end()))
-			{
-				names.push_back(f);
-			}
-			else
-			{
-				new_dom_old = objectives.compare_two(f, s, envtype);
-				if (!new_dom_old)
-				{
-					real = pso_pbest_dp.get_real_vector(s);
-					tdp.update_real_ip(f, real);
-					real = pso_pbest_op.get_real_vector(s);
-					top.update_real_ip(f, real);
-				}
-				//new_pbest_names.push_back(lm.first);
-
-			}
 		}
 	}
-	else
-	{
-		objectives.update(top, tdp, &constraints);
-		objectives.get_nsga2_pareto_dominance(-999, _op, _dp, &constraints, prob_pareto, false);
-		Eigen::VectorXd real;
-		string f, s;
-		vector<string> names = _dp.get_real_names();
-		set<string> snames(names.begin(), names.end());
-		names.clear();
-		bool new_dom_old;
-		//vector<string> new_pbest_names;
-		//pso_pbest_dp = _dp;
-		//pso_pbest_op = _op;
-		set<string> duplicates = objectives.get_duplicates();
-
-		for (auto lm : current_pso_lineage_map)
-		{
-
-			f = lm.second; s = lm.first;
-			if ((snames.find(f) == snames.end()) || (snames.find(s) == snames.end()))
-			{
-				names.push_back(f);
-			}
-			else if ((duplicates.find(f) != duplicates.end()) || (duplicates.find(s) != duplicates.end()))
-			{
-				names.push_back(f);
-			}
-			else
-			{
-				new_dom_old = objectives.compare_two(f, s, envtype);
-				if (!new_dom_old)
-				{
-					real = pso_pbest_dp.get_real_vector(s);
-					tdp.update_real_ip(f, real);
-					real = pso_pbest_op.get_real_vector(s);
-					top.update_real_ip(f, real);
-				}
-				//new_pbest_names.push_back(lm.first);
-
-			}
-		}
-	}
+	//}
 	pso_pbest_dp = tdp;
 	pso_pbest_op = top;
 }
@@ -6347,7 +6351,7 @@ void MOEA::save_training_dataset(ParameterEnsemble& _dp, ObservationEnsemble& _o
 
 	string name = ss.str();
 	ss.str("");
-	ss << "saved augmented infill-training decision variable dataset of size " << _dp.shape().first << " X " << _dp.shape().second << " to '" << name << "'";
+	ss << "saved augmented infill candidate-training decision variable dataset of size " << _dp.shape().first << " X " << _dp.shape().second << " to '" << name << "'";
 	message(1, ss.str());
 
 	ss.str("");
@@ -6362,9 +6366,110 @@ void MOEA::save_training_dataset(ParameterEnsemble& _dp, ObservationEnsemble& _o
 	
 	name = ss.str();
 	ss.str("");
-	ss << "saved augmented infill-training observation dataset of size " << _op.shape().first << " X " << _op.shape().second << " to '" << name << "'";
+	ss << "saved augmented infill candidate-training observation dataset of size " << _op.shape().first << " X " << _op.shape().second << " to '" << name << "'";
 	message(1, ss.str());
 	
+}
+
+void MOEA::save_batch(ParameterEnsemble& _dp, ObservationEnsemble& _op, string tag)
+{
+
+	stringstream ss;
+	string fname;
+	_dp.reset_org_real_names();
+	ss << file_manager.get_base_filename();
+	if (tag.size() > 0)
+	{
+		ss << "." << tag;
+	}
+	ss << "." << dv_pool_file_tag;
+	if (pest_scenario.get_pestpp_options().get_save_binary())
+	{
+		ss << ".jcb";
+		_dp.to_binary(ss.str());
+	}
+	else
+	{
+		ss << ".csv";
+		_dp.to_csv(ss.str());
+	}
+	string name = ss.str();
+	ss.str("");
+	ss << "saved decision variable pool of size " << _dp.shape().first << " X " << _dp.shape().second << " to '" << name << "'";
+	message(1, ss.str());
+	ss.str("");
+	if ((save_every > 0) && (iter % save_every == 0))
+	{
+		ss << file_manager.get_base_filename() << "." << iter;
+		if (tag.size() > 0)
+		{
+			ss << "." << tag;
+		}
+		ss << "." << dv_pool_file_tag;
+		if (pest_scenario.get_pestpp_options().get_save_binary())
+		{
+			ss << ".jcb";
+			_dp.to_binary(ss.str());
+		}
+		else
+		{
+			ss << ".csv";
+			_dp.to_csv(ss.str());
+		}
+		string name = ss.str();
+		ss.str("");
+		ss << "saved batch-specific decision variable population of size " << _dp.shape().first << " X " << _dp.shape().second << " to '" << name << "'";
+		message(1, ss.str());
+	}
+
+
+	ss.str("");
+	ss << file_manager.get_base_filename();
+	if (tag.size() > 0)
+	{
+		ss << "." << tag;
+	}
+	ss << "." << obs_pool_file_tag;
+	if (pest_scenario.get_pestpp_options().get_save_binary())
+	{
+		ss << ".jcb";
+		_op.to_binary(ss.str());
+	}
+	else
+	{
+		ss << ".csv";
+		_op.to_csv(ss.str());
+	}
+	name = ss.str();
+	ss.str("");
+	ss << "saved observation pool of size " << _op.shape().first << " X " << _op.shape().second << " to '" << name << "'";
+	message(1, ss.str());
+
+	if ((save_every > 0) && (iter % save_every == 0))
+	{
+		ss.str("");
+		ss << file_manager.get_base_filename() << "." << iter;
+		if (tag.size() > 0)
+		{
+			ss << "." << tag;
+		}
+		ss << "." << obs_pool_file_tag;
+		if (pest_scenario.get_pestpp_options().get_save_binary())
+		{
+			ss << ".jcb";
+			_op.to_binary(ss.str());
+		}
+		else
+		{
+			ss << ".csv";
+			_op.to_csv(ss.str());
+		}
+		name = ss.str();
+		ss.str("");
+		ss << "saved batch-specific observation population of size " << _op.shape().first << " X " << _op.shape().second << " to '" << name << "'";
+		message(1, ss.str());
+	}
+
 }
 
 void MOEA::save_populations(ParameterEnsemble& _dp, ObservationEnsemble& _op, string tag)
@@ -6849,16 +6954,17 @@ void MOEA::get_current_true_solution()
 			throw_moea_error(string("error processing outer repository obs file"));
 		}
 	}//TO DO: what if the true solution is obtained from the initial ensemble that follows a PBM evaluation -- this is not a problem for now
-	/*else
+	else
 	{
-		message(1, "using the initial population for hypervolume partitioning");
-		stringstream ss;
-		ofstream& frec = file_manager.rec_ofstream();
-		ss << "ParetoObjectives::get_hypervolume() for " << op.shape().first << " archive members";
-		performance_log->log_event(ss.str());
+		message(1, "setting the current optimum from the current archive");
 
 		curr_opt = objectives.get_members(op_archive, dp_archive);
-	}*/
+		
+		/*stringstream ss;
+		ofstream& frec = file_manager.rec_ofstream();
+		ss << "Current optimum member: ";
+		performance_log->log_event(ss.str());*/
+	}
 	objectives.set_curr_opt(curr_opt);
 	//objectives.get_ehvi(op, dp);
 }

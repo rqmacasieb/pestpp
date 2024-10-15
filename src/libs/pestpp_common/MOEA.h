@@ -240,6 +240,8 @@ private:
 	string population_dv_file, population_obs_restart_file;
 	string dv_pop_file_tag = "dv_pop";
 	string obs_pop_file_tag = "obs_pop";
+	string dv_pool_file_tag = "pool.dv_pop";
+	string obs_pool_file_tag = "pool.obs_pop";
 	string training_dv_file_tag = "training.dv_pop";
 	string training_obs_file_tag = "training.obs_pop";
 	string lineage_tag = "lineage.csv";
@@ -330,6 +332,8 @@ private:
 
 	void save_populations(ParameterEnsemble& _dp, ObservationEnsemble& _op, string tag = string());
 	void save_training_dataset(ParameterEnsemble& _dp, ObservationEnsemble& _op, string tag = string());
+
+	void save_batch(ParameterEnsemble& _dp, ObservationEnsemble& _op, string tag = string());
 
 	void gauss_mutation_ip(ParameterEnsemble& _dp);
 	pair<Eigen::VectorXd, Eigen::VectorXd> sbx(double probability, double eta_m, int idx1, int idx2);

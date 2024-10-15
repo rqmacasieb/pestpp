@@ -6,7 +6,7 @@ norestart estimation
  10  2  .3  .01  8 
  10  10  .001
  .1
- 10   .01  3  3   .01  3 
+ 5   .01  3  3   .01  3 
  1   1   1 
 * parameter groups
 g1 		relative  0.01  0.0 	always_2  	1 	parabolic

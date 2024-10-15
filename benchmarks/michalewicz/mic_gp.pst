@@ -6,7 +6,7 @@ restart estimation
  10  2  .3  .01  8 
  10  10  .001
  .1
- 2   .01  3  3	.01  3 
+ 5   .01  3  3	.01  3 
  1   1   1 
 * parameter groups
 decvar	absolute  1.00  0.0		switch  	1 	parabolic
@@ -83,12 +83,12 @@ output.ins output.dat
 #++mou_bgo_lambda(0.6)
 ++mou_generator(pso)
 ++mou_population_size(20)
-++mou_infill_size(5)
+#++mou_infill_size(5)
 ++mou_max_archive_size(20)
 ++mou_resample_every(1)
 ++mou_resample_command(MODELRUN.BAT)
 ++mou_dv_population_file(sogp_mic.dv_pop.csv)
 ++mou_obs_population_restart_file(sogp_mic.obs_pop.csv)
-++mou_outer_repo_obs_file(mic_outer.obs_pop.csv)
+#++mou_outer_repo_obs_file(mic_outer.obs_pop.csv)
 ++mou_bgo_dv_training_file(mic.dv_training.csv)
 ++mou_bgo_obs_training_file(mic.obs_training.csv)
