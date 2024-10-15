@@ -439,7 +439,7 @@ public:
 	bool get_mou_adaptive_ppd() const { return mou_adaptive_ppd; }
 	void set_mou_resample_every(int _every) { mou_resample_every = _every; }
 	vector<string> get_mou_resample_command() const { return mou_resample_command; }
-	void set_mou_resample_command(vector<string>& _rescmd) { mou_resample_command = _rescmd; }
+	void set_mou_resample_command(const vector<string>& _rescmd) { mou_resample_command = _rescmd; }
 	string get_mou_bgo_aqf() const { return mou_bgo_aqf; }
 	void set_mou_bgo_aqf(string name) { mou_bgo_aqf = name; }
 	double get_mou_bgo_lambda() const { return mou_bgo_lambda; }
