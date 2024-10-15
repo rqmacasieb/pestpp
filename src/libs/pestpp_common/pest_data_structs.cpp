@@ -1492,7 +1492,13 @@ bool PestppOptions::assign_mou_value_by_key(const string& key, const string& val
 		}
 	else if (key == "MOU_RESAMPLE_COMMAND")
 	{
-		mou_resample_command = value;
+		mou_resample_command.clear();
+		vector<string> tok;
+		tokenize(value, tok, ",		");
+		for (const auto& com : tok)
+		{
+			mou_resample_command.push_back(upper_cp(strip_cp(com)));
+		}
 		return true;
 		}
 	else if (key == "MOU_PPD_BETA")
@@ -1806,6 +1812,9 @@ void PestppOptions::summary(ostream& os) const
 	os << "mou_max_nn_search: " << mou_max_nn_search << endl;
 	os << "mou_outer_repo_obs_file: " << mou_outer_repo_obs_file << endl;
 	os << "mou_hypervolume_extreme: " << mou_hypervolume_extreme << endl;
+	os << "mou_resample_command: " << endl;
+	for (auto com : mou_resample_command)
+		os << "  " << com << endl;
 	os << "mou_infill_size: " << mou_infill_size << endl;
 	os << "mou_adaptive_ppd: " << mou_adaptive_ppd << endl;
 	os << "mou_ppd_beta: " << mou_ppd_beta << endl;
@@ -2017,7 +2026,7 @@ void PestppOptions::set_defaults()
 	set_mou_fit_gamma(0.25);
 	set_mou_adaptive_ppd(false);
 	set_mou_resample_every(1);
-	set_mou_resample_command("");
+	set_mou_resample_command(vector<string>());
 	set_mou_bgo_aqf("EI");
 	set_mou_bgo_dv_training_file("");
 	set_mou_bgo_obs_training_file("");

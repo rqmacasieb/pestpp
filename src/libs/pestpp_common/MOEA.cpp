@@ -2398,10 +2398,10 @@ double ParetoObjectives::get_ehvi(string& member, map<string, map<string, double
 
 
 MOEA::MOEA(Pest &_pest_scenario, FileManager &_file_manager, OutputFileWriter &_output_file_writer, 
-	PerformanceLog *_performance_log, RunManagerAbstract* _run_mgr_ptr, RunManagerAbstract* _infill_run_mgr_ptr)
+	PerformanceLog *_performance_log, RunManagerAbstract* _run_mgr_ptr)
 	: pest_scenario(_pest_scenario), file_manager(_file_manager),
 	output_file_writer(_output_file_writer), performance_log(_performance_log),
-	run_mgr_ptr(_run_mgr_ptr), infill_run_mgr_ptr(_infill_run_mgr_ptr), constraints(_pest_scenario, &_file_manager, _output_file_writer, *_performance_log),
+	run_mgr_ptr(_run_mgr_ptr), constraints(_pest_scenario, &_file_manager, _output_file_writer, *_performance_log),
 	objectives(_pest_scenario,_file_manager,_performance_log)
 	
 {
@@ -3246,12 +3246,12 @@ vector<int> MOEA::run_surrogate(ParameterEnsemble& _dp, ObservationEnsemble& _op
 	stringstream ss;
 	ss << "running surrogate for " << _dp.shape().first << " candidate infills";
 	performance_log->log_event(ss.str());
-	infill_run_mgr_ptr->reinitialize();
+	run_mgr_ptr->reinitialize();
 
 	map<int, int> real_run_ids;
 	try
 	{
-		real_run_ids = _dp.add_runs(infill_run_mgr_ptr);
+		real_run_ids = _dp.add_runs(run_mgr_ptr);
 	}
 	catch (const exception& e)
 	{
@@ -3267,7 +3267,7 @@ vector<int> MOEA::run_surrogate(ParameterEnsemble& _dp, ObservationEnsemble& _op
 	try
 	{
 		//add condition to do resample runs using different command specified
-		infill_run_mgr_ptr->run();
+		run_mgr_ptr->run();
 	}
 	catch (const exception& e)
 	{
@@ -3285,7 +3285,7 @@ vector<int> MOEA::run_surrogate(ParameterEnsemble& _dp, ObservationEnsemble& _op
 	vector<int> failed_real_indices;
 	try
 	{
-		failed_real_indices = _op.update_from_runs(real_run_ids, infill_run_mgr_ptr);
+		failed_real_indices = _op.update_from_runs(real_run_ids, run_mgr_ptr);
 	}
 	catch (const exception& e)
 	{
@@ -4698,6 +4698,7 @@ vector<string> MOEA::fill_infill_ensemble(ParameterEnsemble& _dp, ObservationEns
 
 	objectives.prep_bgo_ensemble_summary_file(tag.str());
 	get_current_true_solution();
+	run_mgr_ptr->override_command(pest_scenario.get_pestpp_options().get_mou_resample_command());
 	while (count < infill_size)
 	{
 		
@@ -4747,6 +4748,7 @@ vector<string> MOEA::fill_infill_ensemble(ParameterEnsemble& _dp, ObservationEns
 	}
 
 	message(2, "greedy selection finished with " + to_string(count) + " selected infills. Proceeding with complex runs...");
+	run_mgr_ptr->revert_command();
 	return picks;
 
 }

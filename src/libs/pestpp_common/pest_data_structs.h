@@ -438,8 +438,8 @@ public:
 	void set_mou_adaptive_ppd(bool _flag) { mou_adaptive_ppd = _flag; };
 	bool get_mou_adaptive_ppd() const { return mou_adaptive_ppd; }
 	void set_mou_resample_every(int _every) { mou_resample_every = _every; }
-	string get_mou_resample_command()const { return mou_resample_command; }
-	void set_mou_resample_command(string _rescmd) { mou_resample_command = _rescmd; }
+	vector<string> get_mou_resample_command() const { return mou_resample_command; }
+	void set_mou_resample_command(vector<string>& _rescmd) { mou_resample_command = _rescmd; }
 	string get_mou_bgo_aqf() const { return mou_bgo_aqf; }
 	void set_mou_bgo_aqf(string name) { mou_bgo_aqf = name; }
 	double get_mou_bgo_lambda() const { return mou_bgo_lambda; }
@@ -796,7 +796,7 @@ private:
 	int mou_infill_size;
 	double mou_hypervolume_extreme;
 	int mou_resample_every;
-	string mou_resample_command;
+	vector<string> mou_resample_command;
 	string mou_population_schedule;
 	int mou_simplex_reflections;
 	vector<double> mou_simplex_factors;

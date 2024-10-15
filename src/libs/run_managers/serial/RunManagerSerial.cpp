@@ -240,7 +240,6 @@ void RunManagerSerial::run()
 	}
 }
 
-
 RunManagerSerial::~RunManagerSerial(void)
 {
 }

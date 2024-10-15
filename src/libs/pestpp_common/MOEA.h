@@ -221,7 +221,7 @@ public:
 	
 	static mt19937_64 rand_engine;
 	MOEA(Pest &_pest_scenario, FileManager &_file_manager, OutputFileWriter &_output_file_writer,
-		PerformanceLog *_performance_log, RunManagerAbstract* _run_mgr_ptr, RunManagerAbstract* _infill_run_mgr_ptr);
+		PerformanceLog *_performance_log, RunManagerAbstract* _run_mgr_ptr);
 	void initialize();
     void iterate_to_solution();
 	void finalize();
@@ -268,7 +268,6 @@ private:
 	OutputFileWriter &output_file_writer;
 	PerformanceLog *performance_log;
 	RunManagerAbstract* run_mgr_ptr;
-	RunManagerAbstract* infill_run_mgr_ptr;
 	const ObservationInfo *obs_info_ptr;
 
 	ParameterEnsemble dp, dp_archive, dt;

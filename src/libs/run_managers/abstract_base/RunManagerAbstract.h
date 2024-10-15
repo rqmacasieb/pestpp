@@ -53,6 +53,8 @@ public:
 	virtual int add_run(const Eigen::VectorXd &model_pars, const std::string &info_txt="", double info_valuee=RunStorage::no_data);
 	virtual void update_run(int run_id, const Parameters &pars, const Observations &obs);
 	virtual void run() = 0;
+	virtual void override_command(std::vector<std::string> altcom) {};
+	virtual void revert_command() {};
 	virtual RunManagerAbstract::RUN_UNTIL_COND run_until(RUN_UNTIL_COND condition, int n_nops = 0, double sec = 0.0);
 	virtual const std::vector<std::string> &get_par_name_vec() const;
 	virtual const std::vector<std::string> &get_obs_name_vec() const;

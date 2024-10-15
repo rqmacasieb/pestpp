@@ -34,6 +34,9 @@ public:
 		bool tpl_force_decimal=false);
 	virtual void run();
 	~RunManagerSerial(void);
+	virtual void override_command(std::vector<std::string> altcom) { mi.override_command(altcom); }
+	virtual void revert_command() { mi.revert_command(); }
+
 private:
 	ModelInterface mi;
 	std::string run_dir;

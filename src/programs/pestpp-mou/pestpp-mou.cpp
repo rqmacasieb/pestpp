@@ -222,7 +222,7 @@ int main(int argc, char* argv[])
 		}
 
 		RunManagerAbstract* run_manager_ptr;
-		RunManagerAbstract* infill_run_manager_ptr;
+		//RunManagerAbstract* infill_run_manager_ptr;
 
 		if (cmdline.runmanagertype == CmdLine::RunManagerType::PANTHER_MASTER)
 
@@ -264,7 +264,7 @@ int main(int argc, char* argv[])
 			
 			//initialise another run manager for resampling
 			//TO DO maybe add an option to add a control variable to initialise a secondary control file if MOU is in BGO mode
-			vector<string> com{ pest_scenario.get_pestpp_options().get_mou_resample_command() };
+			/*vector<string> com{ pest_scenario.get_pestpp_options().get_mou_resample_command() };
 
 			infill_run_manager_ptr = new RunManagerSerial(com,
 				exi.tplfile_vec, exi.inpfile_vec, exi.insfile_vec, exi.outfile_vec,
@@ -273,7 +273,7 @@ int main(int argc, char* argv[])
 				pest_scenario.get_pestpp_options().get_fill_tpl_zeros(),
 				pest_scenario.get_pestpp_options().get_additional_ins_delimiters(),
 				pest_scenario.get_pestpp_options().get_num_tpl_ins_threads(),
-				pest_scenario.get_pestpp_options().get_tpl_force_decimal());
+				pest_scenario.get_pestpp_options().get_tpl_force_decimal());*/
 
 			
 		}
@@ -286,13 +286,10 @@ int main(int argc, char* argv[])
 		//Allocates Space for Run Manager.  This initializes the model parameter names and observations names.
 		//Neither of these will change over the course of the simulation
 
-
-
 		run_manager_ptr->initialize(base_trans_seq.ctl2model_cp(cur_ctl_parameters), pest_scenario.get_ctl_observations());
-		infill_run_manager_ptr->initialize(base_trans_seq.ctl2model_cp(cur_ctl_parameters), pest_scenario.get_ctl_observations());
+		//infill_run_manager_ptr->initialize(base_trans_seq.ctl2model_cp(cur_ctl_parameters), pest_scenario.get_ctl_observations());
 			
-
-		MOEA moea(pest_scenario, file_manager, output_file_writer, &performance_log, run_manager_ptr, infill_run_manager_ptr);
+		MOEA moea(pest_scenario, file_manager, output_file_writer, &performance_log, run_manager_ptr);
 		
 		//ZAK: Initialize random generator here
 		moea.initialize();

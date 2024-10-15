@@ -69,7 +69,7 @@ func		0		1	l_obj
 func_sd		0		1	obs
 EI			0		1	obs
 * model command line
-MODELRUN2.BAT
+MODELRUN_PBM.BAT
 #python MIC.py
 * model input/output
 dv_tpl.dat dv.dat
@@ -83,10 +83,10 @@ output.ins output.dat
 #++mou_bgo_lambda(0.6)
 ++mou_generator(pso)
 ++mou_population_size(20)
-#++mou_infill_size(5)
+++mou_infill_size(5)
 ++mou_max_archive_size(20)
 ++mou_resample_every(1)
-++mou_resample_command(MODELRUN.BAT)
+++mou_resample_command(MODELRUN_GPR.BAT)
 ++mou_dv_population_file(sogp_mic.dv_pop.csv)
 ++mou_obs_population_restart_file(sogp_mic.obs_pop.csv)
 #++mou_outer_repo_obs_file(mic_outer.obs_pop.csv)
