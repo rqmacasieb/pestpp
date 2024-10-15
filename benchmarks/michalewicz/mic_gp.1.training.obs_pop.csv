@@ -99,8 +99,8 @@ gen=0_member=96,-1.03503,0,0
 gen=0_member=97,2.88202,0,0
 gen=0_member=98,0.107052,0,0
 gen=0_member=99,-0.705846,0,0
-gen=1_member=4_pso,-1.03556,0,0
-gen=1_member=11_pso,-2.10575,0,0
-gen=1_member=14_pso,0.425046,0,0
-gen=1_member=10_pso,2.46917,0,0
-gen=1_member=8_pso,0.602447,0,0
+gen=1_member=0_pso,-2.55252,0,0
+gen=1_member=15_pso,-1.97312,0,0
+gen=1_member=14_pso,-3.66555,0,0
+gen=1_member=19_pso,0.0218278,0,0
+gen=1_member=8_pso,2.45741,0,0

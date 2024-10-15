@@ -6,12 +6,12 @@
 
 
 version: 5.2.5
-binary compiled on Oct 15 2024 at 15:19:53
+binary compiled on Oct 15 2024 at 16:00:42
 
 using control file: "mic_gp.pst"
 in directory: "C:\Users\mac732\OneDrive - CSIRO\Documents\GitHub\pestpp-moudev\benchmarks\michalewicz"
 on host: "DUMPLING-FL"
-started at 10/15/24 15:20:02
+started at 10/15/24 16:52:48
 
 on host: "DUMPLING-FL"
 
@@ -506,16 +506,16 @@ initialized archives with 1 nondominated members
   ---  starting generation  1  ---  
 ...generating PSO population of size 20
 starting surrogate-assisted greedy selection of infills
-...Using specified infill from control file:  5
+...using specified infill size from control file:  5
 ...setting the current optimum from the current archive
 ...saved augmented infill candidate-training decision variable dataset of size 100 X 50 to 'mic_gp.training.dv_pop.csv'
 ...saved augmented infill candidate-training observation dataset of size 100 X 3 to 'mic_gp.training.obs_pop.csv'
 ...wrote BGO ensemble summary to mic_gp.1.infill_search.summary.csv
-greedy selection picked GEN=1_MEMBER=4_PSO. Current infill size: 1
+greedy selection picked GEN=1_MEMBER=0_PSO. Current infill size: 1
 ...saved augmented infill candidate-training decision variable dataset of size 101 X 50 to 'mic_gp.training.dv_pop.csv'
 ...saved augmented infill candidate-training observation dataset of size 101 X 3 to 'mic_gp.training.obs_pop.csv'
 ...wrote BGO ensemble summary to mic_gp.1.infill_search.summary.csv
-greedy selection picked GEN=1_MEMBER=11_PSO. Current infill size: 2
+greedy selection picked GEN=1_MEMBER=15_PSO. Current infill size: 2
 ...saved augmented infill candidate-training decision variable dataset of size 102 X 50 to 'mic_gp.training.dv_pop.csv'
 ...saved augmented infill candidate-training observation dataset of size 102 X 3 to 'mic_gp.training.obs_pop.csv'
 ...wrote BGO ensemble summary to mic_gp.1.infill_search.summary.csv
@@ -523,7 +523,7 @@ greedy selection picked GEN=1_MEMBER=14_PSO. Current infill size: 3
 ...saved augmented infill candidate-training decision variable dataset of size 103 X 50 to 'mic_gp.training.dv_pop.csv'
 ...saved augmented infill candidate-training observation dataset of size 103 X 3 to 'mic_gp.training.obs_pop.csv'
 ...wrote BGO ensemble summary to mic_gp.1.infill_search.summary.csv
-greedy selection picked GEN=1_MEMBER=10_PSO. Current infill size: 4
+greedy selection picked GEN=1_MEMBER=19_PSO. Current infill size: 4
 ...saved augmented infill candidate-training decision variable dataset of size 104 X 50 to 'mic_gp.training.dv_pop.csv'
 ...saved augmented infill candidate-training observation dataset of size 104 X 3 to 'mic_gp.training.obs_pop.csv'
 ...wrote BGO ensemble summary to mic_gp.1.infill_search.summary.csv
@@ -544,110 +544,110 @@ all nondominated members in already in archive
 
   ---  generation 1 decision variable summary:  ---  
 decision variable        ubnd      lbnd      mean   standard devation         min         max
-X1                          5        -5 -0.285315             2.65013    -4.65407      4.7322
-X2                          5        -5-0.0812642             3.16728      -4.659     4.74693
-X3                          5        -5  0.285299             1.87064    -3.48647      3.7888
-X4                          5        -5 -0.748513             3.13877          -5     3.99531
-X5                          5        -5 -0.730865             3.00242    -4.65295     3.71881
-X6                          5        -5  0.251135             2.89057    -4.48089     4.97979
-X7                          5        -5  0.415904             2.52027     -3.9109     4.46524
-X8                          5        -5  0.419621             2.49134    -4.37337     4.76829
-X9                          5        -5-0.0628169             3.03387    -4.33096     4.79378
-X10                         5        -5  0.638794             3.07068    -4.59861           5
-X11                         5        -5  0.457425             2.87526    -4.69156     4.67911
-X12                         5        -50.00226992             2.88869    -4.99944           5
-X13                         5        -5  0.290619              2.6787          -5     4.19778
-X14                         5        -5 -0.289547             3.11418    -4.60431      4.2244
-X15                         5        -5 -0.489372             2.63419     -4.8631     3.99487
-X16                         5        -5   1.27462              2.7028    -4.82784     4.50487
-X17                         5        -5 -0.888275             2.65389     -4.8712     4.45937
-X18                         5        -5   1.38432             2.70314    -4.41159     4.42743
-X19                         5        -5  0.183195             2.79074    -4.58316      4.8567
-X20                         5        -5  0.752461             2.58304    -4.25215     4.74018
-X21                         5        -5 -0.306378              2.7058    -4.06388      4.1902
-X22                         5        -5 0.0883395             2.83607    -4.03835           5
-X23                         5        -5 -0.511352             2.86354    -4.82212     4.78301
-X24                         5        -5 -0.261252             2.52228    -4.32384     4.52873
-X25                         5        -5 -0.359239             3.47544    -4.96992     4.99773
-X26                         5        -5 -0.672949             2.80033          -5     4.02941
-X27                         5        -5  0.163387             2.95634     -4.3136           5
-X28                         5        -5 -0.441602             2.72612    -4.78642     4.11595
-X29                         5        -5   0.98544             2.89387    -4.60577     4.70643
-X30                         5        -5 -0.469423             2.37589    -4.60653     3.08734
-X31                         5        -5 -0.178949              3.1221    -4.93724     4.89481
-X32                         5        -5   1.09082             2.68419    -4.31594     4.61001
-X33                         5        -5 -0.678434             2.56251          -5     3.83745
-X34                         5        -5 -0.285984             3.55756          -5     4.38479
-X35                         5        -5  0.396596             2.21214    -3.04698     4.84883
-X36                         5        -5  0.737223             2.63508    -4.27246           5
-X37                         5        -5   1.19825             2.26627    -3.55612     4.54114
-X38                         5        -5  0.392956             2.75892    -4.69784     4.48052
-X39                         5        -5  -1.20611              1.9733    -4.77246      2.0254
-X40                         5        -5  0.335112             3.03899    -4.84563     4.82661
-X41                         5        -5  0.514748             3.28784    -4.84761      4.9352
-X42                         5        -5 -0.693753             2.56725    -4.78023     3.29739
-X43                         5        -5 0.0409791              2.5155          -5      4.7115
-X44                         5        -5 -0.812318             3.39536    -4.80239     4.96684
-X45                         5        -5  0.860997             3.21937          -5     4.95635
-X46                         5        -5 -0.601741              3.0854    -4.46114     4.99473
-X47                         5        -5 -0.288902             3.24695          -5     4.64591
-X48                         5        -5 -0.604902             2.66456    -4.45731     3.95345
-X49                         5        -5  0.574342             2.61698    -3.52692     4.83814
-X50                         5        -5 -0.218457             3.06849     -4.5579     4.79351
+X1                          5        -5  -1.05725             2.85591          -5     4.15788
+X2                          5        -5  -0.94533             3.52449          -5     4.74693
+X3                          5        -5  0.132634             1.90037    -3.48647      3.7888
+X4                          5        -5 -0.101167             2.90025    -4.92575     3.99531
+X5                          5        -5 -0.266649             3.31825    -4.65295           5
+X6                          5        -5 -0.507942             3.16615          -5     4.97979
+X7                          5        -5   1.22323             2.94549     -3.9109           5
+X8                          5        -5  0.572885              2.2811      -3.435     4.76829
+X9                          5        -5 -0.721474             3.13585          -5     4.79378
+X10                         5        -5  0.280023             2.77865    -4.59861     4.53529
+X11                         5        -5   1.70508             2.74199    -3.88361           5
+X12                         5        -5  0.132654             3.02148    -4.99944           5
+X13                         5        -5 -0.243628             2.87238          -5     4.19778
+X14                         5        -5  0.292261             3.29094    -4.60431           5
+X15                         5        -5 -0.233761             2.60555     -4.8631     3.99487
+X16                         5        -5  0.353111             3.36756          -5     4.50487
+X17                         5        -5 -0.731131             2.81728     -4.8712     4.45937
+X18                         5        -5   1.18869             2.90151    -4.41159     4.42743
+X19                         5        -5 -0.218542             2.72625    -4.58316      4.8567
+X20                         5        -5  0.220841             2.89064          -5     4.74018
+X21                         5        -5 0.0901134              2.7593    -4.06388     4.91872
+X22                         5        -5  0.434889             2.46445    -3.71996     4.88659
+X23                         5        -5 -0.109986              3.2133    -4.82212           5
+X24                         5        -5 -0.334427             2.59156    -3.89646     4.52873
+X25                         5        -5  0.233738             3.52801    -4.96992           5
+X26                         5        -5 -0.866487             2.58159    -4.93223     4.02941
+X27                         5        -5 -0.703979             2.78599     -4.3136     4.51984
+X28                         5        -5 -0.597789             2.86915          -5     4.11595
+X29                         5        -5-0.0276146             3.34858    -4.92861     4.70643
+X30                         5        -5 -0.406694             2.64585    -4.60653     4.56038
+X31                         5        -5 -0.537455             3.43397          -5     4.89481
+X32                         5        -5    1.3239             2.70264    -3.76717           5
+X33                         5        -5 -0.933755             2.63479          -5     3.83745
+X34                         5        -5 -0.936725             3.43323          -5     4.38479
+X35                         5        -5  0.559595             2.38205    -3.04698     4.84883
+X36                         5        -5   1.22539             2.82716    -4.27246           5
+X37                         5        -5   1.19158             2.23947    -3.55612     4.54114
+X38                         5        -5  0.886994              2.6971    -4.69784           5
+X39                         5        -5  -1.61098             2.27274          -5      2.0254
+X40                         5        -5  0.698387              2.9221    -4.84563           5
+X41                         5        -5    0.2595             3.51088    -4.84761      4.9352
+X42                         5        -5 -0.740409             2.54684    -4.78023     3.29739
+X43                         5        -5  0.582129             2.45448    -3.67465           5
+X44                         5        -5   -1.2214             3.55781          -5     4.96684
+X45                         5        -5   1.12097             2.83089    -4.13989     4.95635
+X46                         5        -5  -1.15937             2.96061          -5     4.99473
+X47                         5        -5-0.0598685             2.98994    -4.79746     4.64591
+X48                         5        -5  -1.23024             2.54532    -4.45731     3.13744
+X49                         5        -5  0.643355             2.74596    -3.52692           5
+X50                         5        -5 -0.717659             2.96278     -4.5579     4.79351
 
 
   ---  generation 1 decision variable change summary:  ---  
 decision variable  mean change   % change max change   % change min change   % change
-X1                    0.442782    281.191          0          0          0          0
-X2                   -0.228515          0          0          0          0          0
-X3                   0.0333886    10.4769    0.96204    20.2499   -1.27614          0
-X4                    0.337078          0          0          0    0.07425          0
-X5                     0.24749          0          0          0          0          0
-X6                   0.0723353    22.3622          0          0          0          0
-X7                    0.399799    49.0128    0.41146    8.43726          0          0
-X8                    0.222758    34.6771          0          0   0.938374          0
-X9                   -0.334014          0          0          0   -0.29945          0
-X10                   0.066615    9.44345   -0.18531   -3.84885          0          0
-X11                   0.464586    50.3883          0          0   0.807951          0
-X12                  -0.167099          0   -0.04698  -0.948512          0          0
-X13                   0.130715    31.0241          0          0    1.30624          0
-X14                    0.03189          0          0          0          0          0
-X15                   -0.26131          0          0          0          0          0
-X16                   0.101158    7.35279          0          0          0          0
-X17                  0.0237743          0          0          0          0          0
-X18                  -0.147207   -11.8993          0          0          0          0
-X19                  -0.138432   -309.255          0          0          0          0
-X20                  -0.299344   -66.0633          0          0          0          0
-X21                 -0.0747326          0          0          0          0          0
-X22                  -0.212168          0   -0.11341   -2.32084  0.0167613          0
-X23                  0.0162719          0          0          0          0          0
-X24                   0.104446          0          0          0  -0.237003          0
-X25                  0.0626985          0  -0.465897   -10.2805          0          0
-X26                   0.365249          0          0          0    0.06777          0
-X27                  -0.189217          0   -0.04937  -0.997247          0          0
-X28                   0.186086          0          0          0   0.555775          0
-X29                  0.0346073    3.39272          0          0          0          0
-X30                  0.0257454          0    0.85724    21.7321          0          0
-X31                  -0.225749          0          0          0          0          0
-X32                -0.00977659  -0.904367          0          0   0.548775          0
-X33                   0.523515          0    1.15723    23.1693    0.64669          0
-X34                  -0.167966          0          0          0    0.07675          0
-X35                 -0.0228105   -6.10257          0          0          0          0
-X36                    -0.6155   -505.654   -0.05182   -1.04725    -0.0727          0
-X37                   -0.45332    -60.854          0          0   -0.20203          0
-X38                   0.159024    28.8097          0          0          0          0
-X39                   0.203263          0          0          0          0          0
-X40                   -0.27769   -483.596          0          0          0          0
-X41                  -0.505388    -5399.7          0          0          0          0
-X42                  -0.242454          0          0          0     -0.132          0
-X43                   0.271719     86.895          0          0    1.32535          0
-X44                   0.382998          0          0          0          0          0
-X45                 -0.0879706     -11.38          0          0     0.3017          0
-X46                  -0.293142          0          0          0   -0.46887          0
-X47                   0.304505    1951.57          0          0    0.20254          0
-X48                  -0.327101          0  -0.816009   -26.0088          0          0
-X49                  -0.311648   -118.635          0          0   -0.97911          0
-X50                  -0.375927          0          0          0          0          0
+X1                     1.21472    771.415    0.57432    12.1364    0.34593          0
+X2                    0.635551          0          0          0      0.341          0
+X3                    0.186054    58.3813    0.96204    20.2499   -1.27614          0
+X4                   -0.310268          0          0          0          0          0
+X5                   -0.216726          0   -1.28119   -34.4516          0          0
+X6                    0.831413    257.029          0          0    0.51911          0
+X7                    -0.40753   -49.9605    -0.1233   -2.52835          0          0
+X8                    0.069494    10.8182          0          0          0          0
+X9                    0.324643          0          0          0    0.36959          0
+X10                   0.425386    60.3034     0.2794    5.80307          0          0
+X11                  -0.783072   -84.9308   -0.32089   -6.85793          0          0
+X12                  -0.297483          0   -0.04698  -0.948512          0          0
+X13                   0.664963    157.823          0          0    1.30624          0
+X14                  -0.549918          0    -0.7756     -18.36          0          0
+X15                  -0.516921          0          0          0          0          0
+X16                    1.02267    74.3337          0          0    0.17216          0
+X17                  -0.133369          0          0          0          0          0
+X18                   0.048423    3.91421          0          0          0          0
+X19                   0.263305    588.221          0          0          0          0
+X20                   0.232276    51.2618          0          0    0.74785          0
+X21                  -0.471224          0   -0.72852   -17.3863          0          0
+X22                  -0.558718          0          0          0   -0.30163          0
+X23                  -0.385094          0   -0.21699   -4.53668          0          0
+X24                    0.17762          0          0          0   -0.66438          0
+X25                  -0.530279          0   -0.46817   -10.3307          0          0
+X26                   0.558787          0          0          0          0          0
+X27                   0.678148          0    0.43079    8.70172          0          0
+X28                   0.342273          0          0          0    0.76936          0
+X29                    1.04766    102.707          0          0   0.322839          0
+X30                 -0.0369834          0  -0.615796   -15.6112          0          0
+X31                   0.132756          0          0          0    0.06276          0
+X32                  -0.242859   -22.4652   -0.38999   -8.45963          0          0
+X33                   0.778837          0    1.15723    23.1693    0.64669          0
+X34                   0.482775          0          0          0    0.07675          0
+X35                  -0.185809     -49.71          0          0          0          0
+X36                   -1.10366   -906.695   -0.05182   -1.04725    -0.0727          0
+X37                  -0.446648   -59.9583          0          0   -0.20203          0
+X38                  -0.335014   -60.6932   -0.51948   -11.5942          0          0
+X39                   0.608135          0          0          0    0.22754          0
+X40                  -0.640965   -1116.24   -0.17339   -3.59238          0          0
+X41                  -0.250141   -2672.57          0          0          0          0
+X42                  -0.195798          0          0          0     -0.132          0
+X43                   -0.26943   -86.1631    -0.2885   -6.12332          0          0
+X44                   0.792077          0          0          0    0.19761          0
+X45                  -0.347945   -45.0108          0          0   -0.55841          0
+X46                   0.264488          0          0          0    0.06999          0
+X47                  0.0754716    483.698          0          0          0          0
+X48                   0.298241          0          0          0          0          0
+X49                   -0.38066   -144.906   -0.16186    -3.3455   -0.97911          0
+X50                   0.123275          0          0          0          0          0
 
 
   ---  generation 1 objective function summary:  ---  
@@ -656,24 +656,24 @@ using member GEN=0_MEMBER=26 as single, 'optimal' point
    with distance of 0 from optimal trade - off
 objective function   direction         mean      std dev          min          max         knee
 
-FUNC                  minimize    -1.486223    0.8276448     -3.70141    -0.526775     -3.70141
+FUNC                  minimize    -1.712379    0.9298677     -3.70141    -0.655415     -3.70141
 
 
   ---  generation 1 objective function change summary:  ---  
 objective function   mean change    % change  max change    % change  min change    % change knee change    % change
-FUNC                    0.128409           0    0.377084           0           0           0           0           0
+FUNC                    0.354564           0    0.505724           0           0           0           0           0
 
 ...number of feasible solutions at the end of generation 1: 25
 
   ---  starting generation  2  ---  
 ...generating PSO population of size 20
 starting surrogate-assisted greedy selection of infills
-...Using specified infill from control file:  5
+...using specified infill size from control file:  5
 ...setting the current optimum from the current archive
 ...saved augmented infill candidate-training decision variable dataset of size 105 X 50 to 'mic_gp.training.dv_pop.csv'
 ...saved augmented infill candidate-training observation dataset of size 105 X 3 to 'mic_gp.training.obs_pop.csv'
 ...wrote BGO ensemble summary to mic_gp.2.infill_search.summary.csv
-greedy selection picked GEN=2_MEMBER=26_PSO. Current infill size: 1
+greedy selection picked GEN=2_MEMBER=21_PSO. Current infill size: 1
 ...saved augmented infill candidate-training decision variable dataset of size 106 X 50 to 'mic_gp.training.dv_pop.csv'
 ...saved augmented infill candidate-training observation dataset of size 106 X 3 to 'mic_gp.training.obs_pop.csv'
 ...wrote BGO ensemble summary to mic_gp.2.infill_search.summary.csv
@@ -681,15 +681,15 @@ greedy selection picked GEN=2_MEMBER=23_PSO. Current infill size: 2
 ...saved augmented infill candidate-training decision variable dataset of size 107 X 50 to 'mic_gp.training.dv_pop.csv'
 ...saved augmented infill candidate-training observation dataset of size 107 X 3 to 'mic_gp.training.obs_pop.csv'
 ...wrote BGO ensemble summary to mic_gp.2.infill_search.summary.csv
-greedy selection picked GEN=2_MEMBER=22_PSO. Current infill size: 3
+greedy selection picked GEN=2_MEMBER=32_PSO. Current infill size: 3
 ...saved augmented infill candidate-training decision variable dataset of size 108 X 50 to 'mic_gp.training.dv_pop.csv'
 ...saved augmented infill candidate-training observation dataset of size 108 X 3 to 'mic_gp.training.obs_pop.csv'
 ...wrote BGO ensemble summary to mic_gp.2.infill_search.summary.csv
-greedy selection picked GEN=2_MEMBER=32_PSO. Current infill size: 4
+greedy selection picked GEN=2_MEMBER=28_PSO. Current infill size: 4
 ...saved augmented infill candidate-training decision variable dataset of size 109 X 50 to 'mic_gp.training.dv_pop.csv'
 ...saved augmented infill candidate-training observation dataset of size 109 X 3 to 'mic_gp.training.obs_pop.csv'
 ...wrote BGO ensemble summary to mic_gp.2.infill_search.summary.csv
-greedy selection picked GEN=2_MEMBER=38_PSO. Current infill size: 5
+greedy selection picked GEN=2_MEMBER=36_PSO. Current infill size: 5
 greedy selection finished with 5 selected infills. Proceeding with complex runs...
 ...running population of size  5
 ...saved augmented infill candidate-training decision variable dataset of size 110 X 50 to 'mic_gp.2.training.dv_pop.csv'
@@ -706,110 +706,110 @@ all nondominated members in already in archive
 
   ---  generation 2 decision variable summary:  ---  
 decision variable        ubnd      lbnd      mean   standard devation         min         max
-X1                          5        -5  -0.56658             2.36497     -4.3321     4.15788
-X2                          5        -5  0.227553             3.04683      -4.659     4.74693
-X3                          5        -5-0.0107621              1.6933    -3.48647     3.15245
-X4                          5        -5  -1.09178              3.2098          -5     3.99531
-X5                          5        -5  -1.48389             3.02032          -5     3.71881
-X6                          5        -50.00892275             3.04021    -4.48089     4.97979
-X7                          5        -5  0.490253             2.45585     -3.9109     4.46524
-X8                          5        -5 -0.218595             2.64962          -5     3.53726
-X9                          5        -5  0.280548             3.22283    -4.33096     4.79378
-X10                         5        -5  0.169672             3.11172    -4.59861           5
-X11                         5        -5  0.320421              3.0253          -5     4.67911
-X12                         5        -5  0.118521             3.00121    -4.99944           5
-X13                         5        -5  0.349378             2.87959          -5           5
-X14                         5        -5  -0.15198             2.92005    -4.60431      4.2244
-X15                         5        -5 -0.528773             2.79913     -4.8631     4.56316
-X16                         5        -5   1.66319             2.91119    -4.82784           5
-X17                         5        -5 -0.628533             2.87886     -4.8712           5
-X18                         5        -5   1.69007             2.50958    -4.41159     4.42743
-X19                         5        -5  0.367938             2.58555    -4.58316      4.8567
-X20                         5        -5  0.795443             2.48098    -4.25215     4.74018
-X21                         5        -5 -0.695558             2.71781    -4.57615      4.1902
-X22                         5        -5  0.236609             2.90941    -4.03835           5
-X23                         5        -5 -0.381914             2.93285    -4.82212     4.78301
-X24                         5        -5 -0.561083             2.53763    -4.32384     4.52873
-X25                         5        -5 -0.104645             3.67482    -4.96992           5
-X26                         5        -5 -0.683077             2.74377          -5     4.02941
-X27                         5        -5  0.349733             3.15146    -4.33881           5
-X28                         5        -5 -0.782223             2.79729    -4.91598     4.11595
-X29                         5        -5   1.24565             2.66042    -4.60577     4.70643
-X30                         5        -5 -0.200229             2.37141    -4.60653     3.08734
-X31                         5        -5  0.281005             3.26148    -4.93724           5
-X32                         5        -5  0.924447             2.70037    -4.31594     4.74754
-X33                         5        -5  -1.04725             2.71916          -5     3.83745
-X34                         5        -5 -0.540055             3.75824          -5           5
-X35                         5        -5  0.593543             2.35053     -2.8946           5
-X36                         5        -5  0.614842             2.82547    -4.27246           5
-X37                         5        -5   1.20592             2.22841    -3.55612     4.54114
-X38                         5        -5  0.431711             2.74786    -4.69784     4.48052
-X39                         5        -5  -1.10416             2.07976    -4.77246      2.0254
-X40                         5        -5  0.291607             2.95513    -4.84563     4.82661
-X41                         5        -5  0.629704             3.35426    -4.84761           5
-X42                         5        -5 -0.600104             2.78047          -5     3.29739
-X43                         5        -5 -0.620243              2.5276          -5      3.3799
-X44                         5        -5  -1.03895             3.17125    -4.80239     4.96684
-X45                         5        -5  0.797873             3.49491          -5           5
-X46                         5        -5 -0.594221             3.30642          -5     4.99473
-X47                         5        -5 -0.291591             3.44562          -5     4.64591
-X48                         5        -5 -0.363243             2.95907    -4.45731           5
-X49                         5        -5  0.216633             2.62993    -3.52692     4.83814
-X50                         5        -5 -0.421026              3.2195    -4.66841     4.79351
+X1                          5        -5  -1.29607             2.81621          -5     4.15788
+X2                          5        -5  -1.25036             3.69926          -5     4.74693
+X3                          5        -5  0.030145             1.71152    -3.48647     3.15245
+X4                          5        -5  0.130046             2.90943    -4.87242     4.57118
+X5                          5        -5  0.327767             3.47852    -4.36907           5
+X6                          5        -5  -1.33376             3.21663          -5     4.57325
+X7                          5        -5   1.58382             3.09337     -3.9109           5
+X8                          5        -5  0.133153             2.18703    -3.47077     3.53726
+X9                          5        -5  -1.62833             3.12371          -5     4.79378
+X10                         5        -5 -0.280924             2.71677    -4.59861     4.53529
+X11                         5        -5    2.3157             2.55478    -3.88361           5
+X12                         5        -5  0.470264             3.33634    -4.99944           5
+X13                         5        -5 -0.778926             2.77909          -5     4.19778
+X14                         5        -5  0.388375             3.40582    -4.60431           5
+X15                         5        -5   0.34307             2.79261     -4.8631           5
+X16                         5        -5 -0.792149             3.65403          -5     4.50487
+X17                         5        -5 0.0515664             3.10912     -4.8712     4.45937
+X18                         5        -5   1.32024             2.65756    -4.41159     4.42743
+X19                         5        -5 -0.053179             2.66168    -4.58316      4.8567
+X20                         5        -5  0.167037             2.70487          -5     4.74018
+X21                         5        -5  0.723314             3.12044    -4.06388           5
+X22                         5        -5 0.0557797             2.83514          -5     4.88659
+X23                         5        -5  0.353801             3.33152    -4.82212           5
+X24                         5        -5 -0.657925             2.44129    -3.89646     4.52873
+X25                         5        -5  0.715198             3.89481    -4.96992           5
+X26                         5        -5  -0.64042             2.83441    -4.93223      4.3661
+X27                         5        -5  -0.53042             2.60466     -4.3136     4.51984
+X28                         5        -5  -1.29523             3.12753          -5     4.11595
+X29                         5        -5 -0.161003             3.48826          -5     4.70643
+X30                         5        -5 -0.132254             2.57856    -4.60653     4.56038
+X31                         5        -5  -1.67217             3.29041          -5     4.48776
+X32                         5        -5   1.35841             2.61986    -3.76717           5
+X33                         5        -5  -1.36979             2.92969          -5     3.83745
+X34                         5        -5 -0.696107             3.62481          -5           5
+X35                         5        -5  0.661991             1.97926    -2.21815     3.90827
+X36                         5        -5   1.09296             2.80892    -4.27246           5
+X37                         5        -5   1.03943             2.32623    -3.55612     4.54114
+X38                         5        -5  0.952461             2.63261    -4.69784           5
+X39                         5        -5  -1.94415             2.34239          -5      2.0254
+X40                         5        -5  0.914241             3.06992    -4.84563           5
+X41                         5        -5  0.865169              3.2036    -4.75596      4.9352
+X42                         5        -5 -0.344008             2.43634    -4.78023     3.44581
+X43                         5        -5  0.284704             2.50483    -3.67465           5
+X44                         5        -5  -1.57696             3.28703          -5     4.96684
+X45                         5        -5  0.844407             2.83646    -4.13989     4.95635
+X46                         5        -5  -1.17789             2.54925          -5     2.93037
+X47                         5        -5 -0.109242             3.07542    -4.79746     4.64591
+X48                         5        -5  -1.25578             2.25922    -4.32429     2.70643
+X49                         5        -5   1.19236             2.68231    -3.49375           5
+X50                         5        -5  -1.27634             2.94921    -4.78798     4.79351
 
 
   ---  generation 2 decision variable change summary:  ---  
 decision variable  mean change   % change max change   % change min change   % change
-X1                    0.281265          0    0.57432    12.1364  -0.321968          0
-X2                   -0.308817          0          0          0          0          0
-X3                    0.296061    103.772    0.63635    16.7956          0          0
-X4                     0.34327          0          0          0          0          0
-X5                    0.753028          0          0          0    0.34705          0
-X6                    0.242213     96.447          0          0          0          0
-X7                  -0.0743484   -17.8763          0          0          0          0
-X8                    0.638216    152.093    1.23103     25.817   0.626626          0
-X9                   -0.343365          0          0          0          0          0
-X10                   0.469123    73.4387          0          0          0          0
-X11                   0.137004    29.9512          0          0   0.308439          0
-X12                  -0.116251   -5121.36          0          0          0          0
-X13                 -0.0587591   -20.2186   -0.80222   -19.1106          0          0
-X14                  -0.137567          0          0          0          0          0
-X15                  0.0394014          0  -0.568289   -14.2255          0          0
-X16                  -0.388571   -30.4853   -0.49513    -10.991          0          0
-X17                  -0.259742          0   -0.54063   -12.1235          0          0
-X18                  -0.305756   -22.0872          0          0          0          0
-X19                  -0.184743   -100.845          0          0          0          0
-X20                 -0.0429819   -5.71218          0          0          0          0
-X21                   0.389181          0          0          0   0.512272          0
-X22                   -0.14827   -167.841          0          0          0          0
-X23                  -0.129438          0          0          0          0          0
-X24                    0.29983          0          0          0          0          0
-X25                  -0.254595          0-0.00227343 -0.0454892          0          0
-X26                   0.010128          0          0          0          0          0
-X27                  -0.186346   -114.052          0          0  0.0252143          0
-X28                   0.340621          0          0          0    0.12956          0
-X29                  -0.260213   -26.4058          0          0          0          0
-X30                  -0.269194          0          0          0          0          0
-X31                  -0.459954          0   -0.10519   -2.14901          0          0
-X32                   0.166372     15.252  -0.137532   -2.98334          0          0
-X33                   0.368815          0          0          0          0          0
-X34                   0.254072          0   -0.61521   -14.0305          0          0
-X35                  -0.196947   -49.6594   -0.15117   -3.11766   -0.15238          0
-X36                   0.122381    16.6003          0          0          0          0
-X37                -0.00767104  -0.640187          0          0          0          0
-X38                 -0.0387554   -9.86253          0          0          0          0
-X39                  -0.101947          0          0          0          0          0
-X40                   0.043505    12.9823          0          0          0          0
-X41                  -0.114956   -22.3325    -0.0648   -1.31302          0          0
-X42                 -0.0936493          0          0          0    0.21977          0
-X43                   0.661222    1613.56     1.3316    28.2628          0          0
-X44                   0.226628          0          0          0          0          0
-X45                   0.063124     7.3315   -0.04365  -0.880688          0          0
-X46                -0.00751915          0          0          0    0.53886          0
-X47                 0.00268943          0          0          0          0          0
-X48                   -0.24166          0   -1.04655   -26.4718          0          0
-X49                   0.357709    62.2815          0          0          0          0
-X50                   0.202569          0          0          0   0.110507          0
+X1                    0.238813          0          0          0          0          0
+X2                    0.305035          0          0          0          0          0
+X3                    0.102489     77.272    0.63635    16.7956          0          0
+X4                   -0.231213          0  -0.575872   -14.4137   -0.05333          0
+X5                   -0.594416          0          0          0   -0.28388          0
+X6                    0.825817          0    0.40654     8.1638          0          0
+X7                   -0.360582   -29.4778          0          0          0          0
+X8                    0.439732    76.7574    1.23103     25.817  0.0357698          0
+X9                    0.906854          0          0          0          0          0
+X10                   0.560947    200.322          0          0          0          0
+X11                  -0.610613   -35.8113          0          0          0          0
+X12                   -0.33761   -254.504          0          0          0          0
+X13                   0.535297          0          0          0          0          0
+X14                 -0.0961142   -32.8864          0          0          0          0
+X15                  -0.576831          0   -1.00513   -25.1605          0          0
+X16                    1.14526    324.334          0          0          0          0
+X17                  -0.782698          0          0          0          0          0
+X18                  -0.131559   -11.0676          0          0          0          0
+X19                  -0.165363          0          0          0          0          0
+X20                  0.0538042    24.3633          0          0          0          0
+X21                  -0.633201   -702.672   -0.08128   -1.65246          0          0
+X22                   0.379109    87.1738          0          0    1.28004          0
+X23                  -0.463787          0          0          0          0          0
+X24                   0.323498          0          0          0          0          0
+X25                   -0.48146   -205.983          0          0          0          0
+X26                  -0.226067          0  -0.336689   -8.35579          0          0
+X27                  -0.173559          0          0          0          0          0
+X28                   0.697439          0          0          0          0          0
+X29                   0.133388          0          0          0  0.0713912          0
+X30                  -0.274439          0          0          0          0          0
+X31                    1.13472          0    0.40705    8.31595          0          0
+X32                 -0.0345062   -2.60641          0          0          0          0
+X33                   0.436031          0          0          0          0          0
+X34                  -0.240618          0   -0.61521   -14.0305          0          0
+X35                  -0.102397   -18.2983    0.94056    19.3977   -0.82883          0
+X36                   0.132425    10.8068          0          0          0          0
+X37                   0.152151    12.7688          0          0          0          0
+X38                 -0.0654668   -7.38075          0          0          0          0
+X39                   0.333174          0          0          0          0          0
+X40                  -0.215853   -30.9074          0          0          0          0
+X41                  -0.605668   -233.398          0          0   -0.09165          0
+X42                  -0.396401          0  -0.148417   -4.50105          0          0
+X43                   0.297425    51.0926          0          0          0          0
+X44                   0.355568          0          0          0          0          0
+X45                   0.276565    24.6719          0          0          0          0
+X46                  0.0185228          0    2.06436    41.3308          0          0
+X47                   0.049373          0          0          0          0          0
+X48                  0.0255371          0    0.43101    13.7376   -0.13302          0
+X49                  -0.549005   -85.3347          0          0   -0.03317          0
+X50                   0.558677          0          0          0   0.230075          0
 
 
   ---  generation 2 objective function summary:  ---  
@@ -818,40 +818,40 @@ using member GEN=0_MEMBER=26 as single, 'optimal' point
    with distance of 0 from optimal trade - off
 objective function   direction         mean      std dev          min          max         knee
 
-FUNC                  minimize    -1.602658    0.8366887     -3.70141    -0.702969     -3.70141
+FUNC                  minimize    -1.958243    0.8600441     -3.70141     -1.00281     -3.70141
 
 
   ---  generation 2 objective function change summary:  ---  
 objective function   mean change    % change  max change    % change  min change    % change knee change    % change
-FUNC                    0.116434           0    0.176194           0           0           0           0           0
+FUNC                    0.245864           0    0.347395           0           0           0           0           0
 
 ...number of feasible solutions at the end of generation 2: 25
 
   ---  starting generation  3  ---  
 ...generating PSO population of size 20
 starting surrogate-assisted greedy selection of infills
-...Using specified infill from control file:  5
+...using specified infill size from control file:  5
 ...setting the current optimum from the current archive
 ...saved augmented infill candidate-training decision variable dataset of size 110 X 50 to 'mic_gp.training.dv_pop.csv'
 ...saved augmented infill candidate-training observation dataset of size 110 X 3 to 'mic_gp.training.obs_pop.csv'
 ...wrote BGO ensemble summary to mic_gp.3.infill_search.summary.csv
-greedy selection picked GEN=3_MEMBER=57_PSO. Current infill size: 1
+greedy selection picked GEN=3_MEMBER=47_PSO. Current infill size: 1
 ...saved augmented infill candidate-training decision variable dataset of size 111 X 50 to 'mic_gp.training.dv_pop.csv'
 ...saved augmented infill candidate-training observation dataset of size 111 X 3 to 'mic_gp.training.obs_pop.csv'
 ...wrote BGO ensemble summary to mic_gp.3.infill_search.summary.csv
-greedy selection picked GEN=3_MEMBER=43_PSO. Current infill size: 2
+greedy selection picked GEN=3_MEMBER=44_PSO. Current infill size: 2
 ...saved augmented infill candidate-training decision variable dataset of size 112 X 50 to 'mic_gp.training.dv_pop.csv'
 ...saved augmented infill candidate-training observation dataset of size 112 X 3 to 'mic_gp.training.obs_pop.csv'
 ...wrote BGO ensemble summary to mic_gp.3.infill_search.summary.csv
-greedy selection picked GEN=3_MEMBER=40_PSO. Current infill size: 3
+greedy selection picked GEN=3_MEMBER=45_PSO. Current infill size: 3
 ...saved augmented infill candidate-training decision variable dataset of size 113 X 50 to 'mic_gp.training.dv_pop.csv'
 ...saved augmented infill candidate-training observation dataset of size 113 X 3 to 'mic_gp.training.obs_pop.csv'
 ...wrote BGO ensemble summary to mic_gp.3.infill_search.summary.csv
-greedy selection picked GEN=3_MEMBER=51_PSO. Current infill size: 4
+greedy selection picked GEN=3_MEMBER=49_PSO. Current infill size: 4
 ...saved augmented infill candidate-training decision variable dataset of size 114 X 50 to 'mic_gp.training.dv_pop.csv'
 ...saved augmented infill candidate-training observation dataset of size 114 X 3 to 'mic_gp.training.obs_pop.csv'
 ...wrote BGO ensemble summary to mic_gp.3.infill_search.summary.csv
-greedy selection picked GEN=3_MEMBER=49_PSO. Current infill size: 5
+greedy selection picked GEN=3_MEMBER=51_PSO. Current infill size: 5
 greedy selection finished with 5 selected infills. Proceeding with complex runs...
 ...running population of size  5
 ...saved augmented infill candidate-training decision variable dataset of size 115 X 50 to 'mic_gp.3.training.dv_pop.csv'
@@ -876,152 +876,152 @@ resizing archive from 2 to 1 current non-dominated solutions
 
   ---  generation 3 decision variable summary:  ---  
 decision variable        ubnd      lbnd      mean   standard devation         min         max
-X1                          5        -5 -0.591151             2.82789          -5           5
-X2                          5        -5  0.703392              2.8867      -4.659     4.74693
-X3                          5        -5  -0.37688             1.93341          -5     3.15245
-X4                          5        -5 -0.362129             3.26956          -5           5
-X5                          5        -5  -1.49273             3.04938          -5     3.71881
-X6                          5        -5 -0.238153             2.83153    -4.48089     4.57325
-X7                          5        -5  0.413164             2.67362     -3.9109     4.46524
-X8                          5        -5 -0.436687             2.89171          -5     3.53726
-X9                          5        -5   0.22948             3.09795    -4.33096     4.79378
-X10                         5        -5 -0.197735             2.98597    -4.59861           5
-X11                         5        -5  0.594689             2.89776          -5     4.67911
-X12                         5        -5 -0.282211             3.14728          -5           5
-X13                         5        -5 0.0152925             3.06104          -5           5
-X14                         5        -5 -0.429308             2.69875    -4.60431      4.2244
-X15                         5        -5 0.0678068             3.04978     -4.8631           5
-X16                         5        -5   1.17278             3.18269          -5           5
-X17                         5        -5 -0.474408             3.11532     -4.8712           5
-X18                         5        -5   1.67078             2.50694    -4.41159     4.42743
-X19                         5        -5  0.686058             2.77466    -4.58316           5
-X20                         5        -5  0.795211             2.23081    -3.49605     4.74018
-X21                         5        -5  -1.04146             2.66621    -4.57615      4.1902
-X22                         5        -5  0.412545             2.92646    -4.03835           5
-X23                         5        -5  -0.87623              2.7794    -4.82212     4.08089
-X24                         5        -5 -0.201963             2.60046    -4.32384     4.52873
-X25                         5        -5 -0.085099             3.77732    -4.96992           5
-X26                         5        -5 -0.454484             2.89808          -5     4.02941
-X27                         5        -5 -0.144916             3.26467          -5           5
-X28                         5        -5   -1.1593             2.77222    -4.91598     4.11595
-X29                         5        -5   1.45341             2.49433    -4.22057     4.70643
-X30                         5        -5 0.0192402             2.50797    -4.60653     3.90146
-X31                         5        -5 -0.254574              2.9355    -4.93724           5
-X32                         5        -5   1.00751             2.71675    -4.31594           5
-X33                         5        -5  -1.14972             2.75192          -5     3.83745
-X34                         5        -5-0.0863215             3.74185          -5           5
-X35                         5        -5  0.625341             2.01689    -2.21815           5
-X36                         5        -5   0.67513             2.96514    -4.27246           5
-X37                         5        -5   1.35234             2.37191    -3.55612           5
-X38                         5        -5  0.348761             2.55882    -4.69784     4.48052
-X39                         5        -5 -0.810956             2.42772    -4.77246           5
-X40                         5        -5 0.0648403             2.78605    -4.84563     4.82661
-X41                         5        -5   1.09129             2.99565    -4.75596           5
-X42                         5        -5   -0.7612             2.70808          -5     2.93083
-X43                         5        -5 -0.775754             2.79832          -5     4.49478
-X44                         5        -5 -0.653023             3.02601    -4.80239     4.96684
-X45                         5        -5  0.657773             3.55844          -5           5
-X46                         5        -5  -0.92171             3.09519          -5     4.32688
-X47                         5        -5  0.149757             3.60263          -5           5
-X48                         5        -5 -0.560636             2.88821          -5           5
-X49                         5        -5  0.198833             2.71245          -5     4.83814
-X50                         5        -5 -0.458867             3.17466    -4.66841     4.79351
+X1                          5        -5  -1.85449              3.0725          -5     4.15788
+X2                          5        -5  -2.55637             3.26215          -5     4.34641
+X3                          5        -5 0.0601471             1.62433    -3.48647     3.15245
+X4                          5        -5-0.0367331             2.70829    -4.87242     4.57118
+X5                          5        -5   2.13591             3.30107    -4.06352           5
+X6                          5        -5  -2.61909             2.63012          -5     3.76616
+X7                          5        -5   2.44152               2.666     -3.9109           5
+X8                          5        -5  0.523177             2.22171    -3.47077           5
+X9                          5        -5  -2.84742             2.60514          -5     4.35042
+X10                         5        -5 0.0793827             2.29505    -4.25451     4.53529
+X11                         5        -5   3.12344             2.42062    -3.88361           5
+X12                         5        -5  0.507637             3.28955    -4.99944           5
+X13                         5        -5  -1.61212             2.82536          -5     4.19778
+X14                         5        -5    1.8618             3.38872    -4.60431           5
+X15                         5        -5   1.53858             2.60823    -3.85397           5
+X16                         5        -5  -2.03358             3.70325          -5     4.50487
+X17                         5        -5   1.01635             3.30736     -4.8712           5
+X18                         5        -5   1.31879             2.58259    -4.41159     4.42743
+X19                         5        -5 -0.110011              2.3778    -4.58316      4.8567
+X20                         5        -5 -0.635444               2.617          -5     4.14952
+X21                         5        -5   1.89261             2.96448    -3.94296           5
+X22                         5        -5 -0.208927             2.89558          -5     4.88659
+X23                         5        -5   1.61946             3.42661    -4.82212           5
+X24                         5        -5   -1.3989             2.32372          -5     3.50498
+X25                         5        -5   2.21551             3.64352    -4.88736           5
+X26                         5        -5 -0.651095             2.53107    -4.93223      4.3661
+X27                         5        -5  -0.84821             1.90464    -3.88465     2.40448
+X28                         5        -5  -2.56767             2.99275          -5     4.05248
+X29                         5        -5  -1.33608             3.40971          -5     4.70643
+X30                         5        -5  0.591817              2.1466    -4.60653     4.56038
+X31                         5        -5  -2.61299             3.20718          -5     4.48776
+X32                         5        -5   2.54957             2.16753    -2.75447           5
+X33                         5        -5   -2.3255             2.70311          -5     3.83745
+X34                         5        -5  -1.27314              3.7471          -5           5
+X35                         5        -5  0.826549             1.83365     -1.9337     3.90827
+X36                         5        -5   1.57935             2.50983    -3.41159           5
+X37                         5        -5   1.09859             2.07755    -3.55612      4.3399
+X38                         5        -5    1.6529             2.01865    -1.86537           5
+X39                         5        -5  -2.19039             2.33939          -5      2.0254
+X40                         5        -5   2.05252              2.7997    -4.84563           5
+X41                         5        -5   1.59228             2.88594    -4.75596           5
+X42                         5        -5 -0.163982             2.18181    -4.78023     3.44581
+X43                         5        -5  0.952781             2.58104    -3.67465           5
+X44                         5        -5  -2.48173             2.72078          -5     4.96684
+X45                         5        -5   1.80843             2.13065    -1.88579     4.95635
+X46                         5        -5  -1.18644             2.42637          -5     3.23796
+X47                         5        -5 -0.494233               2.898          -5     4.64591
+X48                         5        -5    -2.127             1.73452    -4.32429     2.70643
+X49                         5        -5   1.25909             2.80336    -3.49375           5
+X50                         5        -5  -2.22673             2.58873          -5     4.79351
 
 
   ---  generation 3 decision variable change summary:  ---  
 decision variable  mean change   % change max change   % change min change   % change
-X1                   0.0245707          0   -0.84212   -20.2536   0.667898          0
-X2                    -0.47584   -209.112          0          0          0          0
-X3                    0.366118          0          0          0    1.51353          0
-X4                   -0.729654          0   -1.00469   -25.1467          0          0
-X5                  0.00883514          0          0          0          0          0
-X6                    0.247076    2769.06    0.40654     8.1638          0          0
-X7                   0.0770884    15.7242          0          0          0          0
-X8                    0.218092          0          0          0          0          0
-X9                   0.0510673    18.2027          0          0          0          0
-X10                   0.367407     216.54          0          0          0          0
-X11                  -0.274268   -85.5963          0          0          0          0
-X12                   0.400732    338.111          0          0    0.00056          0
-X13                   0.334086     95.623          0          0          0          0
-X14                   0.277329          0          0          0          0          0
-X15                   -0.59658          0  -0.436841   -9.57321          0          0
-X16                   0.490412    29.4862          0          0    0.17216          0
-X17                  -0.154124          0          0          0          0          0
-X18                  0.0192874    1.14122          0          0          0          0
-X19                  -0.318121   -86.4605    -0.1433   -2.95056          0          0
-X20                0.000232461  0.0292241          0          0    -0.7561          0
-X21                   0.345904          0          0          0          0          0
-X22                  -0.175935   -74.3568          0          0          0          0
-X23                   0.494316          0    0.70212    14.6795          0          0
-X24                  -0.359119          0          0          0          0          0
-X25                 -0.0195458          0          0          0          0          0
-X26                  -0.228592          0          0          0          0          0
-X27                   0.494649    141.436          0          0   0.661186          0
-X28                   0.377072          0          0          0          0          0
-X29                  -0.207755   -16.6784          0          0  -0.385203          0
-X30                  -0.219469          0  -0.814123   -26.3697          0          0
-X31                   0.535579    190.594          0          0          0          0
-X32                 -0.0830619   -8.98504  -0.252458   -5.31765          0          0
-X33                   0.102472          0          0          0          0          0
-X34                  -0.453734          0          0          0          0          0
-X35                 -0.0317971   -5.35717          0          0   -0.67645          0
-X36                 -0.0602879   -9.80542          0          0          0          0
-X37                  -0.146417   -12.1415   -0.45886   -10.1045          0          0
-X38                  0.0829501    19.2143          0          0          0          0
-X39                  -0.293204          0    -2.9746   -146.865          0          0
-X40                   0.226766    77.7645          0          0          0          0
-X41                  -0.461582   -73.3015          0          0   -0.09165          0
-X42                   0.161096          0    0.36656    11.1167          0          0
-X43                    0.15551          0   -1.11488   -32.9856          0          0
-X44                  -0.385923          0          0          0          0          0
-X45                     0.1401    17.5592          0          0          0          0
-X46                   0.327489          0   0.667847     13.371          0          0
-X47                  -0.441348          0   -0.35409   -7.62154          0          0
-X48                   0.197393          0          0          0    0.54269          0
-X49                  0.0178006    8.21693          0          0    1.47308          0
-X50                  0.0378412          0          0          0          0          0
+X1                    0.558426          0          0          0          0          0
+X2                       1.306          0    0.40052    8.43745          0          0
+X3                  -0.0300021   -99.5261          0          0          0          0
+X4                     0.16678    128.246          0          0          0          0
+X5                    -1.80815   -551.657          0          0   -0.30555          0
+X6                     1.28533          0    0.80709    17.6481          0          0
+X7                   -0.857705   -54.1544          0          0          0          0
+X8                   -0.390023   -292.913   -1.46274   -41.3523          0          0
+X9                     1.21909          0    0.44336    9.24865          0          0
+X10                  -0.360306          0          0          0  -0.344101          0
+X11                  -0.807749   -34.8815          0          0          0          0
+X12                 -0.0373738   -7.94741          0          0          0          0
+X13                    0.83319          0          0          0          0          0
+X14                   -1.47342   -379.381          0          0          0          0
+X15                   -1.19551   -348.473          0          0   -1.00913          0
+X16                    1.24143          0          0          0          0          0
+X17                  -0.964787   -1870.96   -0.54063   -12.1235          0          0
+X18                 0.00145997   0.110583          0          0          0          0
+X19                  0.0568324          0          0          0          0          0
+X20                   0.802481    480.422    0.59066    12.4607          0          0
+X21                    -1.1693   -161.658          0          0   -0.12092          0
+X22                   0.264707    474.557          0          0          0          0
+X23                   -1.26566   -357.732          0          0          0          0
+X24                   0.740975          0    1.02375    22.6057    1.10354          0
+X25                   -1.50031   -209.775          0          0   -0.08256          0
+X26                  0.0106755          0          0          0          0          0
+X27                    0.31779          0    2.11536    46.8018   -0.42895          0
+X28                    1.27244          0    0.06347    1.54205          0          0
+X29                    1.17508          0          0          0          0          0
+X30                  -0.724071          0          0          0          0          0
+X31                   0.940819          0          0          0          0          0
+X32                   -1.19116   -87.6882          0          0    -1.0127          0
+X33                   0.955711          0          0          0          0          0
+X34                   0.577036          0          0          0          0          0
+X35                  -0.164558    -24.858          0          0   -0.28445          0
+X36                  -0.486386   -44.5017          0          0   -0.86087          0
+X37                 -0.0591662   -5.69219    0.20124    4.43149          0          0
+X38                  -0.700439   -73.5399          0          0   -2.83247          0
+X39                   0.246242          0          0          0          0          0
+X40                   -1.13828   -124.505          0          0          0          0
+X41                  -0.727114   -84.0431    -0.0648   -1.31302          0          0
+X42                  -0.180026          0          0          0          0          0
+X43                  -0.668077   -234.657          0          0          0          0
+X44                   0.904762          0          0          0          0          0
+X45                  -0.964021   -114.165          0          0    -2.2541          0
+X46                 0.00854703          0  -0.307594   -10.4968          0          0
+X47                   0.384992          0          0          0    0.20254          0
+X48                   0.871223          0          0          0          0          0
+X49                 -0.0667339   -5.59679          0          0          0          0
+X50                   0.950396          0          0          0   0.212025          0
 
 
   ---  generation 3 objective function summary:  ---  
 seeking optimal trade-off point for single 'optimal' chance point runs
-using member GEN=3_MEMBER=40_PSO as single, 'optimal' point
+using member GEN=3_MEMBER=44_PSO as single, 'optimal' point
    with distance of 0 from optimal trade - off
 objective function   direction         mean      std dev          min          max         knee
 
-FUNC                  minimize    -1.950776     1.112801    -4.975057   -0.7459821    -4.975057
+FUNC                  minimize    -2.343592     1.149891     -6.09332     -1.35053     -6.09332
 
 
   ---  generation 3 objective function change summary:  ---  
 objective function   mean change    % change  max change    % change  min change    % change knee change    % change
-FUNC                    0.348118           0   0.0430131           0     1.27365           0     1.27365           0
+FUNC                    0.385349           0     0.34772           0     2.39191           0     2.39191           0
 
 ...number of feasible solutions at the end of generation 3: 1
 
   ---  starting generation  4  ---  
 ...generating PSO population of size 20
 starting surrogate-assisted greedy selection of infills
-...Using specified infill from control file:  5
+...using specified infill size from control file:  5
 ...setting the current optimum from the current archive
 ...saved augmented infill candidate-training decision variable dataset of size 115 X 50 to 'mic_gp.training.dv_pop.csv'
 ...saved augmented infill candidate-training observation dataset of size 115 X 3 to 'mic_gp.training.obs_pop.csv'
 ...wrote BGO ensemble summary to mic_gp.4.infill_search.summary.csv
-greedy selection picked GEN=4_MEMBER=61_PSO. Current infill size: 1
+greedy selection picked GEN=4_MEMBER=60_PSO. Current infill size: 1
 ...saved augmented infill candidate-training decision variable dataset of size 116 X 50 to 'mic_gp.training.dv_pop.csv'
 ...saved augmented infill candidate-training observation dataset of size 116 X 3 to 'mic_gp.training.obs_pop.csv'
 ...wrote BGO ensemble summary to mic_gp.4.infill_search.summary.csv
-greedy selection picked GEN=4_MEMBER=71_PSO. Current infill size: 2
+greedy selection picked GEN=4_MEMBER=66_PSO. Current infill size: 2
 ...saved augmented infill candidate-training decision variable dataset of size 117 X 50 to 'mic_gp.training.dv_pop.csv'
 ...saved augmented infill candidate-training observation dataset of size 117 X 3 to 'mic_gp.training.obs_pop.csv'
 ...wrote BGO ensemble summary to mic_gp.4.infill_search.summary.csv
-greedy selection picked GEN=4_MEMBER=70_PSO. Current infill size: 3
+greedy selection picked GEN=4_MEMBER=67_PSO. Current infill size: 3
 ...saved augmented infill candidate-training decision variable dataset of size 118 X 50 to 'mic_gp.training.dv_pop.csv'
 ...saved augmented infill candidate-training observation dataset of size 118 X 3 to 'mic_gp.training.obs_pop.csv'
 ...wrote BGO ensemble summary to mic_gp.4.infill_search.summary.csv
-greedy selection picked GEN=4_MEMBER=78_PSO. Current infill size: 4
+greedy selection picked GEN=4_MEMBER=76_PSO. Current infill size: 4
 ...saved augmented infill candidate-training decision variable dataset of size 119 X 50 to 'mic_gp.training.dv_pop.csv'
 ...saved augmented infill candidate-training observation dataset of size 119 X 3 to 'mic_gp.training.obs_pop.csv'
 ...wrote BGO ensemble summary to mic_gp.4.infill_search.summary.csv
-greedy selection picked GEN=4_MEMBER=76_PSO. Current infill size: 5
+greedy selection picked GEN=4_MEMBER=69_PSO. Current infill size: 5
 greedy selection finished with 5 selected infills. Proceeding with complex runs...
 ...running population of size  5
 ...saved augmented infill candidate-training decision variable dataset of size 120 X 50 to 'mic_gp.4.training.dv_pop.csv'
@@ -1038,152 +1038,152 @@ all nondominated members in already in archive
 
   ---  generation 4 decision variable summary:  ---  
 decision variable        ubnd      lbnd      mean   standard devation         min         max
-X1                          5        -5 -0.420289             3.11281          -5           5
-X2                          5        -5  0.843419             3.09577          -5           5
-X3                          5        -5 -0.640856             2.18732          -5     3.15245
-X4                          5        -5 -0.351172             3.02083          -5           5
-X5                          5        -5  -1.40381             2.98955          -5     3.71881
-X6                          5        -5 -0.422779             2.72225          -5     4.40644
-X7                          5        -5  0.222499             3.04483          -5           5
-X8                          5        -5-0.0946143             2.74222          -5     3.82253
-X9                          5        -5  0.291268             3.16558    -4.33096           5
-X10                         5        -5 -0.564312             3.05571    -4.59861           5
-X11                         5        -5   1.28756             2.87708    -4.69156           5
-X12                         5        -5 -0.408988             3.32979          -5           5
-X13                         5        -5 -0.431339             3.00713          -5     4.19778
-X14                         5        -5 -0.324611             2.94411    -4.89273      4.2244
-X15                         5        -5   0.43802              3.1963     -4.8631           5
-X16                         5        -5  0.621635             3.29442          -5     4.84321
-X17                         5        -5 -0.313006             3.13253     -4.8712           5
-X18                         5        -5   1.43761             2.52272    -4.41159     4.42743
-X19                         5        -5  0.787739              2.6321    -4.58316           5
-X20                         5        -5   1.05274             2.40678    -3.49605     4.74018
-X21                         5        -5  -0.92026             2.92708          -5           5
-X22                         5        -5  0.359582             2.88986    -4.03835           5
-X23                         5        -5 -0.551889             3.06242    -4.82212           5
-X24                         5        -5 -0.126204             2.57413    -4.32384     4.52873
-X25                         5        -5   0.17991             3.89493    -4.96992           5
-X26                         5        -5  -0.46022             2.95712          -5     4.36399
-X27                         5        -5   -0.7501             2.83815          -5           5
-X28                         5        -5  -1.62499             2.80474          -5     4.11595
-X29                         5        -5   1.04203             2.82018          -5     4.70643
-X30                         5        -5  0.142486             2.54833    -4.60653     3.90146
-X31                         5        -5 -0.497731             2.77812          -5     4.48776
-X32                         5        -5  0.863025               2.896    -4.31594           5
-X33                         5        -5  -1.29894              2.7694          -5     3.83745
-X34                         5        -5 -0.560215             3.68285          -5     4.38479
-X35                         5        -5  0.358322             1.87199    -2.21815     3.90827
-X36                         5        -5  0.881054             2.74606    -4.27246           5
-X37                         5        -5    1.3364             2.40808    -3.55612           5
-X38                         5        -5  0.262522              2.4489    -4.69784     4.48052
-X39                         5        -5 -0.675694             2.70815    -4.77246           5
-X40                         5        -5  0.635687             2.74538    -4.84563           5
-X41                         5        -5  0.799678             2.89037    -4.75596      4.9352
-X42                         5        -5 -0.410107             2.84524          -5           5
-X43                         5        -5 -0.303686             3.11795          -5           5
-X44                         5        -5 -0.478809             2.93668    -4.80239     4.96684
-X45                         5        -5  0.849048             3.63132          -5     4.95635
-X46                         5        -5 -0.593135             3.06539          -5     4.32688
-X47                         5        -5   0.32181             3.69728          -5           5
-X48                         5        -5 -0.721036             3.01771          -5           5
-X49                         5        -5   0.15772                2.66          -5     4.83814
-X50                         5        -5 -0.314031             3.28491    -4.66841           5
+X1                          5        -5  -2.96152             2.51239          -5     3.08763
+X2                          5        -5  -3.27443             2.98094          -5     4.34641
+X3                          5        -5  0.062176             1.52519    -3.48647     3.15245
+X4                          5        -5   0.20375             2.74085    -4.87242     4.57118
+X5                          5        -5   2.74125             2.81542    -4.06352           5
+X6                          5        -5  -3.01189             2.57344          -5     3.76616
+X7                          5        -5   2.99579             2.56257     -3.9109           5
+X8                          5        -5-0.0864426             2.39942     -3.5585           5
+X9                          5        -5  -3.12651             2.66108          -5     4.35042
+X10                         5        -5 0.0761633             2.53387    -4.25451     4.53529
+X11                         5        -5   3.37187             2.34207    -3.88361           5
+X12                         5        -5  0.396647             3.25379    -4.99944           5
+X13                         5        -5  -2.05282              2.9986          -5     4.19778
+X14                         5        -5   2.14049             2.90356    -4.31814           5
+X15                         5        -5   1.43196             2.43753    -3.85397           5
+X16                         5        -5  -2.79131             3.48063          -5     4.20856
+X17                         5        -5   1.39002             3.03531     -4.8712           5
+X18                         5        -5   1.73905             2.37518    -4.41159     4.76377
+X19                         5        -5 -0.083473             2.33469    -4.58316     3.40132
+X20                         5        -5  -0.90217             2.16193          -5     2.87003
+X21                         5        -5   1.96968             2.68042    -3.94296           5
+X22                         5        -5  0.185526             2.65201          -5     4.88659
+X23                         5        -5   1.84306             3.13716    -4.31361           5
+X24                         5        -5  -1.55752             1.85418          -5      1.9391
+X25                         5        -5    3.0309             3.19408    -4.15059           5
+X26                         5        -5 -0.421205             2.35781    -4.93223      4.3661
+X27                         5        -5 -0.854783             1.69766    -3.64885     2.40448
+X28                         5        -5  -2.44957             2.92682          -5     4.05248
+X29                         5        -5  -2.24611             3.16356          -5     4.10707
+X30                         5        -5  0.631667             2.11352    -4.60653     4.56038
+X31                         5        -5  -3.05889             3.15964          -5     4.48776
+X32                         5        -5   2.88695             2.23957    -2.75447           5
+X33                         5        -5  -1.92411             2.94906          -5     3.83745
+X34                         5        -5  -1.42946             3.68684          -5           5
+X35                         5        -5  0.822254             1.84042     -1.9337     3.90827
+X36                         5        -5   2.48002             2.40163     -3.1838           5
+X37                         5        -5  0.612846             1.81023    -3.55612     3.25492
+X38                         5        -5   1.87381              2.0277    -1.42894           5
+X39                         5        -5  -2.35828             2.12876          -5      2.0254
+X40                         5        -5   2.28401             2.73537    -4.84563           5
+X41                         5        -5   1.53084              2.7714    -4.75596           5
+X42                         5        -5 0.0934385             2.11455    -3.26933     3.44581
+X43                         5        -5  0.343589             2.66913    -3.67465           5
+X44                         5        -5  -2.39989             2.76744          -5     4.96684
+X45                         5        -5   2.16813             1.92727    -1.88579     4.95635
+X46                         5        -5  -1.24862             2.29452          -5     3.23796
+X47                         5        -5    -0.427             2.93928          -5     4.64591
+X48                         5        -5  -2.28443             1.28117    -4.32429    0.785057
+X49                         5        -5   2.10502             2.65317    -3.49375           5
+X50                         5        -5  -2.74872              2.0855          -5     1.84862
 
 
   ---  generation 4 decision variable change summary:  ---  
 decision variable  mean change   % change max change   % change min change   % change
-X1                   -0.170862          0          0          0          0          0
-X2                   -0.140026   -19.9073   -0.25307   -5.33124      0.341          0
-X3                    0.263976          0          0          0          0          0
-X4                   -0.010957          0          0          0          0          0
-X5                  -0.0889214          0          0          0          0          0
-X6                    0.184626          0    0.16681    3.64752    0.51911          0
-X7                    0.190665    46.1475   -0.53476   -11.9761     1.0891          0
-X8                   -0.342073          0  -0.285267   -8.06462          0          0
-X9                  -0.0617878   -26.9251   -0.20622   -4.30182          0          0
-X10                   0.366577          0          0          0          0          0
-X11                  -0.692869   -116.509   -0.32089   -6.85793  -0.308439          0
-X12                   0.126777          0          0          0          0          0
-X13                   0.446631     2920.6    0.80222    16.0444          0          0
-X14                  -0.104697          0          0          0   0.288424          0
-X15                  -0.370213   -545.982          0          0          0          0
-X16                   0.551145    46.9948   0.156787    3.13575          0          0
-X17                  -0.161403          0          0          0          0          0
-X18                   0.233175     13.956          0          0          0          0
-X19                  -0.101681    -14.821          0          0          0          0
-X20                  -0.257533   -32.3854          0          0          0          0
-X21                  -0.121203          0    -0.8098    -19.326   0.423848          0
-X22                  0.0529628    12.8381          0          0          0          0
-X23                   -0.32434          0   -0.91911   -22.5223          0          0
-X24                 -0.0757596          0          0          0          0          0
-X25                  -0.265009          0          0          0          0          0
-X26                 0.00573551          0  -0.334578   -8.30341          0          0
-X27                   0.605184          0          0          0          0          0
-X28                   0.465696          0          0          0  0.0840245          0
-X29                   0.411378    28.3044          0          0   0.779433          0
-X30                  -0.123246   -640.565          0          0          0          0
-X31                   0.243157          0    0.51224    10.2448    0.06276          0
-X32                   0.144483    14.3406          0          0          0          0
-X33                   0.149223          0          0          0          0          0
-X34                   0.473894          0    0.61521    12.3042          0          0
-X35                   0.267019    42.6997    1.09173    21.8346          0          0
-X36                  -0.205925   -30.5015          0          0          0          0
-X37                   0.015943    1.17892          0          0          0          0
-X38                  0.0862388    24.7272          0          0          0          0
-X39                  -0.135261          0          0          0          0          0
-X40                  -0.570847   -880.388   -0.17339   -3.59238          0          0
-X41                   0.291608    26.7215     0.0648      1.296          0          0
-X42                  -0.351093          0   -2.06917   -70.6001          0          0
-X43                  -0.472068          0   -0.50522   -11.2401          0          0
-X44                  -0.174214          0          0          0          0          0
-X45                  -0.191275   -29.0792    0.04365      0.873          0          0
-X46                  -0.328575          0          0          0          0          0
-X47                  -0.172053   -114.888          0          0          0          0
-X48                   0.160401          0          0          0          0          0
-X49                  0.0411129    20.6771          0          0          0          0
-X50                  -0.144836          0   -0.20649    -4.3077          0          0
+X1                     1.10703          0    1.07025    25.7403          0          0
+X2                    0.718063          0          0          0          0          0
+X3                 -0.00202884   -3.37314          0          0          0          0
+X4                   -0.240483          0          0          0          0          0
+X5                   -0.605336   -28.3408          0          0          0          0
+X6                    0.392798          0          0          0          0          0
+X7                    -0.55427   -22.7018          0          0          0          0
+X8                    0.609619    116.523          0          0  0.0877282          0
+X9                    0.279088          0          0          0          0          0
+X10                 0.00321935    4.05548          0          0          0          0
+X11                  -0.248423   -7.95349          0          0          0          0
+X12                   0.110991    21.8641          0          0          0          0
+X13                   0.440709          0          0          0          0          0
+X14                  -0.278693    -14.969          0          0   -0.28617          0
+X15                    0.10662     6.9298          0          0          0          0
+X16                   0.757732          0    0.29631    6.57755          0          0
+X17                  -0.373669   -36.7656          0          0          0          0
+X18                  -0.420264   -31.8675  -0.336344   -7.59683          0          0
+X19                 -0.0265385          0    1.45538    29.9664          0          0
+X20                   0.266726          0    1.27949    30.8347          0          0
+X21                 -0.0770726   -4.07228          0          0          0          0
+X22                  -0.394453          0          0          0          0          0
+X23                  -0.223601   -13.8072          0          0   -0.50851          0
+X24                   0.158623          0    1.56588    44.6757          0          0
+X25                  -0.815389   -36.8037          0          0   -0.73677          0
+X26                   -0.22989          0          0          0          0          0
+X27                 0.00657322          0          0          0  -0.235804          0
+X28                  -0.118103          0          0          0          0          0
+X29                   0.910028          0    0.59936    12.7349          0          0
+X30                   -0.03985   -6.73351          0          0          0          0
+X31                   0.445902          0          0          0          0          0
+X32                  -0.337385    -13.233          0          0          0          0
+X33                  -0.401389          0          0          0          0          0
+X34                   0.156315          0          0          0          0          0
+X35                 0.00429467    0.51959          0          0          0          0
+X36                  -0.900669   -57.0279          0          0   -0.22779          0
+X37                   0.485748    44.2154    1.08498    25.0001          0          0
+X38                  -0.220915   -13.3653          0          0  -0.436433          0
+X39                   0.167888          0          0          0          0          0
+X40                  -0.231488   -11.2783          0          0          0          0
+X41                  0.0614413    3.85869          0          0          0          0
+X42                   -0.25742          0          0          0    -1.5109          0
+X43                   0.609192    63.9383          0          0          0          0
+X44                 -0.0818353          0          0          0          0          0
+X45                  -0.359697     -19.89          0          0          0          0
+X46                  0.0621798          0          0          0          0          0
+X47                 -0.0672328          0          0          0          0          0
+X48                   0.157422          0    1.92137    70.9929          0          0
+X49                  -0.845923   -67.1851          0          0          0          0
+X50                   0.521987          0    2.94489    61.4349          0          0
 
 
   ---  generation 4 objective function summary:  ---  
 seeking optimal trade-off point for single 'optimal' chance point runs
-using member GEN=3_MEMBER=40_PSO as single, 'optimal' point
+using member GEN=3_MEMBER=44_PSO as single, 'optimal' point
    with distance of 0 from optimal trade - off
 objective function   direction         mean      std dev          min          max         knee
 
-FUNC                  minimize    -2.180195     1.103239    -4.975057     -1.01869    -4.975057
+FUNC                  minimize    -2.529617       1.0915     -6.09332       -1.424     -6.09332
 
 
   ---  generation 4 objective function change summary:  ---  
 objective function   mean change    % change  max change    % change  min change    % change knee change    % change
-FUNC                    0.229419           0    0.272708           0           0           0           0           0
+FUNC                    0.186025           0     0.07347           0           0           0           0           0
 
 ...number of feasible solutions at the end of generation 4: 25
 
   ---  starting generation  5  ---  
 ...generating PSO population of size 20
 starting surrogate-assisted greedy selection of infills
-...Using specified infill from control file:  5
+...using specified infill size from control file:  5
 ...setting the current optimum from the current archive
 ...saved augmented infill candidate-training decision variable dataset of size 120 X 50 to 'mic_gp.training.dv_pop.csv'
 ...saved augmented infill candidate-training observation dataset of size 120 X 3 to 'mic_gp.training.obs_pop.csv'
 ...wrote BGO ensemble summary to mic_gp.5.infill_search.summary.csv
-greedy selection picked GEN=5_MEMBER=91_PSO. Current infill size: 1
+greedy selection picked GEN=5_MEMBER=84_PSO. Current infill size: 1
 ...saved augmented infill candidate-training decision variable dataset of size 121 X 50 to 'mic_gp.training.dv_pop.csv'
 ...saved augmented infill candidate-training observation dataset of size 121 X 3 to 'mic_gp.training.obs_pop.csv'
 ...wrote BGO ensemble summary to mic_gp.5.infill_search.summary.csv
-greedy selection picked GEN=5_MEMBER=80_PSO. Current infill size: 2
+greedy selection picked GEN=5_MEMBER=93_PSO. Current infill size: 2
 ...saved augmented infill candidate-training decision variable dataset of size 122 X 50 to 'mic_gp.training.dv_pop.csv'
 ...saved augmented infill candidate-training observation dataset of size 122 X 3 to 'mic_gp.training.obs_pop.csv'
 ...wrote BGO ensemble summary to mic_gp.5.infill_search.summary.csv
-greedy selection picked GEN=5_MEMBER=83_PSO. Current infill size: 3
+greedy selection picked GEN=5_MEMBER=98_PSO. Current infill size: 3
 ...saved augmented infill candidate-training decision variable dataset of size 123 X 50 to 'mic_gp.training.dv_pop.csv'
 ...saved augmented infill candidate-training observation dataset of size 123 X 3 to 'mic_gp.training.obs_pop.csv'
 ...wrote BGO ensemble summary to mic_gp.5.infill_search.summary.csv
-greedy selection picked GEN=5_MEMBER=89_PSO. Current infill size: 4
+greedy selection picked GEN=5_MEMBER=87_PSO. Current infill size: 4
 ...saved augmented infill candidate-training decision variable dataset of size 124 X 50 to 'mic_gp.training.dv_pop.csv'
 ...saved augmented infill candidate-training observation dataset of size 124 X 3 to 'mic_gp.training.obs_pop.csv'
 ...wrote BGO ensemble summary to mic_gp.5.infill_search.summary.csv
-greedy selection picked GEN=5_MEMBER=84_PSO. Current infill size: 5
+greedy selection picked GEN=5_MEMBER=82_PSO. Current infill size: 5
 greedy selection finished with 5 selected infills. Proceeding with complex runs...
 ...running population of size  5
 ...saved augmented infill candidate-training decision variable dataset of size 125 X 50 to 'mic_gp.5.training.dv_pop.csv'
@@ -1200,129 +1200,129 @@ all nondominated members in already in archive
 
   ---  generation 5 decision variable summary:  ---  
 decision variable        ubnd      lbnd      mean   standard devation         min         max
-X1                          5        -5 -0.442186             3.37864          -5           5
-X2                          5        -5  0.185682              3.0506          -5           5
-X3                          5        -5 -0.796123             2.38988          -5     3.15245
-X4                          5        -5  -0.37859             2.97615          -5           5
-X5                          5        -5  -1.46638             3.06579          -5     3.71881
-X6                          5        -5 -0.670806             2.63012          -5     3.76616
-X7                          5        -5 0.0691727             3.24349          -5           5
-X8                          5        -5 0.0891219             3.16243          -5           5
-X9                          5        -5 -0.455421             3.11271          -5           5
-X10                         5        -5 -0.427638             2.73996    -4.57452     4.53529
-X11                         5        -5   1.81823             2.62912    -3.88361           5
-X12                         5        -5 -0.339027             3.62903          -5           5
-X13                         5        -5  -0.81203             3.13936          -5     4.19778
-X14                         5        -5 -0.319381              3.0478    -4.89273      4.2244
-X15                         5        -5   1.29751             2.65071    -3.85397           5
-X16                         5        -5 0.0939426             3.36499          -5     4.84321
-X17                         5        -5 -0.455536             3.25058          -5           5
-X18                         5        -5    1.3586             2.44087    -4.41159     4.42743
-X19                         5        -5  0.891767             2.41356    -4.58316           5
-X20                         5        -5   1.05587             2.40761    -3.49605     4.64543
-X21                         5        -5 -0.891943             2.82013          -5           5
-X22                         5        -5  0.975317             2.84278    -4.03835           5
-X23                         5        -5 -0.649206             3.18721    -4.82212           5
-X24                         5        -5  0.542057             2.17503    -3.46031     4.52873
-X25                         5        -5   0.83588             3.63158    -4.88736           5
-X26                         5        -5 -0.149283             2.99737          -5           5
-X27                         5        -5  -1.07088             2.38558          -5     4.39775
-X28                         5        -5  -1.87791             2.88833          -5     4.11595
-X29                         5        -5  0.346561             3.19367          -5     4.70643
-X30                         5        -5  0.198825             2.44088    -4.60653     3.90146
-X31                         5        -5   -0.7671             3.10152          -5     4.48776
-X32                         5        -5    1.2217             2.71673    -4.31594           5
-X33                         5        -5  -1.83581             2.57558          -5     3.83745
-X34                         5        -5 -0.561631             3.86849          -5     4.38479
-X35                         5        -5  0.530132             2.05827    -2.21815           5
-X36                         5        -5  0.787107             2.65423    -3.41159           5
-X37                         5        -5   1.39644             2.35088    -3.55612           5
-X38                         5        -5 0.0715246             2.45855    -4.69784     4.48052
-X39                         5        -5  -0.23721             2.80627    -4.77246           5
-X40                         5        -5  0.799829             2.93208    -4.84563           5
-X41                         5        -5   1.01332             2.74678    -4.75596      4.9352
-X42                         5        -5 -0.173922             3.16769          -5           5
-X43                         5        -5  0.036276             3.28287          -5           5
-X44                         5        -5 -0.757053             2.61716    -4.80239     4.96684
-X45                         5        -5   1.56734             3.40446          -5           5
-X46                         5        -5 -0.658138             3.05537          -5     4.32688
-X47                         5        -5  0.338563             3.74416          -5           5
-X48                         5        -5  -1.03363               3.039          -5           5
-X49                         5        -5 -0.140243              2.5674          -5     4.83814
-X50                         5        -5  0.215399              3.4083    -4.66841           5
+X1                          5        -5  -4.26642             1.30319          -5   0.0535855
+X2                          5        -5  -4.36263              1.9422          -5     3.96612
+X3                          5        -5 -0.381564             1.54791    -3.48647     3.15245
+X4                          5        -5   1.09882             2.57239    -4.41824           5
+X5                          5        -5   3.60331             2.15381    -4.06352           5
+X6                          5        -5  -4.04747             1.32638          -5   0.0263867
+X7                          5        -5   4.17464             1.71878    -1.05578           5
+X8                          5        -5 -0.785066             2.32668          -5           5
+X9                          5        -5  -4.00304             2.25722          -5     4.35042
+X10                         5        -5 -0.462934             2.48346    -4.33505     4.53529
+X11                         5        -5   4.16432             1.65754     -2.2003           5
+X12                         5        -5  0.327249             3.17291    -4.99944           5
+X13                         5        -5  -3.23772             2.63477          -5     4.19778
+X14                         5        -5   2.40589             2.46162    -2.90459           5
+X15                         5        -5   2.78923             1.37704     0.84281           5
+X16                         5        -5  -4.41938             1.63808          -5      1.4574
+X17                         5        -5   2.63297             2.48203     -4.8712           5
+X18                         5        -5   2.32414             1.81893    -2.18319     4.76377
+X19                         5        -5  0.735941             2.11003    -3.79456           5
+X20                         5        -5  -1.29152             2.30231          -5     2.87003
+X21                         5        -5   2.54256             1.91642    -1.80418           5
+X22                         5        -5  0.345679             2.67661          -5           5
+X23                         5        -5   2.66963             2.52311    -4.31361           5
+X24                         5        -5  -1.75299             1.91359          -5      1.9391
+X25                         5        -5   4.58297            0.912938     1.71248           5
+X26                         5        -5 -0.164866             2.03981    -4.52331      4.3661
+X27                         5        -5  -1.44874             1.66653          -5     2.40448
+X28                         5        -5  -3.07392             2.80651          -5     4.05248
+X29                         5        -5  -3.66965             2.06434          -5     2.94107
+X30                         5        -5  0.559292             2.25363    -4.60653     4.56038
+X31                         5        -5  -3.97069             2.47573          -5     4.48776
+X32                         5        -5    3.1643             2.57226    -3.21893           5
+X33                         5        -5  -1.97647             3.07792          -5     4.56702
+X34                         5        -5  -2.72383             2.68721          -5           5
+X35                         5        -5  0.638622             1.80482    -2.09025     3.69805
+X36                         5        -5   3.35177             2.02569    -1.36951           5
+X37                         5        -5   1.00525              1.7919    -3.55612     4.36224
+X38                         5        -5   1.67525             2.16248    -2.55598           5
+X39                         5        -5  -2.82135             2.08703          -5      2.0254
+X40                         5        -5   2.50094             2.49152    -4.84563           5
+X41                         5        -5   1.49102               2.159    -4.74617           5
+X42                         5        -5 -0.602363             2.24231          -5     3.44581
+X43                         5        -5  0.501786             2.91592    -3.67465           5
+X44                         5        -5  -2.22247              2.2649          -5     2.30089
+X45                         5        -5   2.01298             1.69569    -1.88579     4.96634
+X46                         5        -5  -1.41673             1.84759          -5     3.23796
+X47                         5        -5-0.0989117             2.81658          -5     4.14992
+X48                         5        -5  -2.13989             1.26929    -4.24004    0.785057
+X49                         5        -5   2.24455             2.67833    -3.49375           5
+X50                         5        -5  -3.05334             1.89762          -5     1.84862
 
 
   ---  generation 5 decision variable change summary:  ---  
 decision variable  mean change   % change max change   % change min change   % change
-X1                   0.0218975          0          0          0          0          0
-X2                    0.657737    77.9846          0          0          0          0
-X3                    0.155267          0          0          0          0          0
-X4                   0.0274179          0          0          0          0          0
-X5                   0.0625763          0          0          0          0          0
-X6                    0.248027          0    0.64028    14.5306          0          0
-X7                    0.153326     68.911          0          0          0          0
-X8                   -0.183736          0   -1.17747   -30.8035          0          0
-X9                     0.74669    256.358          0          0    0.66904          0
-X10                  -0.136674          0    0.46471     9.2942 -0.0240875          0
-X11                  -0.530667    -41.215          0          0  -0.807951          0
-X12                 -0.0699616          0          0          0          0          0
-X13                   0.380691          0          0          0          0          0
-X14                -0.00522981          0          0          0          0          0
-X15                  -0.859494   -196.223          0          0   -1.00913          0
-X16                   0.527692    84.8878          0          0          0          0
-X17                    0.14253          0          0          0     0.1288          0
-X18                  0.0790141    5.49621          0          0          0          0
-X19                  -0.104028   -13.2058          0          0          0          0
-X20                -0.00312607  -0.296945   0.094754    1.99895          0          0
-X21                 -0.0283169          0          0          0          0          0
-X22                  -0.615736   -171.237          0          0          0          0
-X23                  0.0973169          0          0          0          0          0
-X24                   -0.66826          0          0          0  -0.863527          0
-X25                   -0.65597   -364.609          0          0   -0.08256          0
-X26                  -0.310937          0  -0.636012   -14.5741          0          0
-X27                   0.320778          0    0.60225     12.045          0          0
-X28                   0.252919          0          0          0          0          0
-X29                   0.695469    66.7417          0          0          0          0
-X30                 -0.0563387   -39.5398          0          0          0          0
-X31                   0.269369          0          0          0          0          0
-X32                  -0.358678   -41.5605          0          0          0          0
-X33                   0.536864          0          0          0          0          0
-X34                 0.00141558          0          0          0          0          0
-X35                   -0.17181   -47.9485   -1.09173   -27.9338          0          0
-X36                  0.0939475    10.6631          0          0   -0.86087          0
-X37                 -0.0600418   -4.49282          0          0          0          0
-X38                   0.190998    72.7548          0          0          0          0
-X39                  -0.438485          0          0          0          0          0
-X40                  -0.164142   -25.8212          0          0          0          0
-X41                  -0.213644   -26.7162          0          0          0          0
-X42                  -0.236185          0          0          0          0          0
-X43                  -0.339962          0          0          0          0          0
-X44                   0.278243          0          0          0          0          0
-X45                  -0.718294   -84.5999   -0.04365  -0.880688          0          0
-X46                  0.0650034          0          0          0          0          0
-X47                 -0.0167533   -5.20595          0          0          0          0
-X48                   0.312593          0          0          0          0          0
-X49                   0.297963    188.919          0          0          0          0
-X50                  -0.529429          0          0          0          0          0
+X1                      1.3049          0    3.03404    98.2645          0          0
+X2                      1.0882          0    0.38029    8.74952          0          0
+X3                     0.44374    713.683          0          0          0          0
+X4                   -0.895067   -439.296  -0.428818   -9.38089  -0.454176          0
+X5                   -0.862064   -31.4479          0          0          0          0
+X6                     1.03558          0    3.73977    99.2994          0          0
+X7                    -1.17885   -39.3503          0          0   -2.85512          0
+X8                    0.698623          0          0          0     1.4415          0
+X9                    0.876528          0          0          0          0          0
+X10                   0.539098    707.818          0          0  0.0805377          0
+X11                  -0.792457    -23.502          0          0   -1.68331          0
+X12                  0.0693983    17.4962          0          0          0          0
+X13                     1.1849          0          0          0          0          0
+X14                  -0.265402   -12.3991          0          0   -1.41355          0
+X15                   -1.35728   -94.7847          0          0   -4.69678          0
+X16                    1.62808          0    2.75116    65.3706          0          0
+X17                   -1.24295   -89.4195          0          0          0          0
+X18                  -0.585088   -33.6441          0          0    -2.2284          0
+X19                  -0.819414          0   -1.59868   -47.0016  -0.788601          0
+X20                   0.389346          0          0          0          0          0
+X21                  -0.572878   -29.0848          0          0   -2.13878          0
+X22                  -0.160153   -86.3236   -0.11341   -2.32084          0          0
+X23                  -0.826575    -44.848          0          0          0          0
+X24                   0.195465          0          0          0          0          0
+X25                   -1.55208   -51.2086          0          0   -5.86307          0
+X26                  -0.256339          0          0          0  -0.408924          0
+X27                   0.593953          0          0          0    1.35115          0
+X28                   0.624351          0          0          0          0          0
+X29                    1.42354          0      1.166    28.3901          0          0
+X30                  0.0723754    11.4578          0          0          0          0
+X31                   0.911798          0          0          0          0          0
+X32                  -0.277342   -9.60675          0          0   0.464457          0
+X33                  0.0523636          0  -0.729568   -19.0118          0          0
+X34                    1.29437          0          0          0          0          0
+X35                   0.183633    22.3328   0.210221    5.37888   0.156549          0
+X36                  -0.871754   -35.1512          0          0   -1.81429          0
+X37                  -0.392408   -64.0304   -1.10731   -34.0197          0          0
+X38                   0.198561    10.5966          0          0    1.12705          0
+X39                    0.46307          0          0          0          0          0
+X40                  -0.216933   -9.49792          0          0          0          0
+X41                  0.0398181    2.60106          0          0-0.00978728          0
+X42                   0.695802    744.663          0          0    1.73067          0
+X43                  -0.158198   -46.0427          0          0          0          0
+X44                  -0.177421          0    2.66595     53.675          0          0
+X45                   0.155141    7.15553-0.00998696  -0.201498          0          0
+X46                   0.168105          0          0          0          0          0
+X47                  -0.328089          0   0.495991    10.6759          0          0
+X48                  -0.144537          0          0          0 -0.0842512          0
+X49                  -0.139536   -6.62871          0          0          0          0
+X50                   0.304624          0          0          0          0          0
 
 
   ---  generation 5 objective function summary:  ---  
 seeking optimal trade-off point for single 'optimal' chance point runs
-using member GEN=3_MEMBER=40_PSO as single, 'optimal' point
+using member GEN=3_MEMBER=44_PSO as single, 'optimal' point
    with distance of 0 from optimal trade - off
 objective function   direction         mean      std dev          min          max         knee
 
-FUNC                  minimize    -2.579137     1.159675    -4.975057     -1.27429    -4.975057
+FUNC                  minimize    -2.966328     1.022151     -6.09332    -1.764532     -6.09332
 
 
   ---  generation 5 objective function change summary:  ---  
 objective function   mean change    % change  max change    % change  min change    % change knee change    % change
-FUNC                    0.398942           0      0.2556           0           0           0           0           0
+FUNC                    0.436711           0    0.340532           0           0           0           0           0
 
 ...number of feasible solutions at the end of generation 5: 25
 
 
 pestpp-mou analysis complete...
-started at 10/15/24 15:20:02
-finished at 10/15/24 15:30:13
-took 10.1833 minutes
+started at 10/15/24 16:52:48
+finished at 10/15/24 16:58:34
+took 5.75 minutes

@@ -51,6 +51,11 @@ x64
 /pest++/benchmarks/stor/pestpp/
 /pest++/benchmarks/tidal/pestpp/
 /pest++/benchmarks/mou_tests/
+/pest++/benchmarks/michalewicz/
+/pest++/benchmarks/osy/
+/pest++/benchmarks/TM2_r60/
+/pest++/benchmarks/zdt_fitness_expt/
+/pest++/benchmarks/zdt2/
 
 pest++/mio/model_input_output_interface.mod
 pest++/pest++/pestpp
@@ -71,3 +76,4 @@ pest++/sweep/sweep
 /src/UpgradeLog.htm
 *_z
 
+/benchmarks/michalewicz

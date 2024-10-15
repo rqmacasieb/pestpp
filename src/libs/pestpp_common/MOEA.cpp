@@ -4604,10 +4604,10 @@ ParameterEnsemble MOEA::generate_population()
 	ParameterEnsemble new_pop(&pest_scenario, &rand_gen);
 	new_pop.set_trans_status(ParameterEnsemble::transStatus::NUM);
 
-	if (bgo)
-		objectives.get_bgo_ensemble(iter, op, dp, &constraints, false);
-	else
-		objectives.get_nsga2_pareto_dominance(iter, op, dp, &constraints, prob_pareto, false);
+	//if (bgo)
+	//	objectives.get_bgo_ensemble(iter, op, dp, &constraints, false);
+	//else
+	objectives.get_nsga2_pareto_dominance(iter, op, dp, &constraints, prob_pareto, false);
 	
 	for (auto gen_type : gen_types)
 	{
@@ -4683,7 +4683,7 @@ vector<string> MOEA::fill_infill_ensemble(ParameterEnsemble& _dp, ObservationEns
 	else if (infill_size == 1.0)
 		message(1, "performing classic BGO algorithm with one-at-a-time infill sampling");
 	else
-		message(1, "Using specified infill from control file: ", infill_size);
+		message(1, "using specified infill size from control file: ", infill_size);
 	
 	if (infill_size > _dp.shape().first)
 		throw_moea_error("Chosen infill size exceeds the population size!");
@@ -5567,49 +5567,49 @@ vector<string> MOEA::get_pso_gbest_solutions(int num_reals, ParameterEnsemble& _
 	vector<string> gbest_solutions;
 	double numreals = num_reals;
 
-	if (bgo)
-	{
-		//vector<pair<string, double>> sorted_aqf = objectives.sort_by_aqf(_op, _dp, &constraints);
+	//if (bgo)
+	//{
+	//	//vector<pair<string, double>> sorted_aqf = objectives.sort_by_aqf(_op, _dp, &constraints);
 
-		DomPair dompair = objectives.get_bgo_ensemble(-999, _op, _dp, &constraints, false);
-		vector < double> r;
-		vector<string> working = dompair.first;
-		int count = 0;
-		bool found;
-		string candidate;
+	//	DomPair dompair = objectives.get_bgo_ensemble(-999, _op, _dp, &constraints, false);
+	//	vector < double> r;
+	//	vector<string> working = dompair.first;
+	//	int count = 0;
+	//	bool found;
+	//	string candidate;
 
-		double alpha = pest_scenario.get_pestpp_options().get_mou_pso_alpha();
-		map<string, double> fitness = objectives.get_enbgo_fitness_map();
-		
+	//	double alpha = pest_scenario.get_pestpp_options().get_mou_pso_alpha();
+	//	map<string, double> fitness = objectives.get_enbgo_fitness_map();
+	//	
 
-		for (int i = 0; i < num_reals; i++)
-		{
-			count = 0;
-			found = false;
+	//	for (int i = 0; i < num_reals; i++)
+	//	{
+	//		count = 0;
+	//		found = false;
 
-			while (true)
-			{
-				shuffle(working.begin(), working.end(), rand_gen);
-				r = uniform_draws(num_reals, 0.0, 1.0, rand_gen);
-				for (int i = 0; i < r.size(); i++)
-					if (fitness[working[i]] >= r[i])
-					{
-						candidate = working[i];
-						found = true;
-						break;
-					}
+	//		while (true)
+	//		{
+	//			shuffle(working.begin(), working.end(), rand_gen);
+	//			r = uniform_draws(num_reals, 0.0, 1.0, rand_gen);
+	//			for (int i = 0; i < r.size(); i++)
+	//				if (fitness[working[i]] >= r[i])
+	//				{
+	//					candidate = working[i];
+	//					found = true;
+	//					break;
+	//				}
 
-				if (found)
-					break;
-				count++;
-				if (count > 1000000)
-					throw_moea_error("MOEA::get_pso_gbest_solutions() seems to be stuck in a infinite loop....");
-			}
-			gbest_solutions.push_back(candidate);
-		}
-	}
-	else
-	{
+	//			if (found)
+	//				break;
+	//			count++;
+	//			if (count > 1000000)
+	//				throw_moea_error("MOEA::get_pso_gbest_solutions() seems to be stuck in a infinite loop....");
+	//		}
+	//		gbest_solutions.push_back(candidate);
+	//	}
+	//}
+	/*else
+	{*/
 		DomPair dompair = objectives.get_nsga2_pareto_dominance(-999, _op, _dp, &constraints, prob_pareto, false);
 		vector<string> nondom_solutions = dompair.first;
 		vector<string> dom_solutions = dompair.second;
@@ -5662,7 +5662,7 @@ vector<string> MOEA::get_pso_gbest_solutions(int num_reals, ParameterEnsemble& _
 			}
 			gbest_solutions.push_back(candidate);
 		}
-	}
+	//}
 	return gbest_solutions;
 }
 
