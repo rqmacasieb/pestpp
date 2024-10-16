@@ -584,7 +584,7 @@ void PANTHERAgent::start_impl(const string &host, const string &port)
 	Parameters pars;
 	vector<int8_t> serialized_data;
 	pair<int,string> err;
-	vector<string> par_name_vec, obs_name_vec;
+	vector<string> par_name_vec, obs_name_vec, altcom_vec;
 	stringstream ss;
 	//class attribute - can be modified in run_model()
 	terminate = false;
@@ -821,6 +821,28 @@ void PANTHERAgent::start_impl(const string &host, const string &port)
 				ss << "error sending LINPACK message to master: " << err.second << ", terminating" << endl;
 				report(ss.str(), true);
 				terminate_or_restart(-1);
+			}
+		}
+		else if (net_pack.get_type() == NetPackage::PackType::ALTCMD)
+		{
+			
+			Serialization::unserialize(net_pack.get_data(), altcom_vec);
+			
+			if (altcom_vec.size() != 0)
+			{
+				// need to add checks here
+				ss.str("");
+				ss << "received alternate model command:" << endl;
+				for (auto com : altcom_vec)
+					ss << com << endl;
+				ss << endl;
+				report(ss.str(), true);
+				mi.override_command(altcom_vec);
+			}
+			else
+			{
+				report("using the default model command", true);
+				mi.revert_command();
 			}
 		}
 		else if(net_pack.get_type() == NetPackage::PackType::START_RUN)

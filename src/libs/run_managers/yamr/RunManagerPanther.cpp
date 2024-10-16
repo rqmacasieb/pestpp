@@ -1876,6 +1876,23 @@ void RunManagerPanther::kill_all_active_runs()
 			data = Serialization::serialize(tmp_vec);
 			pair<int,string> err_obs = net_pack.send(i_sock, &data[0], data.size());
 
+			//send model command override
+			if (override_comline)
+			{
+				net_pack = NetPackage(NetPackage::PackType::ALTCMD, 0, 0, "");
+				tmp_vec = altcomline_vec;
+				data = Serialization::serialize(tmp_vec);
+				pair<int, string> err_com = net_pack.send(i_sock, &data[0], data.size());
+			}
+			else if (revert_comline)
+			{
+				net_pack = NetPackage(NetPackage::PackType::ALTCMD, 0, 0, "");
+				tmp_vec = altcomline_vec;
+				data = Serialization::serialize(tmp_vec);
+				pair<int, string> err_com = net_pack.send(i_sock, &data[0], data.size());
+			}
+
+
 			if (err_par.first > 0 && err_obs.first > 0)
 			{
 				i_agent.set_state(AgentInfoRec::State::NAMES_SENT);
