@@ -114,7 +114,7 @@ public:
 	void set_num_threads(int _num_threads) { num_threads = _num_threads; }
 	void set_sleep_ms(int _sleep_ms){sleep_ms = _sleep_ms;}
 	void override_command(vector<string> altcom) { pcomline_vec = comline_vec;  comline_vec = altcom; }
-	void revert_command() { comline_vec = pcomline_vec; }
+
 private:
 	int num_threads;
 	int sleep_ms;

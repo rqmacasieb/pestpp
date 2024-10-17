@@ -4698,6 +4698,7 @@ vector<string> MOEA::fill_infill_ensemble(ParameterEnsemble& _dp, ObservationEns
 
 	objectives.prep_bgo_ensemble_summary_file(tag.str());
 	get_current_true_solution();
+	defcmd_vec = pest_scenario.get_model_exec_info().comline_vec;
 	run_mgr_ptr->override_command(pest_scenario.get_pestpp_options().get_mou_resample_command());
 	while (count < infill_size)
 	{
@@ -4748,7 +4749,7 @@ vector<string> MOEA::fill_infill_ensemble(ParameterEnsemble& _dp, ObservationEns
 	}
 
 	message(2, "greedy selection finished with " + to_string(count) + " selected infills. Proceeding with complex runs...");
-	run_mgr_ptr->revert_command();
+	run_mgr_ptr->override_command(defcmd_vec);
 	return picks;
 
 }

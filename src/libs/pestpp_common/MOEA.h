@@ -250,6 +250,7 @@ private:
 	std::mt19937 rand_gen;
 	vector<string> obj_names, obs_obj_names, pi_obj_names, obs_obj_sd_names, pi_obj_sd_names;
 	vector<string> dv_names;
+	vector<string> defcmd_vec;
 	map<string, double> obj_dir_mult;
 	int n_adaptive_dvs;
 	map<string, map<string, double>> previous_obj_summary, previous_dv_summary;

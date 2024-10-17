@@ -117,12 +117,12 @@ public:
 	int get_n_waiting_runs() { return waiting_runs.size(); }
 	void close_agents();
 	
-	virtual void override_command(std::vector<std::string> altcom) { altcomline_vec = altcom; override_comline = true; revert_comline = false; }
-	virtual void revert_command() { altcomline_vec.clear(); override_comline = false; revert_comline = true; }
+	virtual void override_command(std::vector<std::string> altcom) { altcomline_vec.clear(); altcomline_vec = altcom; override_comline = true; }
+	//virtual void revert_command() { altcomline_vec.clear(); override_comline = false; revert_comline = true; }
 
 private:
 	bool override_comline = false;
-	bool revert_comline = false;
+	//bool revert_comline = false;
 	vector<string> altcomline_vec;
 	std::string port;
 	static const int BACKLOG;

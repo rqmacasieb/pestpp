@@ -1250,10 +1250,29 @@ int RunManagerPanther::schedule_run(int run_id, std::list<list<AgentInfoRec>::it
 		int rstat;
 		file_stor.get_info(run_id, rstat, info_txt, info_val);
 		string host_name = (*it_agent)->get_hostname();
+		
+		//send model command override
+		vector<int8_t> commdata;
+		vector<string> tmp_vec;
+		if (override_comline)
+		{
+			NetPackage net_pack(NetPackage::PackType::ALTCMD, cur_group_id, run_id, info_txt);
+			tmp_vec.clear();
+			tmp_vec = altcomline_vec;
+			commdata = Serialization::serialize(tmp_vec);
+			pair<int, string> err = net_pack.send(socket_fd, &commdata[0], commdata.size());
+			stringstream ss; 
+			ss << "Sending command: " << endl;
+			for (auto t : tmp_vec) 
+			{
+				ss << t << endl;
+			}
+			report(ss.str(), false);
+		}
 
 		//  info_txt = "sending run to " + host_name + ":" + (*it_agent)->get_work_dir() + " at " + pest_utils::get_time_string();
 		NetPackage net_pack(NetPackage::PackType::START_RUN, cur_group_id, run_id, info_txt);
-		pair<int,string> err = net_pack.send(socket_fd, &data[0], data.size());
+		pair<int,string> err = net_pack.send(socket_fd, &data[0], data.size());	
 		if (err.first > 0)
 		{
 			(*it_agent)->set_state(AgentInfoRec::State::ACTIVE, run_id, cur_group_id);
@@ -1876,23 +1895,6 @@ void RunManagerPanther::kill_all_active_runs()
 			data = Serialization::serialize(tmp_vec);
 			pair<int,string> err_obs = net_pack.send(i_sock, &data[0], data.size());
 
-			//send model command override
-			if (override_comline)
-			{
-				net_pack = NetPackage(NetPackage::PackType::ALTCMD, 0, 0, "");
-				tmp_vec = altcomline_vec;
-				data = Serialization::serialize(tmp_vec);
-				pair<int, string> err_com = net_pack.send(i_sock, &data[0], data.size());
-			}
-			else if (revert_comline)
-			{
-				net_pack = NetPackage(NetPackage::PackType::ALTCMD, 0, 0, "");
-				tmp_vec = altcomline_vec;
-				data = Serialization::serialize(tmp_vec);
-				pair<int, string> err_com = net_pack.send(i_sock, &data[0], data.size());
-			}
-
-
 			if (err_par.first > 0 && err_obs.first > 0)
 			{
 				i_agent.set_state(AgentInfoRec::State::NAMES_SENT);
@@ -1905,6 +1907,22 @@ void RunManagerPanther::kill_all_active_runs()
 			{
 				report("Error sending obs names to agent:" + i_agent.get_hostname() + "$" + i_agent.get_work_dir() + " error:" + err_obs.second, false);
 			}
+
+			//send model command override
+			/*if (override_comline)
+			{
+				net_pack = NetPackage(NetPackage::PackType::ALTCMD, 0, 0, "");
+				tmp_vec = altcomline_vec;
+				data = Serialization::serialize(tmp_vec);
+				pair<int, string> err_com = net_pack.send(i_sock, &data[0], data.size());
+			}*/
+			/*else if (revert_comline)
+			{
+				net_pack = NetPackage(NetPackage::PackType::ALTCMD, 0, 0, "");
+				tmp_vec = altcomline_vec;
+				data = Serialization::serialize(tmp_vec);
+				pair<int, string> err_com = net_pack.send(i_sock, &data[0], data.size());
+			}*/
 		}
 		else if (cur_state == AgentInfoRec::State::NAMES_SENT)
 		{

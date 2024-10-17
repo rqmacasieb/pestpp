@@ -825,24 +825,21 @@ void PANTHERAgent::start_impl(const string &host, const string &port)
 		}
 		else if (net_pack.get_type() == NetPackage::PackType::ALTCMD)
 		{
-			
+			altcom_vec.clear();
 			Serialization::unserialize(net_pack.get_data(), altcom_vec);
-			
 			if (altcom_vec.size() != 0)
 			{
-				// need to add checks here
+				vector<string> cmd = altcom_vec;
+				altcom_vec.clear();
+				altcom_vec.push_back(cmd[0]);
+				// prolly need to add checks here
+
 				ss.str("");
-				ss << "received alternate model command:" << endl;
+				ss << "received " << altcom_vec.size() << " alternate model command(s)"  << endl;
 				for (auto com : altcom_vec)
 					ss << com << endl;
-				ss << endl;
 				report(ss.str(), true);
 				mi.override_command(altcom_vec);
-			}
-			else
-			{
-				report("using the default model command", true);
-				mi.revert_command();
 			}
 		}
 		else if(net_pack.get_type() == NetPackage::PackType::START_RUN)
