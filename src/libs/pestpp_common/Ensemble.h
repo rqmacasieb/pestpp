@@ -99,6 +99,7 @@ public:
 	Pest get_pest_scenario() { return *pest_scenario_ptr; }
 	void set_pest_scenario_ptr(Pest *_pest_scenario) { pest_scenario_ptr = _pest_scenario;}
 	void set_real_names(vector<string> &_real_names, bool update_org_names=false);
+	void set_var_names(const vector<string>& _var_names);
 	void check_for_dups();
 	void check_for_normal(string context="");
 

@@ -388,6 +388,8 @@ public:
 	void set_mou_objectives(const vector<string>& objs) { mou_objectives = objs; }
 	int get_mou_max_archive_size() const { return mou_max_archive_size; }
 	void set_mou_max_archive_size(int size) { mou_max_archive_size = size; }
+	int get_mou_max_infill_pool_size() const { return mou_max_infill_pool_size; }
+	void set_mou_max_infill_pool_size(int size) { mou_max_infill_pool_size = size; }
 	bool get_mou_risk_obj()const { return mou_risk_obj; }
 	void set_mou_risk_obj(bool _flag) { mou_risk_obj = _flag; }
 	int get_mou_verbose_level() const { return mou_verbose_level; }
@@ -416,8 +418,8 @@ public:
 	void set_mou_pso_rramp(double val) { mou_pso_rramp = val; }
 	double get_mou_pso_rfit() const { return mou_pso_rfit; }
 	void set_mou_pso_rfit(double val) { mou_pso_rfit = val; }
-	int get_mou_max_nn_search() const { return mou_max_nn_search;}
-	void set_mou_max_nn_search(int val) { mou_max_nn_search = val; }
+	int get_mou_inner_nmax() const { return mou_inner_nmax;}
+	void set_mou_inner_nmax(int val) { mou_inner_nmax = val; }
 	string get_mou_outer_repo_obs_file() const { return mou_outer_repo_obs_file; }
 	void set_mou_outer_repo_obs_file(string name) { mou_outer_repo_obs_file = name; }
 	string get_mou_bgo_dv_training_file() const { return mou_bgo_dv_training_file; }
@@ -434,10 +436,10 @@ public:
 	void set_mou_fit_epsilon(double val) { mou_fit_epsilon = val; }
 	double get_mou_fit_gamma() const { return mou_fit_gamma; }
 	void set_mou_fit_gamma(double val) { mou_fit_gamma = val; }
-	int get_mou_resample_every()const { return mou_resample_every; }
-	void set_mou_adaptive_ppd(bool _flag) { mou_adaptive_ppd = _flag; };
+	int get_mou_bgo_greedy_select_every()const { return mou_bgo_greedy_select_every; }
+	void set_mou_bgo_greedy_select_every(int _every) { mou_bgo_greedy_select_every = _every; }
 	bool get_mou_adaptive_ppd() const { return mou_adaptive_ppd; }
-	void set_mou_resample_every(int _every) { mou_resample_every = _every; }
+	void set_mou_adaptive_ppd(bool _flag) { mou_adaptive_ppd = _flag; };
 	vector<string> get_mou_resample_command() const { return mou_resample_command; }
 	void set_mou_resample_command(const vector<string>& _rescmd) { mou_resample_command = _rescmd; }
 	string get_mou_bgo_aqf() const { return mou_bgo_aqf; }
@@ -769,6 +771,7 @@ private:
 	string mou_obs_population_restart_file;
 	vector<string> mou_objectives;
 	int mou_max_archive_size;
+	int mou_max_infill_pool_size;
 	bool mou_risk_obj;
 	int mou_verbose_level;
 	string mou_env_selector;
@@ -792,10 +795,10 @@ private:
 	string mou_outer_repo_obs_file;
 	string mou_bgo_dv_training_file;
 	string mou_bgo_obs_training_file;
-	int mou_max_nn_search;
+	int mou_inner_nmax;
 	int mou_infill_size;
 	double mou_hypervolume_extreme;
-	int mou_resample_every;
+	int mou_bgo_greedy_select_every;
 	vector<string> mou_resample_command;
 	string mou_population_schedule;
 	int mou_simplex_reflections;

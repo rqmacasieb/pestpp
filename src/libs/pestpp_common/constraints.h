@@ -146,7 +146,6 @@ public:
 
 	//decide whether it is time to update the chance constraints
 	bool should_update_chance(int iter);
-	bool should_retrain(int iter);
 
 	//workout a constraints sense
 	static pair<ConstraintSense, string> get_sense_from_group_name(const string& name);

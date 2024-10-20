@@ -1,6 +1,11 @@
 real_name,func,func_sd,ei
-gen=2_member=21_pso,-0.67549,0,0
-gen=2_member=23_pso,-1.97867,0,0
-gen=2_member=28_pso,-2.07357,0,0
-gen=2_member=32_pso,-0.47192,0,0
-gen=2_member=36_pso,-2.96894,0,0
+gen=2_member=120_pso,-0.641889,0,0
+gen=2_member=188_pso,-1.20633,0,0
+gen=2_member=137_pso,-0.316138,0,0
+gen=2_member=236_pso,-0.555335,0,0
+gen=2_member=215_pso,0.420957,0,0
+gen=2_member=214_pso,1.01172,0,0
+gen=2_member=228_pso,0.187431,0,0
+gen=2_member=180_pso,1.38484,0,0
+gen=2_member=181_pso,0.0540841,0,0
+gen=2_member=218_pso,0.777911,0,0

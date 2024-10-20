@@ -20,8 +20,8 @@
 const string POP_SUM_TAG = "pareto.summary.csv";
 const string ARC_SUM_TAG = "pareto.archive.summary.csv";
 const string ARC_TRIM_SUM_TAG = "pareto.trimmed.archive.summary.csv";
-const string BGO_POP_SUM_TAG = "ensemble.summary.csv";
-const string BGO_ARC_SUM_TAG = "ensemble.archive.summary.csv";
+const string BGO_POP_SUM_TAG = "enbgo.summary.csv";
+const string BGO_ARC_SUM_TAG = "enbgo.archive.summary.csv";
 const string BGO_TRAINING_SUM_TAG = "training_dataset.summary.csv";
 const string BGO_SELECTION_SUM_TAG = "infill_search.summary.csv";
 const string RISK_NAME = "_RISK_";
@@ -29,6 +29,7 @@ const string DE_F_NAME = "_DE_F_";
 const string CR_NAME = "_CR_";
 const string MR_NAME = "_MR_";
 const double CROWDING_EXTREME = 1.0e+30;
+const bool bgo_mode = true;
 
 enum MouGenType { DE, SBX, PM, PSO, SMP };
 enum MouEnvType { NSGA, SPEA, NSGA_PPD, NSGA_BGO };
@@ -50,8 +51,8 @@ public:
 	void get_ehvi(ObservationEnsemble& op, ParameterEnsemble& dp);
 	void update_ppd_criteria(ObservationEnsemble& op, ParameterEnsemble& dp);
 	
-	pair<vector<string>, vector<string>> get_bgo_ensemble(int generation, ObservationEnsemble& op, 
-		ParameterEnsemble& dp, Constraints* constraints_ptr = nullptr, bool report=true, string sum_tag=string());
+	pair<vector<string>, vector<string>> get_bgo_ensemble(int generation, ObservationEnsemble& _op, 
+		ParameterEnsemble& _dp, Constraints* constraints_ptr = nullptr, bool report=true, string sum_tag=string());
 	void set_bgo_mode(bool bgo_switch) { bgo = bgo_switch; }
 	map<string, double> get_enbgo_fitness_map() { return enbgo_fitness_map; }
 	map<string, double> get_bgo_aqf_map() { return bgo_aqf_map; }
@@ -99,7 +100,7 @@ public:
 
 	void update(ObservationEnsemble& oe, ParameterEnsemble& dp, Constraints* constraints_ptr = nullptr);
 
-	bool compare_two(string& first,string& second, MouEnvType envtyp);
+	bool compare_two(string& first,string& second, MouEnvType envtyp, bool bgomode = false);
 
 	map<string, double> get_spea2_fitness(int generation, ObservationEnsemble& op, ParameterEnsemble& dp, 
 		Constraints* constraints_ptr = nullptr, bool report = true, string sum_tag = string());
@@ -178,7 +179,6 @@ private:
 
 	map<string, map<string, double>> feas_member_struct;
 	map<int, vector<string>> front_map;
-	map <int, string> bgo_repo_map;
 	map<int, vector<string>> prob_front_map;
 	map<string, double> crowd_map, expected_crowd_map, var_crowd_map, fitness_map, probnondom_map, min_sd, nn_map;
 	map<string, int> member_front_map, bgo_member_repo_map;
@@ -205,7 +205,7 @@ private:
 	map<string, map<string, double>> incumbent_front_extreme, expdist_lookup, fit_lookup;
 	map<int, vector<double>> hypervolume_partitions;
 	double EHVI;
-	int iter;
+	int iter, inner_iter;
 	double get_ehvi(string& member, map<string, map<string, double>>& _member_struct);
 
 	double c_opt;
@@ -234,14 +234,14 @@ private:
 	set<string> pp_args;
 	vector<MouGenType> gen_types;
 	vector<string> act_obs_names, act_par_names;
-	int iter, warn_min_members, error_min_members;
+	int iter, inner_iter, warn_min_members, error_min_members;
 	int member_count;
-	int archive_size, infill_size;
+	int archive_size, infill_size, infill_pool_size;
 	string population_dv_file, population_obs_restart_file;
 	string dv_pop_file_tag = "dv_pop";
 	string obs_pop_file_tag = "obs_pop";
-	string dv_pool_file_tag = "pool.dv_pop";
-	string obs_pool_file_tag = "pool.obs_pop";
+	/*string dv_inner_file_tag = "inner.dv_pop";
+	string obs_inner_file_tag = "inner.obs_pop";*/
 	string training_dv_file_tag = "training.dv_pop";
 	string training_obs_file_tag = "training.obs_pop";
 	string lineage_tag = "lineage.csv";
@@ -271,8 +271,8 @@ private:
 	RunManagerAbstract* run_mgr_ptr;
 	const ObservationInfo *obs_info_ptr;
 
-	ParameterEnsemble dp, dp_archive, dt;
-	ObservationEnsemble op, op_archive, ot;
+	ParameterEnsemble dp, dp_archive, dt, idp, idp_archive, dp_infill;
+	ObservationEnsemble op, op_archive, ot, iop, iop_archive, op_infill;
 
 	map<string,Eigen::VectorXd> par_sim_map, obs_sim_map, pso_velocity_map;
 
@@ -281,7 +281,7 @@ private:
 
 	void update_sim_maps(ParameterEnsemble& _dp, ObservationEnsemble& _op);
 	void fill_populations_from_maps(ParameterEnsemble& new_dp, ObservationEnsemble& new_op );
-	vector<string> fill_infill_ensemble(ParameterEnsemble& _dp, ObservationEnsemble& _op);
+	void fill_infill_ensemble(ParameterEnsemble& _dp, ObservationEnsemble& _op);
 
 	void update_archive_bgo(ObservationEnsemble& _op, ParameterEnsemble& _dp);
 	void update_archive_nsga(ObservationEnsemble& _op, ParameterEnsemble& _dp);
@@ -310,19 +310,19 @@ private:
 	bool initialize_dv_population();
 	void initialize_obs_restart_population();
 
-	ParameterEnsemble generate_population();
+	ParameterEnsemble generate_population(bool bgomode = false);
 
 	ParameterEnsemble generate_diffevol_population(int num_members, ParameterEnsemble& _dp);
 	ParameterEnsemble generate_sbx_population(int num_members, ParameterEnsemble& _dp);
 	ParameterEnsemble generate_pm_population(int num_members, ParameterEnsemble& _dp);
-	ParameterEnsemble generate_pso_population(int num_members, ParameterEnsemble& _dp);
+	ParameterEnsemble generate_pso_population(int num_members, ParameterEnsemble& _dp, bool bgomode = false);
 	ParameterEnsemble simplex_cceua_kn(ParameterEnsemble s, int k, int optbounds);																																		
     ParameterEnsemble generate_simplex_population(int num_members, ParameterEnsemble& _dp, ObservationEnsemble& _op);
 
-	ParameterEnsemble get_updated_pso_velocty(ParameterEnsemble& _dp, vector<string>& gbest_solutions);
+	ParameterEnsemble get_updated_pso_velocty(ParameterEnsemble& _dp, vector<string>& gbest_solutions, bool bgomode = false);
 
-	vector<string> get_pso_gbest_solutions(int num_reals, ParameterEnsemble& _dp, ObservationEnsemble& _op);
-	void update_pso_pbest(ParameterEnsemble& _dp, ObservationEnsemble& _op);
+	vector<string> get_pso_gbest_solutions(int num_reals, ParameterEnsemble& _dp, ObservationEnsemble& _op, bool bgomode = false);
+	void update_pso_pbest(ParameterEnsemble& _dp, ObservationEnsemble& _op, bool bgomode = false);
 
 	map<string, string> current_pso_lineage_map;
 
@@ -332,8 +332,8 @@ private:
 
 	void save_populations(ParameterEnsemble& _dp, ObservationEnsemble& _op, string tag = string());
 	void save_training_dataset(ParameterEnsemble& _dp, ObservationEnsemble& _op, string tag = string());
-
-	void save_batch(ParameterEnsemble& _dp, ObservationEnsemble& _op, string tag = string());
+	void save_inner_population(ParameterEnsemble& _dp, ObservationEnsemble& _op, string tag = string());
+	void greedy_selection();
 
 	void gauss_mutation_ip(ParameterEnsemble& _dp);
 	pair<Eigen::VectorXd, Eigen::VectorXd> sbx(double probability, double eta_m, int idx1, int idx2);
@@ -359,8 +359,6 @@ private:
 	bool should_use_multigen();
 
 	void queue_resample_runs(ParameterEnsemble& _dp); //outer iters
-
-	void queue_infill_runs(ParameterEnsemble& _dp);
 
 	void get_current_true_solution();
 

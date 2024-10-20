@@ -1086,7 +1086,17 @@ void Ensemble::set_real_names(vector<string>& _real_names, bool update_org_names
 	}
 }
 
+void Ensemble::set_var_names(const vector<string>& _var_names)
+{
+	/*if (_var_names.size() != var_names.size())
+	{
+		stringstream ss;
+		ss << " set_var_names() _var_names.size(): " << _var_names.size() << " != var_names.size(): " << var_names.size();
+		throw_ensemble_error(ss.str());
 
+	}*/
+	var_names = _var_names;
+}
 
 Ensemble::~Ensemble()
 {

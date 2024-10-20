@@ -835,7 +835,7 @@ void PANTHERAgent::start_impl(const string &host, const string &port)
 				// prolly need to add checks here
 
 				ss.str("");
-				ss << "received " << altcom_vec.size() << " alternate model command(s)"  << endl;
+				ss << "received " << altcom_vec.size() << " alternate model command(s): "  << endl;
 				for (auto com : altcom_vec)
 					ss << com << endl;
 				report(ss.str(), true);

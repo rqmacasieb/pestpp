@@ -1377,7 +1377,11 @@ bool PestppOptions::assign_mou_value_by_key(const string& key, const string& val
 		convert_ip(value, mou_max_archive_size);
 		return true;
 	}
-
+	else if (key == "MOU_MAX_INFILL_POOL_SIZE")
+	{
+		convert_ip(value, mou_max_infill_pool_size);
+		return true;
+	}
 	else if (key == "OPT_CHANCE_POINTS")
 	{
 		opt_chance_points = value;
@@ -1455,9 +1459,9 @@ bool PestppOptions::assign_mou_value_by_key(const string& key, const string& val
 		return true;
 		}
 	
-	else if (key == "MOU_MAX_NN_SEARCH")
+	else if (key == "MOU_INNER_NMAX")
 	{
-		convert_ip(value, mou_max_nn_search);
+		convert_ip(value, mou_inner_nmax);
 		return true;
 		}
 	else if (key == "MOU_OUTER_REPO_OBS_FILE")
@@ -1485,9 +1489,9 @@ bool PestppOptions::assign_mou_value_by_key(const string& key, const string& val
 		convert_ip(value, mou_infill_size);
 		return true;
 		}
-	else if (key == "MOU_RESAMPLE_EVERY")
+	else if (key == "MOU_BGO_GREEDY_SELECT_EVERY")
 	{
-		convert_ip(value, mou_resample_every);
+		convert_ip(value, mou_bgo_greedy_select_every);
 		return true;
 		}
 	else if (key == "MOU_RESAMPLE_COMMAND")
@@ -1809,13 +1813,15 @@ void PestppOptions::summary(ostream& os) const
 	os << "mou_pso_alpha: " << mou_pso_alpha << endl;
 	os << "mou_pso_rramp: " << mou_pso_rramp << endl;
 	os << "mou_pso_rfit: " << mou_pso_rfit << endl;
-	os << "mou_max_nn_search: " << mou_max_nn_search << endl;
+	os << "mou_mou_inner_nmax: " << mou_inner_nmax << endl;
 	os << "mou_outer_repo_obs_file: " << mou_outer_repo_obs_file << endl;
 	os << "mou_hypervolume_extreme: " << mou_hypervolume_extreme << endl;
+	os << "mou_bgo_greedy_select_every: " << mou_bgo_greedy_select_every << endl;
 	os << "mou_resample_command: " << endl;
-	for (auto com : mou_resample_command)
-		os << "  " << com << endl;
+	for (auto cmd : mou_resample_command)
+		os << "  " << cmd << endl;
 	os << "mou_infill_size: " << mou_infill_size << endl;
+	os << "mou_maxx_infill_pool_size: " << mou_max_infill_pool_size << endl;
 	os << "mou_adaptive_ppd: " << mou_adaptive_ppd << endl;
 	os << "mou_ppd_beta: " << mou_ppd_beta << endl;
 	os << "mou_fit_gamma: " << mou_fit_gamma << endl;
@@ -2003,6 +2009,7 @@ void PestppOptions::set_defaults()
 	set_mou_obs_population_restart_file("");
 	set_mou_objectives(vector<string>());
 	set_mou_max_archive_size(500);
+	set_mou_max_infill_pool_size(500);
 	set_mou_risk_obj(false);
 	set_mou_verbose_level(1);
 	set_mou_env_selector("NSGA");
@@ -2018,14 +2025,14 @@ void PestppOptions::set_defaults()
 	set_mou_pso_rramp(-5e+02);
 	set_mou_pso_rfit(2.0);
 	set_mou_outer_repo_obs_file("");
-	set_mou_max_nn_search(get_mou_population_size());
+	set_mou_inner_nmax(0.0); //straight to greedy selection of infills
 	set_mou_hypervolume_extreme(1e+10);
 	set_mou_infill_size(0.0);
 	set_mou_ppd_beta(0.5);
 	set_mou_fit_epsilon(0.05);
 	set_mou_fit_gamma(0.25);
 	set_mou_adaptive_ppd(false);
-	set_mou_resample_every(1);
+	set_mou_bgo_greedy_select_every(1);
 	set_mou_resample_command(vector<string>());
 	set_mou_bgo_aqf("EI");
 	set_mou_bgo_dv_training_file("");

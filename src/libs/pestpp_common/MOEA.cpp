@@ -163,7 +163,7 @@ map<string, map<string, double>> ParetoObjectives::get_bgo_ensemble_struct(map<s
 	return bgo_struct;
 }
 
-bool ParetoObjectives::compare_two(string& first, string& second, MouEnvType envtyp)
+bool ParetoObjectives::compare_two(string& first, string& second, MouEnvType envtyp, bool bgomode)
 {
     if (infeas.find(first) != infeas.end())
 	{	//if both are infeas, select the solution that is less infeasible
@@ -179,10 +179,10 @@ bool ParetoObjectives::compare_two(string& first, string& second, MouEnvType env
 	if (infeas.find(second) != infeas.end())
 		return true;
 	if (envtyp == MouEnvType::NSGA)
-		/*if (bgo) 
+		if (bgomode) 
 			return compare_two_bgo(first, second);
-		else*/
-		return compare_two_nsga(first, second);
+		else
+			return compare_two_nsga(first, second);
 	else if (envtyp == MouEnvType::SPEA)
 		return compare_two_spea(first, second);
 	else
@@ -460,7 +460,7 @@ void ParetoObjectives::update_bgo_ensemble(ObservationEnsemble& op, ParameterEns
 	bool all_infeas = false;
 	//TODO: work out if there are actually any constraints (instead of all objectives)
 	bool check_constraints = false;
-	if (constraints_ptr)
+	if (constraints_ptr) //TODO: revisit this later for EnBGO
 	{
 
 		vector<string> t = *obs_obj_names_ptr;
@@ -844,11 +844,12 @@ vector<pair<string, double>> ParetoObjectives::sort_by_aqf(ObservationEnsemble& 
 
 }
 
-pair<vector<string>, vector<string>> ParetoObjectives::get_bgo_ensemble(int generation, ObservationEnsemble& op,
-	ParameterEnsemble& dp, Constraints* constraints_ptr, bool report, string sum_tag)
+pair<vector<string>, vector<string>> ParetoObjectives::get_bgo_ensemble(int generation, ObservationEnsemble& _op,
+	ParameterEnsemble& _dp, Constraints* constraints_ptr, bool report, string sum_tag)
 {
+	map <int, string> bgo_sorted_map;
 	double lambda;
-	iter = generation;
+	inner_iter = generation;
 	if (iter != -999)
 		lambda = pest_scenario.get_pestpp_options().get_mou_bgo_lambda();
 	else
@@ -856,41 +857,39 @@ pair<vector<string>, vector<string>> ParetoObjectives::get_bgo_ensemble(int gene
 
 	stringstream ss;
 	ofstream& frec = file_manager.rec_ofstream();
-	ss << "ParetoObjectives::get_bgo_ensemble() for " << op.shape().first << " population members";
+	ss << "ParetoObjectives::get_bgo_ensemble() for " << _op.shape().first << " population members";
 	performance_log->log_event(ss.str());
-	update_bgo_ensemble(op, dp, constraints_ptr);
+	update_bgo_ensemble(_op, _dp, constraints_ptr);
 
 	if (bgo_ensemble_struct.size() == 0)
 		throw runtime_error("ParetoObjectives::get_bgo_ensemble() error: bgo_ensemble_struct is empty");
 
 	performance_log->log_event("ensemble sorting");
-	bgo_repo_map = sort_members_of_bgo_ensemble(bgo_ensemble_struct, dp, op, constraints_ptr, lambda);
+	bgo_sorted_map = sort_members_of_bgo_ensemble(bgo_ensemble_struct, _dp, _op, constraints_ptr, lambda);
 	bgo_member_repo_map.clear();
 	
 	int max_arc_size = pest_scenario.get_pestpp_options().get_mou_max_archive_size();
 	vector<string> keep, discard;
-	int count = 0;
-	for (auto en : bgo_repo_map)
+	for (auto en : bgo_sorted_map)
 	{
 			keep.push_back(en.second);
-			count++;
-			bgo_member_repo_map[en.second] = count;
+			bgo_member_repo_map[en.second] = en.first;
 	}
 
 	//record discarded members
-	for (auto en : bgo_ensemble_struct)
-	{
-		if (find(keep.begin(), keep.end(), en.first) == keep.end())
-		{
-			discard.push_back(en.first);
-			bgo_member_repo_map[en.first] = 999;
-		}
-	}
+	//for (auto en : bgo_ensemble_struct)
+	//{
+	//	if (find(keep.begin(), keep.end(), en.first) == keep.end())
+	//	{
+	//		discard.push_back(en.first);
+	//		bgo_member_repo_map[en.first] = 999;
+	//	}
+	//}
 
 	if (sum_tag.size() > 0)
 	{
-		vector<string> real_names = op.get_real_names();
-		write_bgo_ensemble_summary(sum_tag, generation, op, dp, constraints_ptr);
+		vector<string> real_names = _op.get_real_names();
+		write_bgo_ensemble_summary(sum_tag, generation, _op, _dp, constraints_ptr);
 	}
 
 	return pair<vector<string>, vector<string>>(keep, discard);
@@ -1583,7 +1582,7 @@ map<string, double> ParetoObjectives::get_cluster_crowding_fitness(vector<string
 	}
 
 	//crowding distance calculation for non extreme members;
-	int nn = 1, nn_max = pest_scenario.get_pestpp_options().get_mou_max_nn_search();
+	int nn = 1;
 		
 	double gamma1 = pest_scenario.get_pestpp_options().get_mou_fit_gamma();
 	if (gamma1 == 0)
@@ -1647,8 +1646,8 @@ map<int, string> ParetoObjectives::sort_members_of_bgo_ensemble(map<string, map<
 
 	while (selected < numreals)
 	{
-		if (selected > repo_size)
-			break;
+		/*if (selected > repo_size)
+			break;*/
 
 		double mx = 0;
 		string mxid;
@@ -1693,37 +1692,40 @@ map<int, string> ParetoObjectives::sort_members_of_bgo_ensemble(map<string, map<
 			continue;
 		}
 
-		for (auto en : _ensemble_struct)
+		if (lambda > 0)
 		{
-			double dist, dmin = 1E+30;
-			for (auto sel : selected_members)
+			for (auto en : _ensemble_struct)
 			{
-				if (en.first == sel)
-					continue;
-				dist = pow(pow(dp.get_real_vector(en.first).array() - dp.get_real_vector(sel).array(), 2).matrix().sum(), 0.5);
-				if (dist <= dmin)
-					dmin = dist;
+				double dist, dmin = 1E+30;
+				for (auto sel : selected_members)
+				{
+					if (en.first == sel)
+						continue;
+					dist = pow(pow(dp.get_real_vector(en.first).array() - dp.get_real_vector(sel).array(), 2).matrix().sum(), 0.5);
+					if (dist <= dmin)
+						dmin = dist;
+				}
+				dist_map[en.first] = dmin;
 			}
-			dist_map[en.first] = dmin;
-		}
 
-		dist_pct.clear();
-		for (auto m1 : dist_map)
-		{
-			if (find(selected_members.begin(), selected_members.end(), m1.first) != selected_members.end())
-				continue;
-
-			count = 0;
-			for (auto m2 : dist_map)
+			dist_pct.clear();
+			for (auto m1 : dist_map)
 			{
 				if (find(selected_members.begin(), selected_members.end(), m1.first) != selected_members.end())
 					continue;
 
-				if (m1.second >= m2.second)
-					count++;
-			}
-			dist_pct[m1.first] = count / numreals;
+				count = 0;
+				for (auto m2 : dist_map)
+				{
+					if (find(selected_members.begin(), selected_members.end(), m1.first) != selected_members.end())
+						continue;
 
+					if (m1.second >= m2.second)
+						count++;
+				}
+				dist_pct[m1.first] = count / numreals;
+
+			}
 		}
 
 		double fit, mx_fit = 0;
@@ -1733,7 +1735,10 @@ map<int, string> ParetoObjectives::sort_members_of_bgo_ensemble(map<string, map<
 			if (find(selected_members.begin(), selected_members.end(), m.first) != selected_members.end())
 				continue;
 
-			fit = pow(aqf_pct[m.first] * (1 - lambda) + dist_pct[m.first] * lambda, alpha);
+			if (lambda > 0)
+				fit = pow(aqf_pct[m.first] * (1 - lambda) + dist_pct[m.first] * lambda, alpha);
+			else
+				fit = pow(aqf_pct[m.first], alpha);
 
 			if (fit >= mx_fit)
 			{
@@ -2414,7 +2419,10 @@ MOEA::MOEA(Pest &_pest_scenario, FileManager &_file_manager, OutputFileWriter &_
 	dp_archive.set_pest_scenario(&pest_scenario);
 	op_archive.set_rand_gen(&rand_gen);
 	op_archive.set_pest_scenario_ptr(&pest_scenario);
-
+	dp_infill.set_rand_gen(&rand_gen);
+	dp_infill.set_pest_scenario(&pest_scenario);
+	op_infill.set_rand_gen(&rand_gen);
+	op_infill.set_pest_scenario_ptr(&pest_scenario);
 	dt.set_rand_gen(&rand_gen);
 	dt.set_pest_scenario(&pest_scenario);
 	ot.set_rand_gen(&rand_gen);
@@ -2840,74 +2848,80 @@ void MOEA::sanity_checks()
 
 void MOEA::update_archive_bgo(ObservationEnsemble& _op, ParameterEnsemble& _dp)
 {
-	message(2, "updating archive");
+	message(2, "updating bgo pool of candidate infills");
 	stringstream ss;
-	if (op_archive.shape().first != dp_archive.shape().first)
+	if (iop_archive.shape().first != idp_archive.shape().first)
 	{
 		ss.str("");
-		ss << "MOEA::update_archive_nsga(): op_archive members " << op_archive.shape().first << " != dp_archive members " << dp_archive.shape().first;
+		ss << "MOEA::update_archive_bgo(): iop_archive members " << iop_archive.shape().first << " != idp_archive members " << idp_archive.shape().first;
 		throw_moea_error(ss.str());
 	}
 	//if this is a population reset because of trying to reuse chances, then we need to reset the archive now also...
 	if (should_use_multigen())
 	{
 		message(2, "resetting archive for multi-generational population");
-		dp_archive = _dp;
-		op_archive = _op;
-		DomPair dompair = objectives.get_bgo_ensemble(iter, op_archive, dp_archive, &constraints, true, BGO_ARC_SUM_TAG);
-		dp_archive.keep_rows(dompair.first);
-		op_archive.keep_rows(dompair.first);
+		idp_archive = _dp;
+		iop_archive = _op;
+
+		ss.str("");
+		ss << iter << "." << inner_iter << "." << BGO_ARC_SUM_TAG;
+		DomPair dompair = objectives.get_bgo_ensemble(inner_iter, iop_archive, idp_archive, &constraints, true, ss.str());
+		idp_archive.keep_rows(dompair.first);
+		iop_archive.keep_rows(dompair.first);
 	}
 	else {
 		//check that members of _op arent in the archive already
-		vector<string> keep, temp = op_archive.get_real_names();
+		vector<string> keep, temp = iop_archive.get_real_names();
 		set<string> archive_members(temp.begin(), temp.end());
 		for (auto& member : _op.get_real_names()) {
 			if (archive_members.find(member) == archive_members.end())
 				keep.push_back(member);
 		}
 		if (keep.size() == 0) {
-			message(2, "all informative ensemble members are already in archive");
+			message(2, "all informative ensemble members are already in the pool");
 			return;
 		}
 
 		ss.str("");
-		ss << "adding " << keep.size() << " informative ensemble members to archive";
+		ss << "adding " << keep.size() << " informative ensemble members to pool";
 		message(2, ss.str());
 		Eigen::MatrixXd other = _op.get_eigen(keep, vector<string>());
-		op_archive.append_other_rows(keep, other);
+		iop_archive.append_other_rows(keep, other);
 		other = _dp.get_eigen(keep, vector<string>());
-		dp_archive.append_other_rows(keep, other);
+		idp_archive.append_other_rows(keep, other);
 		other.resize(0, 0);
-		message(2, "sorting ensemble archive of size", op_archive.shape().first);
-		DomPair dompair = objectives.get_bgo_ensemble(iter, op_archive, dp_archive, &constraints, true, BGO_ARC_SUM_TAG);
+		message(2, "sorting ensemble archive of size", iop_archive.shape().first);
 
 		ss.str("");
-		ss << "resizing archive from " << op_archive.shape().first << " to " << dompair.first.size()
+		ss << iter << "." << BGO_ARC_SUM_TAG;
+		DomPair dompair = objectives.get_bgo_ensemble(inner_iter, iop_archive, idp_archive, &constraints, true, ss.str());
+
+		/*ss.str("");
+		ss << "resizing inner archive from " << iop_archive.shape().first << " to " << dompair.first.size()
 			<< " current informative solutions";
-		message(2, ss.str());
-		op_archive.keep_rows(dompair.first);
-		dp_archive.keep_rows(dompair.first);
+		message(2, ss.str());*/
+		iop_archive.keep_rows(dompair.first);
+		idp_archive.keep_rows(dompair.first);
 	}
 
-	if (op_archive.shape().first > archive_size)
+	if (iop_archive.shape().first > infill_pool_size)
 	{
 		vector<string> keep;
 		ss.str("");
-		ss << "trimming archive size from " << op_archive.shape().first << " to max archive size " << archive_size;
+		ss << "trimming inner archive size from " << iop_archive.shape().first << " to max archive size " << infill_pool_size;
 		message(2, ss.str());
-		vector<string> members = op_archive.get_real_names();
+		vector<string> members = iop_archive.get_real_names();
 		keep.clear();
-		for (int i = 0; i < archive_size; i++)
+		for (int i = 0; i < infill_pool_size; i++)
 			keep.push_back(members[i]);
-		op_archive.keep_rows(keep);
-		dp_archive.keep_rows(keep);
+		iop_archive.keep_rows(keep);
+		idp_archive.keep_rows(keep);
 	}
 
-	dp_archive.reset_org_real_names();
-	op_archive.reset_org_real_names();
+	idp_archive.reset_org_real_names();
+	iop_archive.reset_org_real_names();
 
-	save_populations(dp_archive, op_archive, "archive");
+	save_inner_population(idp_archive, iop_archive, "inner_archive");
 
 }
 
@@ -3069,19 +3083,6 @@ void MOEA::update_archive_spea(ObservationEnsemble& _op, ParameterEnsemble& _dp)
 void MOEA::queue_resample_runs(ParameterEnsemble& _dp)
 {
 	//insert outer iter scripts
-}
-
-void MOEA::queue_infill_runs(ParameterEnsemble& _dp)
-{
-	stringstream ss;
-	if (constraints.should_retrain(iter))
-	{
-		dp.transform_ip(ParameterEnsemble::transStatus::NUM);
-		Parameters pars = pest_scenario.get_ctl_parameters();
-		Parameters opars;
-		pest_scenario.get_base_par_tran_seq().ctl2numeric_ip(pars);
-		Observations obs = pest_scenario.get_ctl_observations();
-	}
 }
 
 void MOEA::queue_chance_runs(ParameterEnsemble& _dp)
@@ -3977,9 +3978,6 @@ void MOEA::initialize()
 	initialize_dv_population();
 	
 	initialize_obs_restart_population();
-
-	if (bgo)
-		initialize_training_dataset();
 	
 	try
 	{
@@ -4067,9 +4065,6 @@ void MOEA::initialize()
 		return;
 	}
 
-
-	
-
 	//we are restarting
 	if (population_obs_restart_file.size() > 0)
 	{
@@ -4143,7 +4138,7 @@ void MOEA::initialize()
 			dp.to_csv(ss.str());
 		}
 		
-		message(1, " saved initial dv population to ", ss.str());
+		message(1, "saved initial dv population to ", ss.str());
 		performance_log->log_event("running initial population");
 		message(1, "running initial population of size", dp.shape().first);
 	
@@ -4153,6 +4148,7 @@ void MOEA::initialize()
 		
 		dp.transform_ip(ParameterEnsemble::transStatus::NUM);
 	}
+
 	ss.str("");
 	ss << file_manager.get_base_filename() << ".0." << obs_pop_file_tag;
 	if (pest_scenario.get_pestpp_options().get_save_binary())
@@ -4172,6 +4168,12 @@ void MOEA::initialize()
 
 	message(0, "initial population objective function summary:");
 	previous_obj_summary = obj_func_report(dp, op);
+
+	if (bgo)
+	{
+		initialize_training_dataset();
+		save_training_dataset(dt, ot);
+	}
 
 	if (constraints.get_use_chance())
 	{
@@ -4289,6 +4291,7 @@ void MOEA::initialize()
 		message(1, "performing initial pareto dominance sort");
 		objectives.set_pointers(obj_names, obs_obj_names, obs_obj_sd_names, pi_obj_names, pi_obj_sd_names, obj_dir_mult);
 		archive_size = ppo->get_mou_max_archive_size();
+		infill_pool_size = ppo->get_mou_max_infill_pool_size();
 		vector<string> keep;
 		if (envtype == MouEnvType::NSGA)
 		{
@@ -4594,7 +4597,7 @@ pair<Parameters, Observations> MOEA::get_optimal_solution(ParameterEnsemble& _dp
 }
 
 
-ParameterEnsemble MOEA::generate_population()
+ParameterEnsemble MOEA::generate_population(bool bgomode)
 {
 	//int total_new_members = pest_scenario.get_pestpp_options().get_mou_population_size();
     int total_new_members = population_schedule.at(iter);
@@ -4604,41 +4607,78 @@ ParameterEnsemble MOEA::generate_population()
 	ParameterEnsemble new_pop(&pest_scenario, &rand_gen);
 	new_pop.set_trans_status(ParameterEnsemble::transStatus::NUM);
 
-	//if (bgo)
-	//	objectives.get_bgo_ensemble(iter, op, dp, &constraints, false);
-	//else
-	objectives.get_nsga2_pareto_dominance(iter, op, dp, &constraints, prob_pareto, false);
-	
-	for (auto gen_type : gen_types)
+	if (bgomode)
 	{
-		ParameterEnsemble p(&pest_scenario);
-		if (gen_type == MouGenType::DE)
+		objectives.get_bgo_ensemble(inner_iter, iop, idp, &constraints, false);
+		
+		for (auto gen_type : gen_types)
 		{
-			p = generate_diffevol_population(new_members_per_gen, dp);
-		}
+			ParameterEnsemble p(&pest_scenario);
+			if (gen_type == MouGenType::DE)
+			{
+				p = generate_diffevol_population(new_members_per_gen, idp);
+			}
 
-		else if (gen_type == MouGenType::SBX)
-		{
-			p = generate_sbx_population(new_members_per_gen, dp);
+			else if (gen_type == MouGenType::SBX)
+			{
+				p = generate_sbx_population(new_members_per_gen, idp);
+			}
+			else if (gen_type == MouGenType::PM)
+			{
+				p = generate_pm_population(new_members_per_gen, idp);
+			}
+			else if (gen_type == MouGenType::PSO)
+			{
+				p = generate_pso_population(new_members_per_gen, idp, bgo_mode);
+			}
+			else if (gen_type == MouGenType::SMP)
+			{
+				p = generate_simplex_population(new_members_per_gen, idp, iop);
+			}
+			else
+				throw_moea_error("unrecognized mou generator");
+			if (new_pop.shape().first == 0)
+				new_pop = p;
+			else
+				new_pop.append_other_rows(p);
 		}
-		else if (gen_type == MouGenType::PM)
+	
+	}
+	else
+	{
+		objectives.get_nsga2_pareto_dominance(iter, op, dp, &constraints, prob_pareto, false);
+
+		for (auto gen_type : gen_types)
 		{
-			p = generate_pm_population(new_members_per_gen, dp);
+			ParameterEnsemble p(&pest_scenario);
+			if (gen_type == MouGenType::DE)
+			{
+				p = generate_diffevol_population(new_members_per_gen, dp);
+			}
+
+			else if (gen_type == MouGenType::SBX)
+			{
+				p = generate_sbx_population(new_members_per_gen, dp);
+			}
+			else if (gen_type == MouGenType::PM)
+			{
+				p = generate_pm_population(new_members_per_gen, dp);
+			}
+			else if (gen_type == MouGenType::PSO)
+			{
+				p = generate_pso_population(new_members_per_gen, dp);
+			}
+			else if (gen_type == MouGenType::SMP)
+			{
+				p = generate_simplex_population(new_members_per_gen, dp, op);
+			}
+			else
+				throw_moea_error("unrecognized mou generator");
+			if (new_pop.shape().first == 0)
+				new_pop = p;
+			else
+				new_pop.append_other_rows(p);
 		}
-		else if (gen_type == MouGenType::PSO)
-		{
-			p = generate_pso_population(new_members_per_gen, dp);
-		}
-        else if (gen_type == MouGenType::SMP)
-        {
-            p = generate_simplex_population(new_members_per_gen, dp, op);
-        }
-		else
-			throw_moea_error("unrecognized mou generator");
-		if (new_pop.shape().first == 0)
-			new_pop = p;
-		else
-			new_pop.append_other_rows(p);
 	}
 
 	if ((pest_scenario.get_pestpp_options().get_mou_shuffle_fixed_pars()) && (new_pop.get_fixed_info().get_map_size() > 0))
@@ -4670,88 +4710,153 @@ ParameterEnsemble MOEA::generate_population()
 	return new_pop;
 }
 
-vector<string> MOEA::fill_infill_ensemble(ParameterEnsemble& _dp, ObservationEnsemble& _op)
+void MOEA::fill_infill_ensemble(ParameterEnsemble& _dp, ObservationEnsemble& _op)
 {
-	message(2, "starting surrogate-assisted greedy selection of infills");
-
-	int infill_size = pest_scenario.get_pestpp_options().get_mou_infill_size();
-	if (infill_size == 0.0)
-	{
-		infill_size = pest_scenario.get_pestpp_options().get_mou_population_size() / 2;
-		message(1, "infill size not specified. Setting infill size to half the population size: ", infill_size);
-	}
-	else if (infill_size == 1.0)
-		message(1, "performing classic BGO algorithm with one-at-a-time infill sampling");
-	else
-		message(1, "using specified infill size from control file: ", infill_size);
-	
-	if (infill_size > _dp.shape().first)
-		throw_moea_error("Chosen infill size exceeds the population size!");
-
-	int count = 0;
-	ParameterEnsemble dtemp = dt, rdp = _dp;
-	ObservationEnsemble otemp = ot, rop = _op;
+	stringstream ss, tag;
 	vector<string> keep, picks;
-	Eigen::MatrixXd pick;
-	stringstream tag;
-	tag << iter << "." << BGO_SELECTION_SUM_TAG;
-
-	objectives.prep_bgo_ensemble_summary_file(tag.str());
-	get_current_true_solution();
-	defcmd_vec = pest_scenario.get_model_exec_info().comline_vec;
-	run_mgr_ptr->override_command(pest_scenario.get_pestpp_options().get_mou_resample_command());
-	while (count < infill_size)
+	ParameterEnsemble dtemp = dt, new_rdp;
+	ObservationEnsemble otemp = ot, new_rop(&pest_scenario, &rand_gen);
+	dp_infill = ParameterEnsemble(&pest_scenario, &rand_gen);
+	op_infill = ObservationEnsemble(&pest_scenario, &rand_gen);
+	idp = dp;
+	iop = op;
+	idp_archive = dp_archive;
+	iop_archive = op_archive;
+	
+	//dp_infill.set_var_names(dp.get_var_names());
+	
+	int num_members = pest_scenario.get_pestpp_options().get_mou_population_size();
+	int nmax_inner = pest_scenario.get_pestpp_options().get_mou_inner_nmax();
+	
+	if (nmax_inner > 0)
 	{
-		
-		save_training_dataset(dtemp, otemp);
-		//objectives.write_training_summary(iter, count, dtemp, otemp, BGO_TRAINING_SUM_TAG);
-		run_surrogate(rdp, rop);
-		//save_batch(rdp, rop, to_string(count));
-
-		DomPair dompair = objectives.get_bgo_ensemble(count, rop, rdp, &constraints, true, tag.str());
-		string pick_name = dompair.first[0];
-		picks.push_back(pick_name);
-
-		keep = dtemp.get_real_names();
-		pick = _dp.get_eigen(vector<string>{pick_name}, vector<string>());
-		ParameterEnsemble new_dt(&pest_scenario, &rand_gen, pick, { pick_name }, _dp.get_var_names());
-		new_dt.append_other_rows(dtemp);
-		dtemp = new_dt;
-
-		//remove chosen infill from the pool to be rerun
-		keep.clear();
-		for (auto k : rdp.get_real_names())
+		ParameterEnsemble new_dp;
+		ObservationEnsemble new_op;
+		int select_every = pest_scenario.get_pestpp_options().get_mou_bgo_greedy_select_every();
+		if (select_every <= 0 || select_every > nmax_inner)
 		{
-			if (k == pick_name)
-				continue;
-			keep.push_back(k);
+			select_every = nmax_inner;
+			message(1, "greedy selection interval set at nmax_inner: ", nmax_inner);
 		}
-		rdp.keep_rows(keep);
 
-		keep = otemp.get_real_names();
-		pick = _op.get_eigen(vector<string>{pick_name}, vector<string>());
-		ObservationEnsemble new_ot(&pest_scenario, &rand_gen, pick, { pick_name }, _op.get_var_names());
-		new_ot.append_other_rows(otemp);
-		otemp = new_ot;
+		stringstream inner_sumtag;
+		inner_sumtag << iter << "."  << BGO_POP_SUM_TAG;
+		objectives.prep_bgo_ensemble_summary_file(inner_sumtag.str());
 
-		//remove chosen infill from the pool to be rerun
-		keep.clear();
-		for (auto k : rop.get_real_names())
+		stringstream inner_arcsumtag;
+		inner_arcsumtag << iter << "." << BGO_ARC_SUM_TAG;
+		objectives.prep_bgo_ensemble_summary_file(inner_arcsumtag.str());
+
+		stringstream greedyselc_sumtag;
+		greedyselc_sumtag << iter << "." << BGO_SELECTION_SUM_TAG;
+		objectives.prep_bgo_ensemble_summary_file(greedyselc_sumtag.str());
+
+
+		defcmd_vec = pest_scenario.get_model_exec_info().comline_vec;
+		run_mgr_ptr->override_command(pest_scenario.get_pestpp_options().get_mou_resample_command());
+		inner_iter = 1;
+		while (inner_iter <= nmax_inner)
 		{
-			if (k == pick_name)
-				continue;
-			keep.push_back(k);
-		}
-		rop.keep_rows(keep);
-		count++;
+			ss.str("");
+			ss << "starting generation " << iter << " :: iteration " << inner_iter;
+			message(0, ss.str());
 
-		message(2, "greedy selection picked " + pick_name + ". Current infill size: " + to_string(count));
+			if (_dp.shape().first < error_min_members)
+			{
+				throw_moea_error("too few members to continue");
+			}
+			if (_dp.shape().first < warn_min_members)
+			{
+				message(0, "WARNING: very few members in current population...");
+			}
+
+			if (inner_iter == 1)
+			{
+				new_rdp = _dp;
+				new_rop = _op;
+
+			}
+			else
+			{ 
+				new_rdp = generate_population(bgo_mode);
+				new_rop.reserve(new_rdp.get_real_names(), iop.get_var_names());
+			}
+
+			get_current_true_solution();
+
+			run_surrogate(new_rdp, new_rop);
+			save_inner_population(new_rdp, new_rop, "inner");
+			update_sim_maps(new_rdp, new_rop);
+
+			//append offspring
+			new_rdp.append_other_rows(idp);
+			if (idp.get_fixed_info().get_map_size() > 0)
+			{
+				map<string, map<string, double>> fi = idp.get_fixed_info().get_fixed_info_map();
+				new_rdp.get_fixed_info().add_realizations(fi);
+			}
+			new_rop.append_other_rows(iop);
+
+			if (find(gen_types.begin(), gen_types.end(), MouGenType::PSO) != gen_types.end()) {
+				update_pso_pbest(new_rdp, new_rop, bgo_mode);
+			}
+
+			if (envtype == MouEnvType::NSGA)
+			{
+				message(1, "ensemble sorting combined parent-child inner populations of size ", new_rdp.shape().first);
+				DomPair dompair = objectives.get_bgo_ensemble(inner_iter, new_rop, new_rdp, &constraints,  true, inner_sumtag.str());
+
+				if (should_use_multigen()) {
+					message(2, "keeping all feasible members from multi-generational population");
+					keep = dompair.first;
+				}
+				else {
+					keep.clear();
+					for (auto en : dompair.first) {
+						if (keep.size() >= num_members)
+							break;
+						keep.push_back(en);
+					}
+				}
+
+				update_archive_bgo(new_rop, new_rdp);
+				//if (keep.size() > 0)
+				//{
+				//	//update the archive of nondom members
+				//	ParameterEnsemble new_rdp_repo = new_rdp;
+				//	new_rdp_repo.keep_rows(keep);
+				//	ObservationEnsemble new_rop_repo = new_rop;
+				//	new_rop_repo.keep_rows(keep);
+				//	update_archive_bgo(new_rop_repo, new_rdp_repo);
+				//}
+
+				message(1, "resizing current inner populations to ", keep.size());
+				new_rdp.keep_rows(keep);
+				new_rop.keep_rows(keep);
+				idp = new_rdp;
+				iop = new_rop;
+
+			}
+			else //keeping this for now for potentially extending this to other mou env
+			{
+				throw_moea_error("unrecognized 'mou_env'");
+			}
+
+			if ((inner_iter % select_every) == 0)
+				greedy_selection();
+				
+			inner_iter++;
+			//if (((nmax_inner - inner_iter) / select_every) < 0)
+			//{
+			//	message(1, "remaining inner_iters not enough for a full greedy selection interval. Stopping here and proceeding with complex runs.");
+			//	break;
+			//}
+
+			//insert reports
+
+		}
+		run_mgr_ptr->override_command(defcmd_vec);
 	}
-
-	message(2, "greedy selection finished with " + to_string(count) + " selected infills. Proceeding with complex runs...");
-	run_mgr_ptr->override_command(defcmd_vec);
-	return picks;
-
 }
 
 void MOEA::fill_populations_from_maps(ParameterEnsemble& new_dp, ObservationEnsemble& new_op )
@@ -4800,17 +4905,16 @@ void MOEA::iterate_to_solution()
 
 		//generate offspring
 		ParameterEnsemble new_dp = generate_population();
-		//TO DO inside generate_population should be the sampling method utilising greedy sampling
-		
+
 		//run offspring thru the model while also running risk runs, possibly at many points in dec var space	
 		ObservationEnsemble new_op(&pest_scenario, &rand_gen);
 		new_op.reserve(new_dp.get_real_names(), op.get_var_names());
 
 		if (bgo)
 		{
-			vector<string> picks = fill_infill_ensemble(new_dp, new_op);
-			new_dp.keep_rows(picks);
-			new_op.keep_rows(picks);
+			fill_infill_ensemble(new_dp, new_op);
+			new_dp = dp_infill;
+			new_op = op_infill;
 		}
 
 		run_population(new_dp, new_op, true);
@@ -4819,6 +4923,7 @@ void MOEA::iterate_to_solution()
 		{
 			dt.append_other_rows(new_dp);
 			ot.append_other_rows(new_op);
+			save_training_dataset(dt, ot);
 			save_training_dataset(dt, ot, to_string(iter));
 		}
 		
@@ -4889,86 +4994,46 @@ void MOEA::iterate_to_solution()
 
 		if (envtype == MouEnvType::NSGA)
 		{
-			//if (bgo)
-			//{
-			//	message(1, "ensemble sorting combined parent-child populations of size ", new_dp.shape().first);
-			//	DomPair dompair = objectives.get_bgo_ensemble(iter, new_op, new_dp, &constraints,  true, BGO_POP_SUM_TAG);
+			message(1, "pareto dominance sorting combined parent-child populations of size ", new_dp.shape().first);
+			DomPair dompair = objectives.get_nsga2_pareto_dominance(iter, new_op, new_dp, &constraints, prob_pareto, true, POP_SUM_TAG);
+			//the ordering must not be by fitness
 
-			//	if (should_use_multigen()) {
-			//		message(2, "keeping all feasible members from multi-generational population");
-			//		keep = dompair.first;
-			//	}
-			//	else {
-			//		keep.clear();
-			//		for (auto en : dompair.first) {
-			//			if (keep.size() >= num_members)
-			//				break;
-			//			keep.push_back(en);
-			//		}
-			//	}
-
-			//	if (keep.size() > 0)
-			//	{
-			//		//update the archive of nondom members
-			//		ParameterEnsemble new_dp_repo = new_dp;
-			//		new_dp_repo.keep_rows(keep);
-			//		ObservationEnsemble new_op_repo = new_op;
-			//		new_op_repo.keep_rows(keep);
-			//		update_archive_bgo(new_op_repo, new_dp_repo);
-			//	}
-
-			//	message(1, "resizing current populations to ", keep.size());
-			//	new_dp.keep_rows(keep);
-			//	new_op.keep_rows(keep);
-			//	dp = new_dp;
-			//	op = new_op;
-
-			//}
-			//else
-			//{
-				message(1, "pareto dominance sorting combined parent-child populations of size ", new_dp.shape().first);
-				DomPair dompair = objectives.get_nsga2_pareto_dominance(iter, new_op, new_dp, &constraints, prob_pareto, true, POP_SUM_TAG);
-				//the ordering must not be by fitness
-
-				if (should_use_multigen()) {
-					message(2, "keeping all feasible nondom members from multi-generational population");
-					keep = dompair.first;
-				}
-				else {
-					keep.clear();
-					for (auto nondom : dompair.first) {
-						if (keep.size() >= num_members)
-							break;
-						keep.push_back(nondom);
-					}
-				}
-
-				if (keep.size() > 0)
-				{
-					//update the archive of nondom members
-					ParameterEnsemble new_dp_nondom = new_dp;
-					new_dp_nondom.keep_rows(keep);
-					ObservationEnsemble new_op_nondom = new_op;
-					new_op_nondom.keep_rows(keep);
-					update_archive_nsga(new_op_nondom, new_dp_nondom);
-				}
-
-				//now fill out the rest of keep with dom solutions
-				for (auto dom : dompair.second)
-				{
+			if (should_use_multigen()) {
+				message(2, "keeping all feasible nondom members from multi-generational population");
+				keep = dompair.first;
+			}
+			else {
+				keep.clear();
+				for (auto nondom : dompair.first) {
 					if (keep.size() >= num_members)
 						break;
-					keep.push_back(dom);
+					keep.push_back(nondom);
 				}
+			}
 
-				message(1, "resizing current populations to ", keep.size());
-				new_dp.keep_rows(keep);
-				new_op.keep_rows(keep);
-				dp = new_dp;
-				op = new_op;
-			//}
+			if (keep.size() > 0)
+			{
+				//update the archive of nondom members
+				ParameterEnsemble new_dp_nondom = new_dp;
+				new_dp_nondom.keep_rows(keep);
+				ObservationEnsemble new_op_nondom = new_op;
+				new_op_nondom.keep_rows(keep);
+				update_archive_nsga(new_op_nondom, new_dp_nondom);
+			}
 
+			//now fill out the rest of keep with dom solutions
+			for (auto dom : dompair.second)
+			{
+				if (keep.size() >= num_members)
+					break;
+				keep.push_back(dom);
+			}
 
+			message(1, "resizing current populations to ", keep.size());
+			new_dp.keep_rows(keep);
+			new_op.keep_rows(keep);
+			dp = new_dp;
+			op = new_op;
 
 		}
 
@@ -5073,6 +5138,124 @@ bool MOEA::should_use_multigen() {
     return false;
 }
 
+void MOEA::greedy_selection()
+{
+	ParameterEnsemble dtemp = dt, cdp = idp_archive, dp_pool;
+	ObservationEnsemble otemp = ot, cop = iop_archive, op_pool;
+	stringstream ss, tag;
+	vector<string> keep, picks;
+
+	if (dp_infill.shape().first != 0)
+	{
+		vector<string> cand_names = cdp.get_real_names();
+		vector<string> infill_names = dp_infill.get_real_names();
+		vector<string> names;
+		for (auto d : infill_names)
+		{
+			if (find(cand_names.begin(), cand_names.end(), d) == cand_names.end())
+				names.push_back(d);
+		}
+
+		if (names.size() != 0)
+		{
+			Eigen::MatrixXd add_dp_reals = dp_infill.get_eigen(vector<string>{names}, vector<string>());
+			Eigen::MatrixXd add_op_reals = op_infill.get_eigen(vector<string>{names}, vector<string>());
+
+			//ParameterEnsemble to_append(&pest_scenario, &rand_gen, to_append_reals, { to_append_names }, dp_infill.get_var_names());
+			cdp.append_other_rows(names, add_dp_reals);
+			cop.append_other_rows(names, add_op_reals);
+		}
+	}
+
+	dp_pool = cdp;
+	op_pool = cop;
+
+	message(2, "starting surrogate-assisted greedy selection of infills");
+
+	int infill_size = pest_scenario.get_pestpp_options().get_mou_infill_size();
+	if (infill_size == 0.0)
+	{
+		infill_size = pest_scenario.get_pestpp_options().get_mou_population_size() / 2;
+		message(1, "infill size not specified. Setting infill size to half the population size: ", infill_size);
+	}
+	else if (infill_size == 1.0)
+		message(1, "performing classic BGO algorithm with one-at-a-time infill sampling");
+	else
+		message(1, "using specified infill size from control file: ", infill_size);
+
+	if (infill_size > idp_archive.shape().first)
+		throw_moea_error("Chosen infill size exceeds available candidate pool size!");
+
+	int count = 0;
+	Eigen::MatrixXd pick;
+	
+	get_current_true_solution();
+	defcmd_vec = pest_scenario.get_model_exec_info().comline_vec;
+	while (count < infill_size)
+	{
+		run_surrogate(cdp, cop);
+
+		DomPair dompair = objectives.get_bgo_ensemble(count, cop, cdp, &constraints, true, tag.str());
+		string pick_name = dompair.first[0];
+		picks.push_back(pick_name);
+
+		keep = dtemp.get_real_names();
+		pick = cdp.get_eigen(vector<string>{pick_name}, vector<string>());
+		ParameterEnsemble new_dt(&pest_scenario, &rand_gen, pick, { pick_name }, idp.get_var_names());
+		new_dt.append_other_rows(dtemp);
+		dtemp = new_dt;
+
+		//remove chosen infill from the pool to be rerun
+		keep.clear();
+		for (auto k : cdp.get_real_names())
+		{
+			if (k == pick_name)
+				continue;
+			keep.push_back(k);
+		}
+		cdp.keep_rows(keep);
+
+		keep = otemp.get_real_names();
+		pick = cop.get_eigen(vector<string>{pick_name}, vector<string>());
+		ObservationEnsemble new_ot(&pest_scenario, &rand_gen, pick, { pick_name }, iop.get_var_names());
+		new_ot.append_other_rows(otemp);
+		otemp = new_ot;
+
+		//remove chosen infill from the pool to be rerun
+		keep.clear();
+		for (auto k : cop.get_real_names())
+		{
+			if (k == pick_name)
+				continue;
+			keep.push_back(k);
+		}
+		cop.keep_rows(keep);
+		count++;
+
+		message(2, "greedy selection picked " + pick_name + ". Current infill size: " + to_string(count));
+
+		save_training_dataset(dtemp, otemp);
+	}
+
+	message(1, "resetting training dataset. Removing temporarily added emulated IO pairs");
+	save_training_dataset(dt, ot); //reset to the true training dataset
+
+	//update infill repo
+	Eigen::MatrixXd picks_dpreals = dp_pool.get_eigen(vector<string>{picks}, vector<string>());
+	ParameterEnsemble new_dt_picks(&pest_scenario, &rand_gen, picks_dpreals, { picks }, dp_pool.get_var_names());
+
+	Eigen::MatrixXd picks_opreals = op_pool.get_eigen(vector<string>{picks}, vector<string>());
+	ObservationEnsemble new_ot_picks(&pest_scenario, &rand_gen, picks_opreals, { picks }, op_pool.get_var_names());
+	dp_infill = new_dt_picks;
+	op_infill = new_ot_picks;
+
+	if (inner_iter == pest_scenario.get_pestpp_options().get_mou_inner_nmax())
+		message(2, "greedy selection finished with " + to_string(count) + " selected infills. Proceeding with complex runs...");
+	else
+		message(2, "greedy selection finished with " + to_string(count) + " selected candidate infills. Continuing inner iterations...");
+	
+}
+
 void MOEA::initialize_population_schedule()
 {
     stringstream ss;
@@ -5143,77 +5326,94 @@ void MOEA::initialize_population_schedule()
 void MOEA::initialize_training_dataset()
 {
 	stringstream ss;
-	string dt_filename = pest_scenario.get_pestpp_options().get_mou_bgo_dv_training_file();
+	string par_ext, dt_filename = pest_scenario.get_pestpp_options().get_mou_bgo_dv_training_file();
 
-	//load training dv
-	message(1, "loading training dataset from csv file", dt_filename);
-	string par_ext = pest_utils::lower_cp(dt_filename).substr(dt_filename.size() - 3, dt_filename.size());
-	performance_log->log_event("processing dv training file " + dt_filename);
-	if (par_ext.compare("csv") == 0)
+	if (dt_filename == "")
 	{
-		message(1, "loading dv population from csv file", dt_filename);
-		try
-		{
-			dt.from_csv(dt_filename);
-		}
-		catch (const exception& e)
-		{
-			ss << "error processing dt training file: " << e.what();
-			throw_moea_error(ss.str());
-		}
-		catch (...)
-		{
-			throw_moea_error(string("error processing dt training file"));
-		}
+		message(1, "using inputs of initialized runs as dv training dataset");
+		dt = dp;
+		ss.str("");
+		ss << "dv training dataset with " << dt.shape().first << " members initialized from the initial dv population" << endl;
 	}
 	else
 	{
-		ss << "unrecognized dv training file extension " << par_ext << ", looking for csv"/*, jcb, or jco"*/;
-		throw_moea_error(ss.str());
+		//load training dv
+		message(1, "loading dv training dataset from csv file", dt_filename);
+		par_ext = pest_utils::lower_cp(dt_filename).substr(dt_filename.size() - 3, dt_filename.size());
+		performance_log->log_event("processing dv training file " + dt_filename);
+		if (par_ext.compare("csv") == 0)
+		{
+			try
+			{
+				dt.from_csv(dt_filename);
+			}
+			catch (const exception& e)
+			{
+				ss << "error processing dt training file: " << e.what();
+				throw_moea_error(ss.str());
+			}
+			catch (...)
+			{
+				throw_moea_error(string("error processing dt training file"));
+			}
+		}
+		else
+		{
+			ss << "unrecognized dv training file extension " << par_ext << ", looking for csv"/*, jcb, or jco"*/;
+			throw_moea_error(ss.str());
+		}
+
+		ss.str("");
+		ss << "dv training dataset with " << dt.shape().first << " members read from '" << dt_filename << "'" << endl;
+		message(1, ss.str());
+
+		if (dt.shape().first == 0)
+			throw_moea_error("zero members found in dv training file");
 	}
 
-	ss.str("");
-	ss << "dv training dataset with " << dt.shape().first << " members read from '" << dt_filename << "'" << endl;
-	message(1, ss.str());
-
-	if (dt.shape().first == 0)
-	{
-		throw_moea_error("zero members found in dv training file");
-	}
-
-	//load training obs
 	string ot_filename = pest_scenario.get_pestpp_options().get_mou_bgo_obs_training_file();
-	par_ext = pest_utils::lower_cp(ot_filename).substr(ot_filename.size() - 3, ot_filename.size());
-	performance_log->log_event("processing obs training file " + ot_filename);
-	if (par_ext.compare("csv") == 0)
+	if (ot_filename == "")
 	{
-		message(1, "loading obs population from csv file", ot_filename);
-		try
-		{
-			ot.from_csv(ot_filename);
-		}
-		catch (const exception& e)
-		{
-			ss << "error processing obs training file: " << e.what();
-			throw_moea_error(ss.str());
-		}
-		catch (...)
-		{
-			throw_moea_error(string("error processing obs training file"));
-		}
+		message(1, "using outputs of initialized runs as obs training dataset");
+		ot = op;
+		ss.str("");
+		ss << "obs training dataset with " << ot.shape().first << " members initialized from the initial obs population" << endl;
 	}
 	else
 	{
-		ss << "unrecognized obs training file extension " << par_ext << ", looking for csv"/*, jcb, or jco"*/;
-		throw_moea_error(ss.str());
-	}
+		//load training obs
+		message(1, "loading obs training dataset from csv file", dt_filename);
+		par_ext = pest_utils::lower_cp(ot_filename).substr(ot_filename.size() - 3, ot_filename.size());
+		performance_log->log_event("processing obs training file " + ot_filename);
+		if (par_ext.compare("csv") == 0)
+		{
+			try
+			{
+				ot.from_csv(ot_filename);
+			}
+			catch (const exception& e)
+			{
+				ss << "error processing obs training file: " << e.what();
+				throw_moea_error(ss.str());
+			}
+			catch (...)
+			{
+				throw_moea_error(string("error processing obs training file"));
+			}
+		}
+		else
+		{
+			ss << "unrecognized obs training file extension " << par_ext << ", looking for csv"/*, jcb, or jco"*/;
+			throw_moea_error(ss.str());
+		}
 
-	ss.str("");
-	ss << "obs training dataset with " << ot.shape().first << " members read from '" << ot_filename << "'" << endl;
-	message(1, ss.str());
-	if (ot.shape().first == 0)
-	{
-		throw_moea_error("zero members found in obs training file");
+		ss.str("");
+		ss << "obs training dataset with " << ot.shape().first << " members read from '" << ot_filename << "'" << endl;
+		message(1, ss.str());
+		if (ot.shape().first == 0)
+		{
+			throw_moea_error("zero members found in obs training file");
+		}
 	}
 
 	if (dt.shape().first != ot.shape().first)
@@ -5420,100 +5620,100 @@ void MOEA::initialize_obs_restart_population()
 
 
 
-void MOEA::update_pso_pbest(ParameterEnsemble& _dp, ObservationEnsemble& _op)
+void MOEA::update_pso_pbest(ParameterEnsemble& _dp, ObservationEnsemble& _op, bool bgomode)
 {
 	ParameterEnsemble tdp = _dp;
 	ObservationEnsemble top = _op;
 
-	//if (bgo)
-	//{
-	//	objectives.update_bgo_ensemble(top, tdp, &constraints);
-	//	objectives.get_bgo_ensemble(-999, _op, _dp, &constraints, false);
-	//	Eigen::VectorXd real;
-	//	string f, s;
-	//	vector<string> names = _dp.get_real_names();
-	//	set<string> snames(names.begin(), names.end());
-	//	names.clear();
-	//	bool new_dom_old;
-	//	//vector<string> new_pbest_names;
-	//	//pso_pbest_dp = _dp;
-	//	//pso_pbest_op = _op;
-	//	set<string> duplicates = objectives.get_duplicates();
-
-	//	for (auto lm : current_pso_lineage_map)
-	//	{
-
-	//		f = lm.second; s = lm.first;
-	//		if ((snames.find(f) == snames.end()) || (snames.find(s) == snames.end()))
-	//		{
-	//			names.push_back(f);
-	//		}
-	//		else if ((duplicates.find(f) != duplicates.end()) || (duplicates.find(s) != duplicates.end()))
-	//		{
-	//			names.push_back(f);
-	//		}
-	//		else
-	//		{
-	//			new_dom_old = objectives.compare_two(f, s, envtype);
-	//			if (!new_dom_old)
-	//			{
-	//				real = pso_pbest_dp.get_real_vector(s);
-	//				tdp.update_real_ip(f, real);
-	//				real = pso_pbest_op.get_real_vector(s);
-	//				top.update_real_ip(f, real);
-	//			}
-	//			//new_pbest_names.push_back(lm.first);
-
-	//		}
-	//	}
-	//}
-	//else
-	//{
-	objectives.update(top, tdp, &constraints);
-	objectives.get_nsga2_pareto_dominance(-999, _op, _dp, &constraints, prob_pareto, false);
-	Eigen::VectorXd real;
-	string f, s;
-	vector<string> names = _dp.get_real_names();
-	set<string> snames(names.begin(), names.end());
-	names.clear();
-	bool new_dom_old;
-	//vector<string> new_pbest_names;
-	//pso_pbest_dp = _dp;
-	//pso_pbest_op = _op;
-	set<string> duplicates = objectives.get_duplicates();
-
-	for (auto lm : current_pso_lineage_map)
+	if (bgomode)
 	{
+		//objectives.update_bgo_ensemble(top, tdp, &constraints);
+		objectives.get_bgo_ensemble(-999, top, tdp, &constraints, false);
+		Eigen::VectorXd real;
+		string f, s;
+		vector<string> names = _dp.get_real_names();
+		set<string> snames(names.begin(), names.end());
+		names.clear();
+		bool new_dom_old;
+		//vector<string> new_pbest_names;
+		//pso_pbest_dp = _dp;
+		//pso_pbest_op = _op;
+		set<string> duplicates = objectives.get_duplicates();
 
-		f = lm.second; s = lm.first;
-		if ((snames.find(f) == snames.end()) || (snames.find(s) == snames.end()))
+		for (auto lm : current_pso_lineage_map)
 		{
-			names.push_back(f);
-		}
-		else if ((duplicates.find(f) != duplicates.end()) || (duplicates.find(s) != duplicates.end()))
-		{
-			names.push_back(f);
-		}
-		else
-		{
-			new_dom_old = objectives.compare_two(f, s, envtype);
-			if (!new_dom_old)
+
+			f = lm.second; s = lm.first;
+			if ((snames.find(f) == snames.end()) || (snames.find(s) == snames.end()))
 			{
-				real = pso_pbest_dp.get_real_vector(s);
-				tdp.update_real_ip(f, real);
-				real = pso_pbest_op.get_real_vector(s);
-				top.update_real_ip(f, real);
+				names.push_back(f);
 			}
-			//new_pbest_names.push_back(lm.first);
+			else if ((duplicates.find(f) != duplicates.end()) || (duplicates.find(s) != duplicates.end()))
+			{
+				names.push_back(f);
+			}
+			else
+			{
+				new_dom_old = objectives.compare_two(f, s, envtype, bgo_mode);
+				if (!new_dom_old)
+				{
+					real = pso_pbest_dp.get_real_vector(s);
+					tdp.update_real_ip(f, real);
+					real = pso_pbest_op.get_real_vector(s);
+					top.update_real_ip(f, real);
+				}
+				//new_pbest_names.push_back(lm.first);
 
+			}
 		}
 	}
-	//}
+	else
+	{
+		objectives.update(top, tdp, &constraints);
+		objectives.get_nsga2_pareto_dominance(-999, _op, _dp, &constraints, prob_pareto, false);
+		Eigen::VectorXd real;
+		string f, s;
+		vector<string> names = _dp.get_real_names();
+		set<string> snames(names.begin(), names.end());
+		names.clear();
+		bool new_dom_old;
+		//vector<string> new_pbest_names;
+		//pso_pbest_dp = _dp;
+		//pso_pbest_op = _op;
+		set<string> duplicates = objectives.get_duplicates();
+
+		for (auto lm : current_pso_lineage_map)
+		{
+
+			f = lm.second; s = lm.first;
+			if ((snames.find(f) == snames.end()) || (snames.find(s) == snames.end()))
+			{
+				names.push_back(f);
+			}
+			else if ((duplicates.find(f) != duplicates.end()) || (duplicates.find(s) != duplicates.end()))
+			{
+				names.push_back(f);
+			}
+			else
+			{
+				new_dom_old = objectives.compare_two(f, s, envtype);
+				if (!new_dom_old)
+				{
+					real = pso_pbest_dp.get_real_vector(s);
+					tdp.update_real_ip(f, real);
+					real = pso_pbest_op.get_real_vector(s);
+					top.update_real_ip(f, real);
+				}
+				//new_pbest_names.push_back(lm.first);
+
+			}
+		}
+	}
 	pso_pbest_dp = tdp;
 	pso_pbest_op = top;
 }
 
-ParameterEnsemble MOEA::get_updated_pso_velocty(ParameterEnsemble& _dp, vector<string>& gbest_solutions)
+ParameterEnsemble MOEA::get_updated_pso_velocty(ParameterEnsemble& _dp, vector<string>& gbest_solutions, bool bgomode)
 {
 	double omega = pest_scenario.get_pestpp_options().get_mou_pso_omega();
 	double cog_const = pest_scenario.get_pestpp_options().get_mou_pso_cognitive_const();
@@ -5542,8 +5742,8 @@ ParameterEnsemble MOEA::get_updated_pso_velocty(ParameterEnsemble& _dp, vector<s
 		cur_real = _dp.get_real_vector(real_name);
 		p_best = pso_pbest_dp.get_real_vector(real_name);
 
-		if (bgo)
-			g_best = _dp.get_real_vector(gbest_solutions[i]);
+		if (bgomode)
+			g_best = idp_archive.get_real_vector(gbest_solutions[i]);
 		else
 			g_best = dp_archive.get_real_vector(gbest_solutions[i]);
 
@@ -5563,54 +5763,52 @@ ParameterEnsemble MOEA::get_updated_pso_velocty(ParameterEnsemble& _dp, vector<s
 
 
 
-vector<string> MOEA::get_pso_gbest_solutions(int num_reals, ParameterEnsemble& _dp, ObservationEnsemble& _op)
+vector<string> MOEA::get_pso_gbest_solutions(int num_reals, ParameterEnsemble& _dp, ObservationEnsemble& _op, bool bgomode)
 {
 	vector<string> gbest_solutions;
 	double numreals = num_reals;
 
-	//if (bgo)
-	//{
-	//	//vector<pair<string, double>> sorted_aqf = objectives.sort_by_aqf(_op, _dp, &constraints);
+	if (bgomode)
+	{
+		DomPair dompair = objectives.get_bgo_ensemble(-999, _op, _dp, &constraints, false);
+		vector < double> r;
+		vector<string> working = dompair.first; //do we want the entire pop or just the one with highest AQF / fitness value? 
+		int count = 0;
+		bool found;
+		string candidate;
 
-	//	DomPair dompair = objectives.get_bgo_ensemble(-999, _op, _dp, &constraints, false);
-	//	vector < double> r;
-	//	vector<string> working = dompair.first;
-	//	int count = 0;
-	//	bool found;
-	//	string candidate;
+		double alpha = pest_scenario.get_pestpp_options().get_mou_pso_alpha();
+		map<string, double> fitness = objectives.get_enbgo_fitness_map();
+		
 
-	//	double alpha = pest_scenario.get_pestpp_options().get_mou_pso_alpha();
-	//	map<string, double> fitness = objectives.get_enbgo_fitness_map();
-	//	
+		for (int i = 0; i < num_reals; i++)
+		{
+			count = 0;
+			found = false;
 
-	//	for (int i = 0; i < num_reals; i++)
-	//	{
-	//		count = 0;
-	//		found = false;
+			while (true)
+			{
+				shuffle(working.begin(), working.end(), rand_gen);
+				r = uniform_draws(num_reals, 0.0, 1.0, rand_gen);
+				for (int i = 0; i < r.size(); i++)
+					if (fitness[working[i]] >= r[i])
+					{
+						candidate = working[i];
+						found = true;
+						break;
+					}
 
-	//		while (true)
-	//		{
-	//			shuffle(working.begin(), working.end(), rand_gen);
-	//			r = uniform_draws(num_reals, 0.0, 1.0, rand_gen);
-	//			for (int i = 0; i < r.size(); i++)
-	//				if (fitness[working[i]] >= r[i])
-	//				{
-	//					candidate = working[i];
-	//					found = true;
-	//					break;
-	//				}
-
-	//			if (found)
-	//				break;
-	//			count++;
-	//			if (count > 1000000)
-	//				throw_moea_error("MOEA::get_pso_gbest_solutions() seems to be stuck in a infinite loop....");
-	//		}
-	//		gbest_solutions.push_back(candidate);
-	//	}
-	//}
-	/*else
-	{*/
+				if (found)
+					break;
+				count++;
+				if (count > 1000000)
+					throw_moea_error("MOEA::get_pso_gbest_solutions() seems to be stuck in a infinite loop....");
+			}
+			gbest_solutions.push_back(candidate);
+		}
+	}
+	else
+	{
 		DomPair dompair = objectives.get_nsga2_pareto_dominance(-999, _op, _dp, &constraints, prob_pareto, false);
 		vector<string> nondom_solutions = dompair.first;
 		vector<string> dom_solutions = dompair.second;
@@ -5663,11 +5861,11 @@ vector<string> MOEA::get_pso_gbest_solutions(int num_reals, ParameterEnsemble& _
 			}
 			gbest_solutions.push_back(candidate);
 		}
-	//}
+	}
 	return gbest_solutions;
 }
 
-ParameterEnsemble MOEA::generate_pso_population(int num_members, ParameterEnsemble& _dp)
+ParameterEnsemble MOEA::generate_pso_population(int num_members, ParameterEnsemble& _dp, bool bgomode)
 {
     //generate this first before pso resets the objectives member map...
     ParameterEnsemble temp(&pest_scenario, _dp.get_rand_gen_ptr());
@@ -5681,12 +5879,18 @@ ParameterEnsemble MOEA::generate_pso_population(int num_members, ParameterEnsemb
     }
     message(1, "generating PSO population of size", num_members);
 	vector<string> gbest_solutions;
-	if (bgo)
-		gbest_solutions = get_pso_gbest_solutions(_dp.shape().first, dp, op);
+	ParameterEnsemble cur_velocity;
+	if (bgomode)
+	{
+		gbest_solutions = get_pso_gbest_solutions(_dp.shape().first, idp_archive, iop_archive, bgo_mode);
+		cur_velocity = get_updated_pso_velocty(_dp, gbest_solutions, bgo_mode);
+	}
 	else
+	{
 		gbest_solutions = get_pso_gbest_solutions(_dp.shape().first, dp_archive, op_archive);
-	
-	ParameterEnsemble cur_velocity = get_updated_pso_velocty(_dp, gbest_solutions);
+		cur_velocity = get_updated_pso_velocty(_dp, gbest_solutions);
+	}
+
 	ParameterEnsemble new_dp(&pest_scenario, &rand_gen, _dp.get_eigen().array() + cur_velocity.get_eigen().array(), _dp.get_real_names(), _dp.get_var_names());
 
     if (temp.shape().first > 0) {
@@ -6354,7 +6558,7 @@ void MOEA::save_training_dataset(ParameterEnsemble& _dp, ObservationEnsemble& _o
 
 	string name = ss.str();
 	ss.str("");
-	ss << "saved augmented infill candidate-training decision variable dataset of size " << _dp.shape().first << " X " << _dp.shape().second << " to '" << name << "'";
+	ss << "saved updated training decision variable dataset of size " << _dp.shape().first << " X " << _dp.shape().second << " to '" << name << "'";
 	message(1, ss.str());
 
 	ss.str("");
@@ -6369,12 +6573,12 @@ void MOEA::save_training_dataset(ParameterEnsemble& _dp, ObservationEnsemble& _o
 	
 	name = ss.str();
 	ss.str("");
-	ss << "saved augmented infill candidate-training observation dataset of size " << _op.shape().first << " X " << _op.shape().second << " to '" << name << "'";
+	ss << "saved updated training observation dataset of size " << _op.shape().first << " X " << _op.shape().second << " to '" << name << "'";
 	message(1, ss.str());
 	
 }
 
-void MOEA::save_batch(ParameterEnsemble& _dp, ObservationEnsemble& _op, string tag)
+void MOEA::save_inner_population(ParameterEnsemble& _dp, ObservationEnsemble& _op, string tag)
 {
 
 	stringstream ss;
@@ -6385,7 +6589,7 @@ void MOEA::save_batch(ParameterEnsemble& _dp, ObservationEnsemble& _op, string t
 	{
 		ss << "." << tag;
 	}
-	ss << "." << dv_pool_file_tag;
+	ss << "." << dv_pop_file_tag;
 	if (pest_scenario.get_pestpp_options().get_save_binary())
 	{
 		ss << ".jcb";
@@ -6398,17 +6602,17 @@ void MOEA::save_batch(ParameterEnsemble& _dp, ObservationEnsemble& _op, string t
 	}
 	string name = ss.str();
 	ss.str("");
-	ss << "saved decision variable pool of size " << _dp.shape().first << " X " << _dp.shape().second << " to '" << name << "'";
+	ss << "saved inner decision variable population of size " << _dp.shape().first << " X " << _dp.shape().second << " to '" << name << "'";
 	message(1, ss.str());
 	ss.str("");
-	if ((save_every > 0) && (iter % save_every == 0))
+	if ((save_every > 0) && (inner_iter % save_every == 0))
 	{
-		ss << file_manager.get_base_filename() << "." << iter;
+		ss << file_manager.get_base_filename() << "." << iter << "." << inner_iter;
 		if (tag.size() > 0)
 		{
 			ss << "." << tag;
 		}
-		ss << "." << dv_pool_file_tag;
+		ss << "." << dv_pop_file_tag;
 		if (pest_scenario.get_pestpp_options().get_save_binary())
 		{
 			ss << ".jcb";
@@ -6421,7 +6625,7 @@ void MOEA::save_batch(ParameterEnsemble& _dp, ObservationEnsemble& _op, string t
 		}
 		string name = ss.str();
 		ss.str("");
-		ss << "saved batch-specific decision variable population of size " << _dp.shape().first << " X " << _dp.shape().second << " to '" << name << "'";
+		ss << "saved inner-generation-specific decision variable population of size " << _dp.shape().first << " X " << _dp.shape().second << " to '" << name << "'";
 		message(1, ss.str());
 	}
 
@@ -6432,7 +6636,7 @@ void MOEA::save_batch(ParameterEnsemble& _dp, ObservationEnsemble& _op, string t
 	{
 		ss << "." << tag;
 	}
-	ss << "." << obs_pool_file_tag;
+	ss << "." << obs_pop_file_tag;
 	if (pest_scenario.get_pestpp_options().get_save_binary())
 	{
 		ss << ".jcb";
@@ -6445,18 +6649,18 @@ void MOEA::save_batch(ParameterEnsemble& _dp, ObservationEnsemble& _op, string t
 	}
 	name = ss.str();
 	ss.str("");
-	ss << "saved observation pool of size " << _op.shape().first << " X " << _op.shape().second << " to '" << name << "'";
+	ss << "saved inner observation population of size " << _op.shape().first << " X " << _op.shape().second << " to '" << name << "'";
 	message(1, ss.str());
 
 	if ((save_every > 0) && (iter % save_every == 0))
 	{
 		ss.str("");
-		ss << file_manager.get_base_filename() << "." << iter;
+		ss << file_manager.get_base_filename() << "." << iter << "." << inner_iter;
 		if (tag.size() > 0)
 		{
 			ss << "." << tag;
 		}
-		ss << "." << obs_pool_file_tag;
+		ss << "." << obs_pop_file_tag;
 		if (pest_scenario.get_pestpp_options().get_save_binary())
 		{
 			ss << ".jcb";
@@ -6469,7 +6673,7 @@ void MOEA::save_batch(ParameterEnsemble& _dp, ObservationEnsemble& _op, string t
 		}
 		name = ss.str();
 		ss.str("");
-		ss << "saved batch-specific observation population of size " << _op.shape().first << " X " << _op.shape().second << " to '" << name << "'";
+		ss << "saved inner-generation-specific observation population of size " << _op.shape().first << " X " << _op.shape().second << " to '" << name << "'";
 		message(1, ss.str());
 	}
 
