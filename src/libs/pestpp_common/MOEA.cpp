@@ -5142,7 +5142,7 @@ void MOEA::greedy_selection()
 {
 	ParameterEnsemble dtemp = dt, cdp = idp_archive, dp_pool;
 	ObservationEnsemble otemp = ot, cop = iop_archive, op_pool;
-	stringstream ss, tag;
+	stringstream ss;
 	vector<string> keep, picks;
 
 	if (dp_infill.shape().first != 0)
@@ -5195,7 +5195,9 @@ void MOEA::greedy_selection()
 	{
 		run_surrogate(cdp, cop);
 
-		DomPair dompair = objectives.get_bgo_ensemble(count, cop, cdp, &constraints, true, tag.str());
+		stringstream greedyselc_sumtag;
+		greedyselc_sumtag << iter << "." << BGO_SELECTION_SUM_TAG;
+		DomPair dompair = objectives.get_bgo_ensemble(count, cop, cdp, &constraints, true, greedyselc_sumtag.str());
 		string pick_name = dompair.first[0];
 		picks.push_back(pick_name);
 

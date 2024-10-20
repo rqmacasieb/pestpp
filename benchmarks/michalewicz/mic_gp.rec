@@ -11,7 +11,7 @@ binary compiled on Oct 21 2024 at 05:48:24
 using control file: "mic_gp.pst"
 in directory: "C:\Users\mac732\OneDrive - CSIRO\Documents\GitHub\pestpp-moudev\benchmarks\michalewicz"
 on host: "DUMPLING-FL"
-started at 10/21/24 05:53:49
+started at 10/21/24 07:39:28
 
 on host: "DUMPLING-FL"
 
@@ -549,33 +549,43 @@ trimming inner archive size from 60 to max archive size 40
 starting surrogate-assisted greedy selection of infills
 ...using specified infill size from control file:  10
 ...setting the current optimum from the current archive
+...wrote BGO ensemble summary to mic_gp.1.infill_search.summary.csv
 greedy selection picked GEN=1_MEMBER=0_PSO. Current infill size: 1
 ...saved updated training decision variable dataset of size 101 X 50 to 'mic_gp.training.dv_pop.csv'
 ...saved updated training observation dataset of size 101 X 3 to 'mic_gp.training.obs_pop.csv'
+...wrote BGO ensemble summary to mic_gp.1.infill_search.summary.csv
 greedy selection picked GEN=1_MEMBER=31_PSO. Current infill size: 2
 ...saved updated training decision variable dataset of size 102 X 50 to 'mic_gp.training.dv_pop.csv'
 ...saved updated training observation dataset of size 102 X 3 to 'mic_gp.training.obs_pop.csv'
+...wrote BGO ensemble summary to mic_gp.1.infill_search.summary.csv
 greedy selection picked GEN=1_MEMBER=11_PSO. Current infill size: 3
 ...saved updated training decision variable dataset of size 103 X 50 to 'mic_gp.training.dv_pop.csv'
 ...saved updated training observation dataset of size 103 X 3 to 'mic_gp.training.obs_pop.csv'
+...wrote BGO ensemble summary to mic_gp.1.infill_search.summary.csv
 greedy selection picked GEN=1_MEMBER=5_PSO. Current infill size: 4
 ...saved updated training decision variable dataset of size 104 X 50 to 'mic_gp.training.dv_pop.csv'
 ...saved updated training observation dataset of size 104 X 3 to 'mic_gp.training.obs_pop.csv'
+...wrote BGO ensemble summary to mic_gp.1.infill_search.summary.csv
 greedy selection picked GEN=1_MEMBER=19_PSO. Current infill size: 5
 ...saved updated training decision variable dataset of size 105 X 50 to 'mic_gp.training.dv_pop.csv'
 ...saved updated training observation dataset of size 105 X 3 to 'mic_gp.training.obs_pop.csv'
+...wrote BGO ensemble summary to mic_gp.1.infill_search.summary.csv
 greedy selection picked GEN=1_MEMBER=18_PSO. Current infill size: 6
 ...saved updated training decision variable dataset of size 106 X 50 to 'mic_gp.training.dv_pop.csv'
 ...saved updated training observation dataset of size 106 X 3 to 'mic_gp.training.obs_pop.csv'
+...wrote BGO ensemble summary to mic_gp.1.infill_search.summary.csv
 greedy selection picked GEN=1_MEMBER=27_PSO. Current infill size: 7
 ...saved updated training decision variable dataset of size 107 X 50 to 'mic_gp.training.dv_pop.csv'
 ...saved updated training observation dataset of size 107 X 3 to 'mic_gp.training.obs_pop.csv'
+...wrote BGO ensemble summary to mic_gp.1.infill_search.summary.csv
 greedy selection picked GEN=1_MEMBER=33_PSO. Current infill size: 8
 ...saved updated training decision variable dataset of size 108 X 50 to 'mic_gp.training.dv_pop.csv'
 ...saved updated training observation dataset of size 108 X 3 to 'mic_gp.training.obs_pop.csv'
+...wrote BGO ensemble summary to mic_gp.1.infill_search.summary.csv
 greedy selection picked GEN=1_MEMBER=2_PSO. Current infill size: 9
 ...saved updated training decision variable dataset of size 109 X 50 to 'mic_gp.training.dv_pop.csv'
 ...saved updated training observation dataset of size 109 X 3 to 'mic_gp.training.obs_pop.csv'
+...wrote BGO ensemble summary to mic_gp.1.infill_search.summary.csv
 greedy selection picked GEN=1_MEMBER=36_PSO. Current infill size: 10
 ...saved updated training decision variable dataset of size 110 X 50 to 'mic_gp.training.dv_pop.csv'
 ...saved updated training observation dataset of size 110 X 3 to 'mic_gp.training.obs_pop.csv'
@@ -626,33 +636,43 @@ trimming inner archive size from 60 to max archive size 40
 starting surrogate-assisted greedy selection of infills
 ...using specified infill size from control file:  10
 ...setting the current optimum from the current archive
+...wrote BGO ensemble summary to mic_gp.1.infill_search.summary.csv
 greedy selection picked GEN=1_MEMBER=0_PSO. Current infill size: 1
 ...saved updated training decision variable dataset of size 101 X 50 to 'mic_gp.training.dv_pop.csv'
 ...saved updated training observation dataset of size 101 X 3 to 'mic_gp.training.obs_pop.csv'
+...wrote BGO ensemble summary to mic_gp.1.infill_search.summary.csv
 greedy selection picked GEN=1_MEMBER=78_PSO. Current infill size: 2
 ...saved updated training decision variable dataset of size 102 X 50 to 'mic_gp.training.dv_pop.csv'
 ...saved updated training observation dataset of size 102 X 3 to 'mic_gp.training.obs_pop.csv'
+...wrote BGO ensemble summary to mic_gp.1.infill_search.summary.csv
 greedy selection picked GEN=1_MEMBER=61_PSO. Current infill size: 3
 ...saved updated training decision variable dataset of size 103 X 50 to 'mic_gp.training.dv_pop.csv'
 ...saved updated training observation dataset of size 103 X 3 to 'mic_gp.training.obs_pop.csv'
+...wrote BGO ensemble summary to mic_gp.1.infill_search.summary.csv
 greedy selection picked GEN=1_MEMBER=50_PSO. Current infill size: 4
 ...saved updated training decision variable dataset of size 104 X 50 to 'mic_gp.training.dv_pop.csv'
 ...saved updated training observation dataset of size 104 X 3 to 'mic_gp.training.obs_pop.csv'
+...wrote BGO ensemble summary to mic_gp.1.infill_search.summary.csv
 greedy selection picked GEN=1_MEMBER=11_PSO. Current infill size: 5
 ...saved updated training decision variable dataset of size 105 X 50 to 'mic_gp.training.dv_pop.csv'
 ...saved updated training observation dataset of size 105 X 3 to 'mic_gp.training.obs_pop.csv'
+...wrote BGO ensemble summary to mic_gp.1.infill_search.summary.csv
 greedy selection picked GEN=1_MEMBER=56_PSO. Current infill size: 6
 ...saved updated training decision variable dataset of size 106 X 50 to 'mic_gp.training.dv_pop.csv'
 ...saved updated training observation dataset of size 106 X 3 to 'mic_gp.training.obs_pop.csv'
+...wrote BGO ensemble summary to mic_gp.1.infill_search.summary.csv
 greedy selection picked GEN=1_MEMBER=27_PSO. Current infill size: 7
 ...saved updated training decision variable dataset of size 107 X 50 to 'mic_gp.training.dv_pop.csv'
 ...saved updated training observation dataset of size 107 X 3 to 'mic_gp.training.obs_pop.csv'
+...wrote BGO ensemble summary to mic_gp.1.infill_search.summary.csv
 greedy selection picked GEN=1_MEMBER=44_PSO. Current infill size: 8
 ...saved updated training decision variable dataset of size 108 X 50 to 'mic_gp.training.dv_pop.csv'
 ...saved updated training observation dataset of size 108 X 3 to 'mic_gp.training.obs_pop.csv'
+...wrote BGO ensemble summary to mic_gp.1.infill_search.summary.csv
 greedy selection picked GEN=1_MEMBER=18_PSO. Current infill size: 9
 ...saved updated training decision variable dataset of size 109 X 50 to 'mic_gp.training.dv_pop.csv'
 ...saved updated training observation dataset of size 109 X 3 to 'mic_gp.training.obs_pop.csv'
+...wrote BGO ensemble summary to mic_gp.1.infill_search.summary.csv
 greedy selection picked GEN=1_MEMBER=42_PSO. Current infill size: 10
 ...saved updated training decision variable dataset of size 110 X 50 to 'mic_gp.training.dv_pop.csv'
 ...saved updated training observation dataset of size 110 X 3 to 'mic_gp.training.obs_pop.csv'
@@ -703,33 +723,43 @@ trimming inner archive size from 60 to max archive size 40
 starting surrogate-assisted greedy selection of infills
 ...using specified infill size from control file:  10
 ...setting the current optimum from the current archive
+...wrote BGO ensemble summary to mic_gp.1.infill_search.summary.csv
 greedy selection picked GEN=1_MEMBER=0_PSO. Current infill size: 1
 ...saved updated training decision variable dataset of size 101 X 50 to 'mic_gp.training.dv_pop.csv'
 ...saved updated training observation dataset of size 101 X 3 to 'mic_gp.training.obs_pop.csv'
+...wrote BGO ensemble summary to mic_gp.1.infill_search.summary.csv
 greedy selection picked GEN=1_MEMBER=115_PSO. Current infill size: 2
 ...saved updated training decision variable dataset of size 102 X 50 to 'mic_gp.training.dv_pop.csv'
 ...saved updated training observation dataset of size 102 X 3 to 'mic_gp.training.obs_pop.csv'
+...wrote BGO ensemble summary to mic_gp.1.infill_search.summary.csv
 greedy selection picked GEN=1_MEMBER=50_PSO. Current infill size: 3
 ...saved updated training decision variable dataset of size 103 X 50 to 'mic_gp.training.dv_pop.csv'
 ...saved updated training observation dataset of size 103 X 3 to 'mic_gp.training.obs_pop.csv'
+...wrote BGO ensemble summary to mic_gp.1.infill_search.summary.csv
 greedy selection picked GEN=1_MEMBER=11_PSO. Current infill size: 4
 ...saved updated training decision variable dataset of size 104 X 50 to 'mic_gp.training.dv_pop.csv'
 ...saved updated training observation dataset of size 104 X 3 to 'mic_gp.training.obs_pop.csv'
+...wrote BGO ensemble summary to mic_gp.1.infill_search.summary.csv
 greedy selection picked GEN=1_MEMBER=104_PSO. Current infill size: 5
 ...saved updated training decision variable dataset of size 105 X 50 to 'mic_gp.training.dv_pop.csv'
 ...saved updated training observation dataset of size 105 X 3 to 'mic_gp.training.obs_pop.csv'
+...wrote BGO ensemble summary to mic_gp.1.infill_search.summary.csv
 greedy selection picked GEN=1_MEMBER=27_PSO. Current infill size: 6
 ...saved updated training decision variable dataset of size 106 X 50 to 'mic_gp.training.dv_pop.csv'
 ...saved updated training observation dataset of size 106 X 3 to 'mic_gp.training.obs_pop.csv'
+...wrote BGO ensemble summary to mic_gp.1.infill_search.summary.csv
 greedy selection picked GEN=1_MEMBER=92_PSO. Current infill size: 7
 ...saved updated training decision variable dataset of size 107 X 50 to 'mic_gp.training.dv_pop.csv'
 ...saved updated training observation dataset of size 107 X 3 to 'mic_gp.training.obs_pop.csv'
+...wrote BGO ensemble summary to mic_gp.1.infill_search.summary.csv
 greedy selection picked GEN=1_MEMBER=56_PSO. Current infill size: 8
 ...saved updated training decision variable dataset of size 108 X 50 to 'mic_gp.training.dv_pop.csv'
 ...saved updated training observation dataset of size 108 X 3 to 'mic_gp.training.obs_pop.csv'
+...wrote BGO ensemble summary to mic_gp.1.infill_search.summary.csv
 greedy selection picked GEN=1_MEMBER=29_PSO. Current infill size: 9
 ...saved updated training decision variable dataset of size 109 X 50 to 'mic_gp.training.dv_pop.csv'
 ...saved updated training observation dataset of size 109 X 3 to 'mic_gp.training.obs_pop.csv'
+...wrote BGO ensemble summary to mic_gp.1.infill_search.summary.csv
 greedy selection picked GEN=1_MEMBER=42_PSO. Current infill size: 10
 ...saved updated training decision variable dataset of size 110 X 50 to 'mic_gp.training.dv_pop.csv'
 ...saved updated training observation dataset of size 110 X 3 to 'mic_gp.training.obs_pop.csv'
@@ -926,33 +956,43 @@ trimming inner archive size from 60 to max archive size 40
 starting surrogate-assisted greedy selection of infills
 ...using specified infill size from control file:  10
 ...setting the current optimum from the current archive
+...wrote BGO ensemble summary to mic_gp.2.infill_search.summary.csv
 greedy selection picked GEN=2_MEMBER=120_PSO. Current infill size: 1
 ...saved updated training decision variable dataset of size 111 X 50 to 'mic_gp.training.dv_pop.csv'
 ...saved updated training observation dataset of size 111 X 3 to 'mic_gp.training.obs_pop.csv'
+...wrote BGO ensemble summary to mic_gp.2.infill_search.summary.csv
 greedy selection picked GEN=2_MEMBER=137_PSO. Current infill size: 2
 ...saved updated training decision variable dataset of size 112 X 50 to 'mic_gp.training.dv_pop.csv'
 ...saved updated training observation dataset of size 112 X 3 to 'mic_gp.training.obs_pop.csv'
+...wrote BGO ensemble summary to mic_gp.2.infill_search.summary.csv
 greedy selection picked GEN=2_MEMBER=157_PSO. Current infill size: 3
 ...saved updated training decision variable dataset of size 113 X 50 to 'mic_gp.training.dv_pop.csv'
 ...saved updated training observation dataset of size 113 X 3 to 'mic_gp.training.obs_pop.csv'
+...wrote BGO ensemble summary to mic_gp.2.infill_search.summary.csv
 greedy selection picked GEN=2_MEMBER=138_PSO. Current infill size: 4
 ...saved updated training decision variable dataset of size 114 X 50 to 'mic_gp.training.dv_pop.csv'
 ...saved updated training observation dataset of size 114 X 3 to 'mic_gp.training.obs_pop.csv'
+...wrote BGO ensemble summary to mic_gp.2.infill_search.summary.csv
 greedy selection picked GEN=2_MEMBER=159_PSO. Current infill size: 5
 ...saved updated training decision variable dataset of size 115 X 50 to 'mic_gp.training.dv_pop.csv'
 ...saved updated training observation dataset of size 115 X 3 to 'mic_gp.training.obs_pop.csv'
+...wrote BGO ensemble summary to mic_gp.2.infill_search.summary.csv
 greedy selection picked GEN=2_MEMBER=132_PSO. Current infill size: 6
 ...saved updated training decision variable dataset of size 116 X 50 to 'mic_gp.training.dv_pop.csv'
 ...saved updated training observation dataset of size 116 X 3 to 'mic_gp.training.obs_pop.csv'
+...wrote BGO ensemble summary to mic_gp.2.infill_search.summary.csv
 greedy selection picked GEN=2_MEMBER=126_PSO. Current infill size: 7
 ...saved updated training decision variable dataset of size 117 X 50 to 'mic_gp.training.dv_pop.csv'
 ...saved updated training observation dataset of size 117 X 3 to 'mic_gp.training.obs_pop.csv'
+...wrote BGO ensemble summary to mic_gp.2.infill_search.summary.csv
 greedy selection picked GEN=2_MEMBER=155_PSO. Current infill size: 8
 ...saved updated training decision variable dataset of size 118 X 50 to 'mic_gp.training.dv_pop.csv'
 ...saved updated training observation dataset of size 118 X 3 to 'mic_gp.training.obs_pop.csv'
+...wrote BGO ensemble summary to mic_gp.2.infill_search.summary.csv
 greedy selection picked GEN=2_MEMBER=146_PSO. Current infill size: 9
 ...saved updated training decision variable dataset of size 119 X 50 to 'mic_gp.training.dv_pop.csv'
 ...saved updated training observation dataset of size 119 X 3 to 'mic_gp.training.obs_pop.csv'
+...wrote BGO ensemble summary to mic_gp.2.infill_search.summary.csv
 greedy selection picked GEN=2_MEMBER=122_PSO. Current infill size: 10
 ...saved updated training decision variable dataset of size 120 X 50 to 'mic_gp.training.dv_pop.csv'
 ...saved updated training observation dataset of size 120 X 3 to 'mic_gp.training.obs_pop.csv'
@@ -1003,1364 +1043,15 @@ trimming inner archive size from 60 to max archive size 40
 starting surrogate-assisted greedy selection of infills
 ...using specified infill size from control file:  10
 ...setting the current optimum from the current archive
+...wrote BGO ensemble summary to mic_gp.2.infill_search.summary.csv
 greedy selection picked GEN=2_MEMBER=120_PSO. Current infill size: 1
 ...saved updated training decision variable dataset of size 111 X 50 to 'mic_gp.training.dv_pop.csv'
 ...saved updated training observation dataset of size 111 X 3 to 'mic_gp.training.obs_pop.csv'
+...wrote BGO ensemble summary to mic_gp.2.infill_search.summary.csv
 greedy selection picked GEN=2_MEMBER=188_PSO. Current infill size: 2
 ...saved updated training decision variable dataset of size 112 X 50 to 'mic_gp.training.dv_pop.csv'
 ...saved updated training observation dataset of size 112 X 3 to 'mic_gp.training.obs_pop.csv'
+...wrote BGO ensemble summary to mic_gp.2.infill_search.summary.csv
 greedy selection picked GEN=2_MEMBER=137_PSO. Current infill size: 3
 ...saved updated training decision variable dataset of size 113 X 50 to 'mic_gp.training.dv_pop.csv'
 ...saved updated training observation dataset of size 113 X 3 to 'mic_gp.training.obs_pop.csv'
-greedy selection picked GEN=2_MEMBER=182_PSO. Current infill size: 4
-...saved updated training decision variable dataset of size 114 X 50 to 'mic_gp.training.dv_pop.csv'
-...saved updated training observation dataset of size 114 X 3 to 'mic_gp.training.obs_pop.csv'
-greedy selection picked GEN=2_MEMBER=180_PSO. Current infill size: 5
-...saved updated training decision variable dataset of size 115 X 50 to 'mic_gp.training.dv_pop.csv'
-...saved updated training observation dataset of size 115 X 3 to 'mic_gp.training.obs_pop.csv'
-greedy selection picked GEN=2_MEMBER=181_PSO. Current infill size: 6
-...saved updated training decision variable dataset of size 116 X 50 to 'mic_gp.training.dv_pop.csv'
-...saved updated training observation dataset of size 116 X 3 to 'mic_gp.training.obs_pop.csv'
-greedy selection picked GEN=2_MEMBER=165_PSO. Current infill size: 7
-...saved updated training decision variable dataset of size 117 X 50 to 'mic_gp.training.dv_pop.csv'
-...saved updated training observation dataset of size 117 X 3 to 'mic_gp.training.obs_pop.csv'
-greedy selection picked GEN=2_MEMBER=153_PSO. Current infill size: 8
-...saved updated training decision variable dataset of size 118 X 50 to 'mic_gp.training.dv_pop.csv'
-...saved updated training observation dataset of size 118 X 3 to 'mic_gp.training.obs_pop.csv'
-greedy selection picked GEN=2_MEMBER=132_PSO. Current infill size: 9
-...saved updated training decision variable dataset of size 119 X 50 to 'mic_gp.training.dv_pop.csv'
-...saved updated training observation dataset of size 119 X 3 to 'mic_gp.training.obs_pop.csv'
-greedy selection picked GEN=2_MEMBER=159_PSO. Current infill size: 10
-...saved updated training decision variable dataset of size 120 X 50 to 'mic_gp.training.dv_pop.csv'
-...saved updated training observation dataset of size 120 X 3 to 'mic_gp.training.obs_pop.csv'
-...resetting training dataset. Removing temporarily added emulated IO pairs
-...saved updated training decision variable dataset of size 110 X 50 to 'mic_gp.training.dv_pop.csv'
-...saved updated training observation dataset of size 110 X 3 to 'mic_gp.training.obs_pop.csv'
-greedy selection finished with 10 selected candidate infills. Continuing inner iterations...
-
-  ---  starting generation 2 :: iteration 5  ---  
-...generating PSO population of size 20
-...setting the current optimum from the current archive
-...saved inner decision variable population of size 20 X 50 to 'mic_gp.inner.dv_pop.csv'
-...saved inner-generation-specific decision variable population of size 20 X 50 to 'mic_gp.2.5.inner.dv_pop.csv'
-...saved inner observation population of size 20 X 3 to 'mic_gp.inner.obs_pop.csv'
-...saved inner-generation-specific observation population of size 20 X 3 to 'mic_gp.2.5.inner.obs_pop.csv'
-...ensemble sorting combined parent-child inner populations of size  40
-...wrote BGO ensemble summary to mic_gp.2.enbgo.summary.csv
-updating bgo pool of candidate infills
-adding 20 informative ensemble members to pool
-sorting ensemble archive of size 60
-...wrote BGO ensemble summary to mic_gp.2.enbgo.archive.summary.csv
-trimming inner archive size from 60 to max archive size 40
-...saved inner decision variable population of size 40 X 50 to 'mic_gp.inner_archive.dv_pop.csv'
-...saved inner-generation-specific decision variable population of size 40 X 50 to 'mic_gp.2.5.inner_archive.dv_pop.csv'
-...saved inner observation population of size 40 X 3 to 'mic_gp.inner_archive.obs_pop.csv'
-...saved inner-generation-specific observation population of size 40 X 3 to 'mic_gp.2.5.inner_archive.obs_pop.csv'
-...resizing current inner populations to  20
-
-  ---  starting generation 2 :: iteration 6  ---  
-...generating PSO population of size 20
-...setting the current optimum from the current archive
-...saved inner decision variable population of size 20 X 50 to 'mic_gp.inner.dv_pop.csv'
-...saved inner-generation-specific decision variable population of size 20 X 50 to 'mic_gp.2.6.inner.dv_pop.csv'
-...saved inner observation population of size 20 X 3 to 'mic_gp.inner.obs_pop.csv'
-...saved inner-generation-specific observation population of size 20 X 3 to 'mic_gp.2.6.inner.obs_pop.csv'
-...ensemble sorting combined parent-child inner populations of size  40
-...wrote BGO ensemble summary to mic_gp.2.enbgo.summary.csv
-updating bgo pool of candidate infills
-adding 20 informative ensemble members to pool
-sorting ensemble archive of size 60
-...wrote BGO ensemble summary to mic_gp.2.enbgo.archive.summary.csv
-trimming inner archive size from 60 to max archive size 40
-...saved inner decision variable population of size 40 X 50 to 'mic_gp.inner_archive.dv_pop.csv'
-...saved inner-generation-specific decision variable population of size 40 X 50 to 'mic_gp.2.6.inner_archive.dv_pop.csv'
-...saved inner observation population of size 40 X 3 to 'mic_gp.inner_archive.obs_pop.csv'
-...saved inner-generation-specific observation population of size 40 X 3 to 'mic_gp.2.6.inner_archive.obs_pop.csv'
-...resizing current inner populations to  20
-starting surrogate-assisted greedy selection of infills
-...using specified infill size from control file:  10
-...setting the current optimum from the current archive
-greedy selection picked GEN=2_MEMBER=120_PSO. Current infill size: 1
-...saved updated training decision variable dataset of size 111 X 50 to 'mic_gp.training.dv_pop.csv'
-...saved updated training observation dataset of size 111 X 3 to 'mic_gp.training.obs_pop.csv'
-greedy selection picked GEN=2_MEMBER=188_PSO. Current infill size: 2
-...saved updated training decision variable dataset of size 112 X 50 to 'mic_gp.training.dv_pop.csv'
-...saved updated training observation dataset of size 112 X 3 to 'mic_gp.training.obs_pop.csv'
-greedy selection picked GEN=2_MEMBER=137_PSO. Current infill size: 3
-...saved updated training decision variable dataset of size 113 X 50 to 'mic_gp.training.dv_pop.csv'
-...saved updated training observation dataset of size 113 X 3 to 'mic_gp.training.obs_pop.csv'
-greedy selection picked GEN=2_MEMBER=236_PSO. Current infill size: 4
-...saved updated training decision variable dataset of size 114 X 50 to 'mic_gp.training.dv_pop.csv'
-...saved updated training observation dataset of size 114 X 3 to 'mic_gp.training.obs_pop.csv'
-greedy selection picked GEN=2_MEMBER=215_PSO. Current infill size: 5
-...saved updated training decision variable dataset of size 115 X 50 to 'mic_gp.training.dv_pop.csv'
-...saved updated training observation dataset of size 115 X 3 to 'mic_gp.training.obs_pop.csv'
-greedy selection picked GEN=2_MEMBER=214_PSO. Current infill size: 6
-...saved updated training decision variable dataset of size 116 X 50 to 'mic_gp.training.dv_pop.csv'
-...saved updated training observation dataset of size 116 X 3 to 'mic_gp.training.obs_pop.csv'
-greedy selection picked GEN=2_MEMBER=228_PSO. Current infill size: 7
-...saved updated training decision variable dataset of size 117 X 50 to 'mic_gp.training.dv_pop.csv'
-...saved updated training observation dataset of size 117 X 3 to 'mic_gp.training.obs_pop.csv'
-greedy selection picked GEN=2_MEMBER=180_PSO. Current infill size: 8
-...saved updated training decision variable dataset of size 118 X 50 to 'mic_gp.training.dv_pop.csv'
-...saved updated training observation dataset of size 118 X 3 to 'mic_gp.training.obs_pop.csv'
-greedy selection picked GEN=2_MEMBER=181_PSO. Current infill size: 9
-...saved updated training decision variable dataset of size 119 X 50 to 'mic_gp.training.dv_pop.csv'
-...saved updated training observation dataset of size 119 X 3 to 'mic_gp.training.obs_pop.csv'
-greedy selection picked GEN=2_MEMBER=218_PSO. Current infill size: 10
-...saved updated training decision variable dataset of size 120 X 50 to 'mic_gp.training.dv_pop.csv'
-...saved updated training observation dataset of size 120 X 3 to 'mic_gp.training.obs_pop.csv'
-...resetting training dataset. Removing temporarily added emulated IO pairs
-...saved updated training decision variable dataset of size 110 X 50 to 'mic_gp.training.dv_pop.csv'
-...saved updated training observation dataset of size 110 X 3 to 'mic_gp.training.obs_pop.csv'
-greedy selection finished with 10 selected infills. Proceeding with complex runs...
-...running population of size  10
-...saved updated training decision variable dataset of size 120 X 50 to 'mic_gp.training.dv_pop.csv'
-...saved updated training observation dataset of size 120 X 3 to 'mic_gp.training.obs_pop.csv'
-...saved updated training decision variable dataset of size 120 X 50 to 'mic_gp.2.training.dv_pop.csv'
-...saved updated training observation dataset of size 120 X 3 to 'mic_gp.2.training.obs_pop.csv'
-...saved decision variable population of size 10 X 50 to 'mic_gp.dv_pop.csv'
-...saved generation-specific decision variable population of size 10 X 50 to 'mic_gp.2.dv_pop.csv'
-...saved observation population of size 10 X 3 to 'mic_gp.obs_pop.csv'
-...saved generation-specific observation population of size 10 X 3 to 'mic_gp.2.obs_pop.csv'
-...pareto dominance sorting combined parent-child populations of size  30
-...wrote pareto summary to mic_gp.pareto.summary.csv
-updating archive
-all nondominated members in already in archive
-...resizing current populations to  20
-
-  ---  generation 2 decision variable summary:  ---  
-decision variable        ubnd      lbnd      mean   standard devation         min         max
-X1                          5        -5  0.601478             2.51903    -3.82173           5
-X2                          5        -5   1.76502             3.10521    -4.72276           5
-X3                          5        -5  -2.19146             2.92374          -5     3.46938
-X4                          5        -5 0.0820537             2.53022    -4.67839     3.82768
-X5                          5        -5   1.86181             3.32307      -4.819           5
-X6                          5        -5  -1.63981             3.13516          -5     3.80392
-X7                          5        -5   1.51477             3.69672    -4.83258           5
-X8                          5        -5  -1.40354             3.00642          -5     3.61776
-X9                          5        -5    1.1302             2.63178    -3.10639           5
-X10                         5        -5   2.23934             3.53006    -4.48573           5
-X11                         5        -5  -1.35277             2.93774          -5     4.92775
-X12                         5        -5  -1.40312             3.99803          -5     4.88877
-X13                         5        -5  -1.00723              2.9892          -5     4.45455
-X14                         5        -5 -0.282555             3.58354    -4.60431           5
-X15                         5        -5   1.65307             3.39259    -4.68341           5
-X16                         5        -5  -1.15469             3.03141          -5     4.20856
-X17                         5        -5  -1.88848             3.45821          -5     4.45937
-X18                         5        -5-0.0577497             3.13366          -5           5
-X19                         5        -5   1.94876             3.23096    -4.58316           5
-X20                         5        -5  -2.01883              3.1675          -5     4.14952
-X21                         5        -5   1.05224             2.65732    -3.36861           5
-X22                         5        -5  -1.40199             2.89807          -5     4.16182
-X23                         5        -5   1.10196             3.28437    -4.52216           5
-X24                         5        -5   -1.0289             3.15741          -5     4.52873
-X25                         5        -5   1.09915             3.58869    -4.88736           5
-X26                         5        -5  -1.08595             2.97217          -5     4.65526
-X27                         5        -5   -1.9854             3.16625          -5     3.69551
-X28                         5        -5   1.94294             2.93287    -4.75523           5
-X29                         5        -5  0.740865             2.37319    -3.90546     4.88462
-X30                         5        -5  -2.16881             3.32069          -5     4.73595
-X31                         5        -5   2.12361             2.84945    -4.21872           5
-X32                         5        -5   2.14451             3.00413    -4.74543           5
-X33                         5        -5   -2.4414             2.68449          -5     3.65901
-X34                         5        -5  -2.34793             3.08521          -5     4.40202
-X35                         5        -5   1.43579             2.49223    -3.40013           5
-X36                         5        -5  0.788154             2.23811    -2.75906           5
-X37                         5        -5 -0.924665             3.26267          -5      4.3399
-X38                         5        -5  0.285595              2.8581    -3.96587           5
-X39                         5        -5   1.79514             3.20896    -4.19666           5
-X40                         5        -5  -1.70938             3.59664          -5     4.30995
-X41                         5        -5   1.87603             3.59449    -4.75596           5
-X42                         5        -5  -2.65791              2.5197          -5     2.16043
-X43                         5        -5  -1.78352             3.08729          -5     4.03749
-X44                         5        -5    2.6168             3.13989     -4.6663           5
-X45                         5        -5  -1.43251             3.22794          -5     4.95635
-X46                         5        -5   2.92183             2.56657     -4.5868           5
-X47                         5        -5   -2.5122             3.09067          -5     3.90664
-X48                         5        -5   1.43274             2.66581    -4.32429           5
-X49                         5        -5  -2.64095             2.65923          -5     3.58727
-X50                         5        -5    1.7191             3.05096     -4.5579           5
-
-
-  ---  generation 2 decision variable change summary:  ---  
-decision variable  mean change   % change max change   % change min change   % change
-X1                   -0.779037          0    -0.2678    -5.6591          0          0
-X2                   -0.746913   -73.3632          0          0          0          0
-X3                     1.37505          0     0.6537    15.8547          0          0
-X4                    0.562173    87.2632   0.983691    20.4451          0          0
-X5                    -1.19414   -178.852          0          0          0          0
-X6                     1.68916    3422.43    0.80424    17.4525          0          0
-X7                    -0.84076    -124.74          0          0          0          0
-X8                    0.744069          0          0          0          0          0
-X9                    0.381051    25.2142          0          0          0          0
-X10                  -0.976752   -77.3611          0          0          0          0
-X11                    0.59167          0          0          0          0          0
-X12                     1.0554          0          0          0          0          0
-X13                    1.00693          0          0          0          0          0
-X14                   -1.03156          0   -0.11755    -2.4076   -0.37023          0
-X15                   -1.56517   -1780.64          0          0          0          0
-X16                    1.23897    1470.07    0.11446    2.64769   0.902557          0
-X17                    0.93387          0          0          0          0          0
-X18                   0.852185    107.269          0          0    1.24289          0
-X19                  -0.852107   -77.7011          0          0          0          0
-X20                    1.01211          0          0          0          0          0
-X21                  -0.280909   -36.4187          0          0   -1.30931          0
-X22                    1.68852    589.295   0.744901    15.1812          0          0
-X23                   -1.14236          0   -0.05769   -1.16727          0          0
-X24                   0.956179          0          0          0    0.68159          0
-X25                   -1.67186          0          0          0          0          0
-X26                   0.285715          0          0          0     0.1992          0
-X27                    1.35564          0    0.80005    17.7964          0          0
-X28                   -1.16834   -150.832          0          0   -0.21014          0
-X29                     0.7489    50.2697          0          0          0          0
-X30                    1.04079          0          0          0          0          0
-X31                   -1.43092   -206.572          0          0   -0.60154          0
-X32                   -1.49197   -228.642          0          0          0          0
-X33                   0.994042          0    0.82869    18.4658          0          0
-X34                    1.24775          0    0.47778    9.79098          0          0
-X35                  -0.795138   -124.114   -0.89924   -21.9286   -0.60942          0
-X36                   -0.57673   -272.785   -0.17164   -3.55483   -0.46307          0
-X37                   0.368568          0          0          0          0          0
-X38                    1.34346    82.4686          0          0          0          0
-X39                   -1.19302   -198.136          0          0          0          0
-X40                     1.4411          0          0          0          0          0
-X41                  -0.917107    -95.639          0          0          0          0
-X42                     1.1276          0    2.44279     53.067          0          0
-X43                    1.32859          0    0.39219    8.85369          0          0
-X44                  -0.489388   -23.0039          0          0          0          0
-X45                   0.926637          0          0          0     0.1824          0
-X46                   -1.25806   -75.6145          0          0          0          0
-X47                   0.868945          0    0.45546    10.4413          0          0
-X48                  -0.337002   -30.7558          0          0          0          0
-X49                    1.06223          0    0.01947   0.539823          0          0
-X50                  -0.949473   -123.368          0          0          0          0
-
-
-  ---  generation 2 objective function summary:  ---  
-seeking optimal trade-off point for single 'optimal' chance point runs
-using member GEN=1_MEMBER=92_PSO as single, 'optimal' point
-   with distance of 0 from optimal trade - off
-objective function   direction         mean      std dev          min          max         knee
-
-FUNC                  minimize    -0.869961     1.169588    -3.674382     0.292545    -3.674382
-
-
-  ---  generation 2 objective function change summary:  ---  
-objective function   mean change    % change  max change    % change  min change    % change knee change    % change
-FUNC                    0.419643           0     1.22071     80.6679           0           0           0           0
-
-...number of feasible solutions at the end of generation 2: 30
-
-  ---  starting generation  3  ---  
-...generating PSO population of size 20
-
-  ---  starting generation 3 :: iteration 1  ---  
-...setting the current optimum from the current archive
-...saved inner decision variable population of size 20 X 50 to 'mic_gp.inner.dv_pop.csv'
-...saved inner-generation-specific decision variable population of size 20 X 50 to 'mic_gp.3.1.inner.dv_pop.csv'
-...saved inner observation population of size 20 X 3 to 'mic_gp.inner.obs_pop.csv'
-...saved inner-generation-specific observation population of size 20 X 3 to 'mic_gp.3.1.inner.obs_pop.csv'
-...ensemble sorting combined parent-child inner populations of size  40
-...wrote BGO ensemble summary to mic_gp.3.enbgo.summary.csv
-updating bgo pool of candidate infills
-adding 39 informative ensemble members to pool
-sorting ensemble archive of size 40
-...wrote BGO ensemble summary to mic_gp.3.enbgo.archive.summary.csv
-...saved inner decision variable population of size 40 X 50 to 'mic_gp.inner_archive.dv_pop.csv'
-...saved inner-generation-specific decision variable population of size 40 X 50 to 'mic_gp.3.1.inner_archive.dv_pop.csv'
-...saved inner observation population of size 40 X 3 to 'mic_gp.inner_archive.obs_pop.csv'
-...saved inner-generation-specific observation population of size 40 X 3 to 'mic_gp.3.1.inner_archive.obs_pop.csv'
-...resizing current inner populations to  20
-
-  ---  starting generation 3 :: iteration 2  ---  
-...generating PSO population of size 20
-...setting the current optimum from the current archive
-...saved inner decision variable population of size 20 X 50 to 'mic_gp.inner.dv_pop.csv'
-...saved inner-generation-specific decision variable population of size 20 X 50 to 'mic_gp.3.2.inner.dv_pop.csv'
-...saved inner observation population of size 20 X 3 to 'mic_gp.inner.obs_pop.csv'
-...saved inner-generation-specific observation population of size 20 X 3 to 'mic_gp.3.2.inner.obs_pop.csv'
-...ensemble sorting combined parent-child inner populations of size  40
-...wrote BGO ensemble summary to mic_gp.3.enbgo.summary.csv
-updating bgo pool of candidate infills
-adding 20 informative ensemble members to pool
-sorting ensemble archive of size 60
-...wrote BGO ensemble summary to mic_gp.3.enbgo.archive.summary.csv
-trimming inner archive size from 60 to max archive size 40
-...saved inner decision variable population of size 40 X 50 to 'mic_gp.inner_archive.dv_pop.csv'
-...saved inner-generation-specific decision variable population of size 40 X 50 to 'mic_gp.3.2.inner_archive.dv_pop.csv'
-...saved inner observation population of size 40 X 3 to 'mic_gp.inner_archive.obs_pop.csv'
-...saved inner-generation-specific observation population of size 40 X 3 to 'mic_gp.3.2.inner_archive.obs_pop.csv'
-...resizing current inner populations to  20
-starting surrogate-assisted greedy selection of infills
-...using specified infill size from control file:  10
-...setting the current optimum from the current archive
-greedy selection picked GEN=3_MEMBER=256_PSO. Current infill size: 1
-...saved updated training decision variable dataset of size 121 X 50 to 'mic_gp.training.dv_pop.csv'
-...saved updated training observation dataset of size 121 X 3 to 'mic_gp.training.obs_pop.csv'
-greedy selection picked GEN=3_MEMBER=246_PSO. Current infill size: 2
-...saved updated training decision variable dataset of size 122 X 50 to 'mic_gp.training.dv_pop.csv'
-...saved updated training observation dataset of size 122 X 3 to 'mic_gp.training.obs_pop.csv'
-greedy selection picked GEN=3_MEMBER=252_PSO. Current infill size: 3
-...saved updated training decision variable dataset of size 123 X 50 to 'mic_gp.training.dv_pop.csv'
-...saved updated training observation dataset of size 123 X 3 to 'mic_gp.training.obs_pop.csv'
-greedy selection picked GEN=3_MEMBER=249_PSO. Current infill size: 4
-...saved updated training decision variable dataset of size 124 X 50 to 'mic_gp.training.dv_pop.csv'
-...saved updated training observation dataset of size 124 X 3 to 'mic_gp.training.obs_pop.csv'
-greedy selection picked GEN=3_MEMBER=261_PSO. Current infill size: 5
-...saved updated training decision variable dataset of size 125 X 50 to 'mic_gp.training.dv_pop.csv'
-...saved updated training observation dataset of size 125 X 3 to 'mic_gp.training.obs_pop.csv'
-greedy selection picked GEN=3_MEMBER=279_PSO. Current infill size: 6
-...saved updated training decision variable dataset of size 126 X 50 to 'mic_gp.training.dv_pop.csv'
-...saved updated training observation dataset of size 126 X 3 to 'mic_gp.training.obs_pop.csv'
-greedy selection picked GEN=3_MEMBER=250_PSO. Current infill size: 7
-...saved updated training decision variable dataset of size 127 X 50 to 'mic_gp.training.dv_pop.csv'
-...saved updated training observation dataset of size 127 X 3 to 'mic_gp.training.obs_pop.csv'
-greedy selection picked GEN=3_MEMBER=263_PSO. Current infill size: 8
-...saved updated training decision variable dataset of size 128 X 50 to 'mic_gp.training.dv_pop.csv'
-...saved updated training observation dataset of size 128 X 3 to 'mic_gp.training.obs_pop.csv'
-greedy selection picked GEN=3_MEMBER=278_PSO. Current infill size: 9
-...saved updated training decision variable dataset of size 129 X 50 to 'mic_gp.training.dv_pop.csv'
-...saved updated training observation dataset of size 129 X 3 to 'mic_gp.training.obs_pop.csv'
-greedy selection picked GEN=3_MEMBER=267_PSO. Current infill size: 10
-...saved updated training decision variable dataset of size 130 X 50 to 'mic_gp.training.dv_pop.csv'
-...saved updated training observation dataset of size 130 X 3 to 'mic_gp.training.obs_pop.csv'
-...resetting training dataset. Removing temporarily added emulated IO pairs
-...saved updated training decision variable dataset of size 120 X 50 to 'mic_gp.training.dv_pop.csv'
-...saved updated training observation dataset of size 120 X 3 to 'mic_gp.training.obs_pop.csv'
-greedy selection finished with 10 selected candidate infills. Continuing inner iterations...
-
-  ---  starting generation 3 :: iteration 3  ---  
-...generating PSO population of size 20
-...setting the current optimum from the current archive
-...saved inner decision variable population of size 20 X 50 to 'mic_gp.inner.dv_pop.csv'
-...saved inner-generation-specific decision variable population of size 20 X 50 to 'mic_gp.3.3.inner.dv_pop.csv'
-...saved inner observation population of size 20 X 3 to 'mic_gp.inner.obs_pop.csv'
-...saved inner-generation-specific observation population of size 20 X 3 to 'mic_gp.3.3.inner.obs_pop.csv'
-...ensemble sorting combined parent-child inner populations of size  40
-...wrote BGO ensemble summary to mic_gp.3.enbgo.summary.csv
-updating bgo pool of candidate infills
-adding 20 informative ensemble members to pool
-sorting ensemble archive of size 60
-...wrote BGO ensemble summary to mic_gp.3.enbgo.archive.summary.csv
-trimming inner archive size from 60 to max archive size 40
-...saved inner decision variable population of size 40 X 50 to 'mic_gp.inner_archive.dv_pop.csv'
-...saved inner-generation-specific decision variable population of size 40 X 50 to 'mic_gp.3.3.inner_archive.dv_pop.csv'
-...saved inner observation population of size 40 X 3 to 'mic_gp.inner_archive.obs_pop.csv'
-...saved inner-generation-specific observation population of size 40 X 3 to 'mic_gp.3.3.inner_archive.obs_pop.csv'
-...resizing current inner populations to  20
-
-  ---  starting generation 3 :: iteration 4  ---  
-...generating PSO population of size 20
-...setting the current optimum from the current archive
-...saved inner decision variable population of size 20 X 50 to 'mic_gp.inner.dv_pop.csv'
-...saved inner-generation-specific decision variable population of size 20 X 50 to 'mic_gp.3.4.inner.dv_pop.csv'
-...saved inner observation population of size 20 X 3 to 'mic_gp.inner.obs_pop.csv'
-...saved inner-generation-specific observation population of size 20 X 3 to 'mic_gp.3.4.inner.obs_pop.csv'
-...ensemble sorting combined parent-child inner populations of size  40
-...wrote BGO ensemble summary to mic_gp.3.enbgo.summary.csv
-updating bgo pool of candidate infills
-adding 20 informative ensemble members to pool
-sorting ensemble archive of size 60
-...wrote BGO ensemble summary to mic_gp.3.enbgo.archive.summary.csv
-trimming inner archive size from 60 to max archive size 40
-...saved inner decision variable population of size 40 X 50 to 'mic_gp.inner_archive.dv_pop.csv'
-...saved inner-generation-specific decision variable population of size 40 X 50 to 'mic_gp.3.4.inner_archive.dv_pop.csv'
-...saved inner observation population of size 40 X 3 to 'mic_gp.inner_archive.obs_pop.csv'
-...saved inner-generation-specific observation population of size 40 X 3 to 'mic_gp.3.4.inner_archive.obs_pop.csv'
-...resizing current inner populations to  20
-starting surrogate-assisted greedy selection of infills
-...using specified infill size from control file:  10
-...setting the current optimum from the current archive
-greedy selection picked GEN=3_MEMBER=256_PSO. Current infill size: 1
-...saved updated training decision variable dataset of size 121 X 50 to 'mic_gp.training.dv_pop.csv'
-...saved updated training observation dataset of size 121 X 3 to 'mic_gp.training.obs_pop.csv'
-greedy selection picked GEN=3_MEMBER=246_PSO. Current infill size: 2
-...saved updated training decision variable dataset of size 122 X 50 to 'mic_gp.training.dv_pop.csv'
-...saved updated training observation dataset of size 122 X 3 to 'mic_gp.training.obs_pop.csv'
-greedy selection picked GEN=3_MEMBER=252_PSO. Current infill size: 3
-...saved updated training decision variable dataset of size 123 X 50 to 'mic_gp.training.dv_pop.csv'
-...saved updated training observation dataset of size 123 X 3 to 'mic_gp.training.obs_pop.csv'
-greedy selection picked GEN=3_MEMBER=249_PSO. Current infill size: 4
-...saved updated training decision variable dataset of size 124 X 50 to 'mic_gp.training.dv_pop.csv'
-...saved updated training observation dataset of size 124 X 3 to 'mic_gp.training.obs_pop.csv'
-greedy selection picked GEN=3_MEMBER=261_PSO. Current infill size: 5
-...saved updated training decision variable dataset of size 125 X 50 to 'mic_gp.training.dv_pop.csv'
-...saved updated training observation dataset of size 125 X 3 to 'mic_gp.training.obs_pop.csv'
-greedy selection picked GEN=3_MEMBER=279_PSO. Current infill size: 6
-...saved updated training decision variable dataset of size 126 X 50 to 'mic_gp.training.dv_pop.csv'
-...saved updated training observation dataset of size 126 X 3 to 'mic_gp.training.obs_pop.csv'
-greedy selection picked GEN=3_MEMBER=250_PSO. Current infill size: 7
-...saved updated training decision variable dataset of size 127 X 50 to 'mic_gp.training.dv_pop.csv'
-...saved updated training observation dataset of size 127 X 3 to 'mic_gp.training.obs_pop.csv'
-greedy selection picked GEN=3_MEMBER=305_PSO. Current infill size: 8
-...saved updated training decision variable dataset of size 128 X 50 to 'mic_gp.training.dv_pop.csv'
-...saved updated training observation dataset of size 128 X 3 to 'mic_gp.training.obs_pop.csv'
-greedy selection picked GEN=3_MEMBER=291_PSO. Current infill size: 9
-...saved updated training decision variable dataset of size 129 X 50 to 'mic_gp.training.dv_pop.csv'
-...saved updated training observation dataset of size 129 X 3 to 'mic_gp.training.obs_pop.csv'
-greedy selection picked GEN=3_MEMBER=309_PSO. Current infill size: 10
-...saved updated training decision variable dataset of size 130 X 50 to 'mic_gp.training.dv_pop.csv'
-...saved updated training observation dataset of size 130 X 3 to 'mic_gp.training.obs_pop.csv'
-...resetting training dataset. Removing temporarily added emulated IO pairs
-...saved updated training decision variable dataset of size 120 X 50 to 'mic_gp.training.dv_pop.csv'
-...saved updated training observation dataset of size 120 X 3 to 'mic_gp.training.obs_pop.csv'
-greedy selection finished with 10 selected candidate infills. Continuing inner iterations...
-
-  ---  starting generation 3 :: iteration 5  ---  
-...generating PSO population of size 20
-...setting the current optimum from the current archive
-...saved inner decision variable population of size 20 X 50 to 'mic_gp.inner.dv_pop.csv'
-...saved inner-generation-specific decision variable population of size 20 X 50 to 'mic_gp.3.5.inner.dv_pop.csv'
-...saved inner observation population of size 20 X 3 to 'mic_gp.inner.obs_pop.csv'
-...saved inner-generation-specific observation population of size 20 X 3 to 'mic_gp.3.5.inner.obs_pop.csv'
-...ensemble sorting combined parent-child inner populations of size  40
-...wrote BGO ensemble summary to mic_gp.3.enbgo.summary.csv
-updating bgo pool of candidate infills
-adding 20 informative ensemble members to pool
-sorting ensemble archive of size 60
-...wrote BGO ensemble summary to mic_gp.3.enbgo.archive.summary.csv
-trimming inner archive size from 60 to max archive size 40
-...saved inner decision variable population of size 40 X 50 to 'mic_gp.inner_archive.dv_pop.csv'
-...saved inner-generation-specific decision variable population of size 40 X 50 to 'mic_gp.3.5.inner_archive.dv_pop.csv'
-...saved inner observation population of size 40 X 3 to 'mic_gp.inner_archive.obs_pop.csv'
-...saved inner-generation-specific observation population of size 40 X 3 to 'mic_gp.3.5.inner_archive.obs_pop.csv'
-...resizing current inner populations to  20
-
-  ---  starting generation 3 :: iteration 6  ---  
-...generating PSO population of size 20
-...setting the current optimum from the current archive
-...saved inner decision variable population of size 20 X 50 to 'mic_gp.inner.dv_pop.csv'
-...saved inner-generation-specific decision variable population of size 20 X 50 to 'mic_gp.3.6.inner.dv_pop.csv'
-...saved inner observation population of size 20 X 3 to 'mic_gp.inner.obs_pop.csv'
-...saved inner-generation-specific observation population of size 20 X 3 to 'mic_gp.3.6.inner.obs_pop.csv'
-...ensemble sorting combined parent-child inner populations of size  40
-...wrote BGO ensemble summary to mic_gp.3.enbgo.summary.csv
-updating bgo pool of candidate infills
-adding 20 informative ensemble members to pool
-sorting ensemble archive of size 60
-...wrote BGO ensemble summary to mic_gp.3.enbgo.archive.summary.csv
-trimming inner archive size from 60 to max archive size 40
-...saved inner decision variable population of size 40 X 50 to 'mic_gp.inner_archive.dv_pop.csv'
-...saved inner-generation-specific decision variable population of size 40 X 50 to 'mic_gp.3.6.inner_archive.dv_pop.csv'
-...saved inner observation population of size 40 X 3 to 'mic_gp.inner_archive.obs_pop.csv'
-...saved inner-generation-specific observation population of size 40 X 3 to 'mic_gp.3.6.inner_archive.obs_pop.csv'
-...resizing current inner populations to  20
-starting surrogate-assisted greedy selection of infills
-...using specified infill size from control file:  10
-...setting the current optimum from the current archive
-greedy selection picked GEN=3_MEMBER=256_PSO. Current infill size: 1
-...saved updated training decision variable dataset of size 121 X 50 to 'mic_gp.training.dv_pop.csv'
-...saved updated training observation dataset of size 121 X 3 to 'mic_gp.training.obs_pop.csv'
-greedy selection picked GEN=3_MEMBER=246_PSO. Current infill size: 2
-...saved updated training decision variable dataset of size 122 X 50 to 'mic_gp.training.dv_pop.csv'
-...saved updated training observation dataset of size 122 X 3 to 'mic_gp.training.obs_pop.csv'
-greedy selection picked GEN=3_MEMBER=252_PSO. Current infill size: 3
-...saved updated training decision variable dataset of size 123 X 50 to 'mic_gp.training.dv_pop.csv'
-...saved updated training observation dataset of size 123 X 3 to 'mic_gp.training.obs_pop.csv'
-greedy selection picked GEN=3_MEMBER=249_PSO. Current infill size: 4
-...saved updated training decision variable dataset of size 124 X 50 to 'mic_gp.training.dv_pop.csv'
-...saved updated training observation dataset of size 124 X 3 to 'mic_gp.training.obs_pop.csv'
-greedy selection picked GEN=3_MEMBER=261_PSO. Current infill size: 5
-...saved updated training decision variable dataset of size 125 X 50 to 'mic_gp.training.dv_pop.csv'
-...saved updated training observation dataset of size 125 X 3 to 'mic_gp.training.obs_pop.csv'
-greedy selection picked GEN=3_MEMBER=279_PSO. Current infill size: 6
-...saved updated training decision variable dataset of size 126 X 50 to 'mic_gp.training.dv_pop.csv'
-...saved updated training observation dataset of size 126 X 3 to 'mic_gp.training.obs_pop.csv'
-greedy selection picked GEN=3_MEMBER=250_PSO. Current infill size: 7
-...saved updated training decision variable dataset of size 127 X 50 to 'mic_gp.training.dv_pop.csv'
-...saved updated training observation dataset of size 127 X 3 to 'mic_gp.training.obs_pop.csv'
-greedy selection picked GEN=3_MEMBER=341_PSO. Current infill size: 8
-...saved updated training decision variable dataset of size 128 X 50 to 'mic_gp.training.dv_pop.csv'
-...saved updated training observation dataset of size 128 X 3 to 'mic_gp.training.obs_pop.csv'
-greedy selection picked GEN=3_MEMBER=291_PSO. Current infill size: 9
-...saved updated training decision variable dataset of size 129 X 50 to 'mic_gp.training.dv_pop.csv'
-...saved updated training observation dataset of size 129 X 3 to 'mic_gp.training.obs_pop.csv'
-greedy selection picked GEN=3_MEMBER=309_PSO. Current infill size: 10
-...saved updated training decision variable dataset of size 130 X 50 to 'mic_gp.training.dv_pop.csv'
-...saved updated training observation dataset of size 130 X 3 to 'mic_gp.training.obs_pop.csv'
-...resetting training dataset. Removing temporarily added emulated IO pairs
-...saved updated training decision variable dataset of size 120 X 50 to 'mic_gp.training.dv_pop.csv'
-...saved updated training observation dataset of size 120 X 3 to 'mic_gp.training.obs_pop.csv'
-greedy selection finished with 10 selected infills. Proceeding with complex runs...
-...running population of size  10
-...saved updated training decision variable dataset of size 130 X 50 to 'mic_gp.training.dv_pop.csv'
-...saved updated training observation dataset of size 130 X 3 to 'mic_gp.training.obs_pop.csv'
-...saved updated training decision variable dataset of size 130 X 50 to 'mic_gp.3.training.dv_pop.csv'
-...saved updated training observation dataset of size 130 X 3 to 'mic_gp.3.training.obs_pop.csv'
-...saved decision variable population of size 10 X 50 to 'mic_gp.dv_pop.csv'
-...saved generation-specific decision variable population of size 10 X 50 to 'mic_gp.3.dv_pop.csv'
-...saved observation population of size 10 X 3 to 'mic_gp.obs_pop.csv'
-...saved generation-specific observation population of size 10 X 3 to 'mic_gp.3.obs_pop.csv'
-...pareto dominance sorting combined parent-child populations of size  30
-...wrote pareto summary to mic_gp.pareto.summary.csv
-updating archive
-all nondominated members in already in archive
-...resizing current populations to  20
-
-  ---  generation 3 decision variable summary:  ---  
-decision variable        ubnd      lbnd      mean   standard devation         min         max
-X1                          5        -5   0.58597             2.16123    -3.82173           5
-X2                          5        -5   2.91317             2.76363    -2.93757           5
-X3                          5        -5  -2.79288             3.03594          -5     3.46938
-X4                          5        -5  0.300992             2.61856    -4.11585           5
-X5                          5        -5   2.65905             3.15544    -3.62006           5
-X6                          5        -5   -2.1335             3.22568          -5     3.80392
-X7                          5        -5   2.22519             3.51387     -3.9109           5
-X8                          5        -5  -1.91095             3.21293          -5     3.61776
-X9                          5        -5  0.305465             2.75862    -4.51946           5
-X10                         5        -5   3.11233             3.21956    -4.48573           5
-X11                         5        -5  -1.19879              2.9412          -5     4.92775
-X12                         5        -5  -2.25828             3.86453          -5     4.88877
-X13                         5        -5   -2.0957             2.94419          -5     3.51383
-X14                         5        -5  0.464863             3.74824          -5           5
-X15                         5        -5   2.38591              3.4192    -4.68341           5
-X16                         5        -5  -2.14508              3.2197          -5     4.20856
-X17                         5        -5  -2.73251               3.316          -5     4.45937
-X18                         5        -5 -0.357594             2.84667          -5     4.94718
-X19                         5        -5   3.10599             2.60534    -4.58316           5
-X20                         5        -5  -2.38417             3.21728          -5     4.14952
-X21                         5        -5   1.15131             2.66264    -2.74163           5
-X22                         5        -5  -2.20059              2.0968          -5     2.37303
-X23                         5        -5   2.65225             2.72756    -4.00524           5
-X24                         5        -5  -1.82896             3.25439          -5     4.52873
-X25                         5        -5    1.6473             3.87767    -4.88736           5
-X26                         5        -5  -2.25406             2.41224          -5     2.78659
-X27                         5        -5  -2.95825             2.91232          -5     3.69551
-X28                         5        -5   1.96194             3.40491          -5           5
-X29                         5        -5  0.117475             2.68686          -5     4.70643
-X30                         5        -5  -2.36084             3.39544          -5     4.73595
-X31                         5        -5   2.38817             2.30432    -3.57057           5
-X32                         5        -5   3.17412             2.66586    -4.74543           5
-X33                         5        -5   -3.1222             2.40149          -5     1.47094
-X34                         5        -5  -2.87214              3.1674          -5     4.40202
-X35                         5        -5   2.18883             2.44443    -3.18485           5
-X36                         5        -5   1.49544             2.18488    -2.75906           5
-X37                         5        -5  -1.05303             3.15663          -5      4.3399
-X38                         5        -5 -0.442326             2.26278          -5     4.25614
-X39                         5        -5   2.65136             3.23479    -4.19666           5
-X40                         5        -5  -2.25609             3.59029          -5     4.30995
-X41                         5        -5    2.6769             3.34606    -4.75596           5
-X42                         5        -5  -3.69333             2.03436          -5      1.8501
-X43                         5        -5  -2.66339             2.99097          -5     3.14688
-X44                         5        -5   3.10928             3.00739     -4.6663           5
-X45                         5        -5  -2.40984             3.28106          -5     4.95635
-X46                         5        -5   3.76668             1.52604    0.252755           5
-X47                         5        -5  -3.10906             2.88208          -5     3.90664
-X48                         5        -5  0.852931             2.23137    -4.32429     4.94117
-X49                         5        -5  -3.22502              2.4729          -5     3.58727
-X50                         5        -5   2.36809             3.19981     -4.5579           5
-
-
-  ---  generation 3 decision variable change summary:  ---  
-decision variable  mean change   % change max change   % change min change   % change
-X1                   0.0155085     2.5784          0          0          0          0
-X2                    -1.14816   -65.0507          0          0   -1.78519          0
-X3                    0.601422          0          0          0          0          0
-X4                   -0.218939   -266.824   -1.17232   -30.6275   -0.56254          0
-X5                   -0.797243   -42.8208          0          0   -1.19894          0
-X6                    0.493691          0          0          0          0          0
-X7                   -0.710415   -46.8992          0          0   -0.92168          0
-X8                    0.507411          0          0          0          0          0
-X9                    0.824739    72.9726          0          0    1.41307          0
-X10                  -0.872994   -38.9844          0          0          0          0
-X11                  -0.153977          0          0          0          0          0
-X12                   0.855163          0          0          0          0          0
-X13                    1.08846          0   0.940722    21.1182          0          0
-X14                  -0.747419          0          0          0    0.39569          0
-X15                  -0.732842   -44.3322          0          0          0          0
-X16                   0.990388          0          0          0          0          0
-X17                   0.844032          0          0          0          0          0
-X18                   0.299845          0    0.05282     1.0564          0          0
-X19                   -1.15724   -59.3833          0          0          0          0
-X20                   0.365335          0          0          0          0          0
-X21                  -0.099069   -9.41504          0          0   -0.62698          0
-X22                   0.798602          0    1.78879     42.981          0          0
-X23                   -1.55029   -140.685          0          0   -0.51692          0
-X24                   0.800057          0          0          0          0          0
-X25                  -0.548145   -49.8697          0          0          0          0
-X26                    1.16812          0    1.86867     40.141          0          0
-X27                   0.972848          0          0          0          0          0
-X28                 -0.0189985  -0.977822          0          0    0.24477          0
-X29                   0.623389    84.1435    0.17819    3.64798    1.09454          0
-X30                   0.192034          0          0          0          0          0
-X31                  -0.264555   -12.4578          0          0   -0.64815          0
-X32                   -1.02962   -48.0119          0          0          0          0
-X33                   0.680802          0    2.18807    59.7995          0          0
-X34                   0.524208          0          0          0          0          0
-X35                  -0.753037   -52.4476          0          0   -0.21528          0
-X36                  -0.707287   -89.7398          0          0          0          0
-X37                   0.128364          0          0          0          0          0
-X38                   0.727921    254.878    0.74386    14.8772    1.03413          0
-X39                  -0.856223   -47.6968          0          0          0          0
-X40                   0.546709          0          0          0          0          0
-X41                  -0.800867   -42.6894          0          0          0          0
-X42                    1.03542          0    0.31033    14.3643          0          0
-X43                   0.879863          0    0.89061    22.0585          0          0
-X44                  -0.492483   -18.8201          0          0          0          0
-X45                   0.977327          0          0          0          0          0
-X46                  -0.844852   -28.9152          0          0   -4.83955          0
-X47                   0.596862          0          0          0          0          0
-X48                   0.579809    40.4685    0.05883     1.1766          0          0
-X49                   0.584072          0          0          0          0          0
-X50                  -0.648994    -37.752          0          0          0          0
-
-
-  ---  generation 3 objective function summary:  ---  
-seeking optimal trade-off point for single 'optimal' chance point runs
-using member GEN=1_MEMBER=92_PSO as single, 'optimal' point
-   with distance of 0 from optimal trade - off
-objective function   direction         mean      std dev          min          max         knee
-
-FUNC                  minimize      -1.3106     1.173838    -3.674382    0.0540841    -3.674382
-
-
-  ---  generation 3 objective function change summary:  ---  
-objective function   mean change    % change  max change    % change  min change    % change knee change    % change
-FUNC                    0.440639           0    0.238461     81.5126           0           0           0           0
-
-...number of feasible solutions at the end of generation 3: 30
-
-  ---  starting generation  4  ---  
-...generating PSO population of size 20
-
-  ---  starting generation 4 :: iteration 1  ---  
-...setting the current optimum from the current archive
-...saved inner decision variable population of size 20 X 50 to 'mic_gp.inner.dv_pop.csv'
-...saved inner-generation-specific decision variable population of size 20 X 50 to 'mic_gp.4.1.inner.dv_pop.csv'
-...saved inner observation population of size 20 X 3 to 'mic_gp.inner.obs_pop.csv'
-...saved inner-generation-specific observation population of size 20 X 3 to 'mic_gp.4.1.inner.obs_pop.csv'
-...ensemble sorting combined parent-child inner populations of size  40
-...wrote BGO ensemble summary to mic_gp.4.enbgo.summary.csv
-updating bgo pool of candidate infills
-adding 39 informative ensemble members to pool
-sorting ensemble archive of size 40
-...wrote BGO ensemble summary to mic_gp.4.enbgo.archive.summary.csv
-...saved inner decision variable population of size 40 X 50 to 'mic_gp.inner_archive.dv_pop.csv'
-...saved inner-generation-specific decision variable population of size 40 X 50 to 'mic_gp.4.1.inner_archive.dv_pop.csv'
-...saved inner observation population of size 40 X 3 to 'mic_gp.inner_archive.obs_pop.csv'
-...saved inner-generation-specific observation population of size 40 X 3 to 'mic_gp.4.1.inner_archive.obs_pop.csv'
-...resizing current inner populations to  20
-
-  ---  starting generation 4 :: iteration 2  ---  
-...generating PSO population of size 20
-...setting the current optimum from the current archive
-...saved inner decision variable population of size 20 X 50 to 'mic_gp.inner.dv_pop.csv'
-...saved inner-generation-specific decision variable population of size 20 X 50 to 'mic_gp.4.2.inner.dv_pop.csv'
-...saved inner observation population of size 20 X 3 to 'mic_gp.inner.obs_pop.csv'
-...saved inner-generation-specific observation population of size 20 X 3 to 'mic_gp.4.2.inner.obs_pop.csv'
-...ensemble sorting combined parent-child inner populations of size  40
-...wrote BGO ensemble summary to mic_gp.4.enbgo.summary.csv
-updating bgo pool of candidate infills
-adding 20 informative ensemble members to pool
-sorting ensemble archive of size 60
-...wrote BGO ensemble summary to mic_gp.4.enbgo.archive.summary.csv
-trimming inner archive size from 60 to max archive size 40
-...saved inner decision variable population of size 40 X 50 to 'mic_gp.inner_archive.dv_pop.csv'
-...saved inner-generation-specific decision variable population of size 40 X 50 to 'mic_gp.4.2.inner_archive.dv_pop.csv'
-...saved inner observation population of size 40 X 3 to 'mic_gp.inner_archive.obs_pop.csv'
-...saved inner-generation-specific observation population of size 40 X 3 to 'mic_gp.4.2.inner_archive.obs_pop.csv'
-...resizing current inner populations to  20
-starting surrogate-assisted greedy selection of infills
-...using specified infill size from control file:  10
-...setting the current optimum from the current archive
-greedy selection picked GEN=4_MEMBER=362_PSO. Current infill size: 1
-...saved updated training decision variable dataset of size 131 X 50 to 'mic_gp.training.dv_pop.csv'
-...saved updated training observation dataset of size 131 X 3 to 'mic_gp.training.obs_pop.csv'
-greedy selection picked GEN=4_MEMBER=364_PSO. Current infill size: 2
-...saved updated training decision variable dataset of size 132 X 50 to 'mic_gp.training.dv_pop.csv'
-...saved updated training observation dataset of size 132 X 3 to 'mic_gp.training.obs_pop.csv'
-greedy selection picked GEN=4_MEMBER=372_PSO. Current infill size: 3
-...saved updated training decision variable dataset of size 133 X 50 to 'mic_gp.training.dv_pop.csv'
-...saved updated training observation dataset of size 133 X 3 to 'mic_gp.training.obs_pop.csv'
-greedy selection picked GEN=4_MEMBER=381_PSO. Current infill size: 4
-...saved updated training decision variable dataset of size 134 X 50 to 'mic_gp.training.dv_pop.csv'
-...saved updated training observation dataset of size 134 X 3 to 'mic_gp.training.obs_pop.csv'
-greedy selection picked GEN=4_MEMBER=371_PSO. Current infill size: 5
-...saved updated training decision variable dataset of size 135 X 50 to 'mic_gp.training.dv_pop.csv'
-...saved updated training observation dataset of size 135 X 3 to 'mic_gp.training.obs_pop.csv'
-greedy selection picked GEN=4_MEMBER=399_PSO. Current infill size: 6
-...saved updated training decision variable dataset of size 136 X 50 to 'mic_gp.training.dv_pop.csv'
-...saved updated training observation dataset of size 136 X 3 to 'mic_gp.training.obs_pop.csv'
-greedy selection picked GEN=4_MEMBER=367_PSO. Current infill size: 7
-...saved updated training decision variable dataset of size 137 X 50 to 'mic_gp.training.dv_pop.csv'
-...saved updated training observation dataset of size 137 X 3 to 'mic_gp.training.obs_pop.csv'
-greedy selection picked GEN=4_MEMBER=389_PSO. Current infill size: 8
-...saved updated training decision variable dataset of size 138 X 50 to 'mic_gp.training.dv_pop.csv'
-...saved updated training observation dataset of size 138 X 3 to 'mic_gp.training.obs_pop.csv'
-greedy selection picked GEN=4_MEMBER=385_PSO. Current infill size: 9
-...saved updated training decision variable dataset of size 139 X 50 to 'mic_gp.training.dv_pop.csv'
-...saved updated training observation dataset of size 139 X 3 to 'mic_gp.training.obs_pop.csv'
-greedy selection picked GEN=4_MEMBER=368_PSO. Current infill size: 10
-...saved updated training decision variable dataset of size 140 X 50 to 'mic_gp.training.dv_pop.csv'
-...saved updated training observation dataset of size 140 X 3 to 'mic_gp.training.obs_pop.csv'
-...resetting training dataset. Removing temporarily added emulated IO pairs
-...saved updated training decision variable dataset of size 130 X 50 to 'mic_gp.training.dv_pop.csv'
-...saved updated training observation dataset of size 130 X 3 to 'mic_gp.training.obs_pop.csv'
-greedy selection finished with 10 selected candidate infills. Continuing inner iterations...
-
-  ---  starting generation 4 :: iteration 3  ---  
-...generating PSO population of size 20
-...setting the current optimum from the current archive
-...saved inner decision variable population of size 20 X 50 to 'mic_gp.inner.dv_pop.csv'
-...saved inner-generation-specific decision variable population of size 20 X 50 to 'mic_gp.4.3.inner.dv_pop.csv'
-...saved inner observation population of size 20 X 3 to 'mic_gp.inner.obs_pop.csv'
-...saved inner-generation-specific observation population of size 20 X 3 to 'mic_gp.4.3.inner.obs_pop.csv'
-...ensemble sorting combined parent-child inner populations of size  40
-...wrote BGO ensemble summary to mic_gp.4.enbgo.summary.csv
-updating bgo pool of candidate infills
-adding 20 informative ensemble members to pool
-sorting ensemble archive of size 60
-...wrote BGO ensemble summary to mic_gp.4.enbgo.archive.summary.csv
-trimming inner archive size from 60 to max archive size 40
-...saved inner decision variable population of size 40 X 50 to 'mic_gp.inner_archive.dv_pop.csv'
-...saved inner-generation-specific decision variable population of size 40 X 50 to 'mic_gp.4.3.inner_archive.dv_pop.csv'
-...saved inner observation population of size 40 X 3 to 'mic_gp.inner_archive.obs_pop.csv'
-...saved inner-generation-specific observation population of size 40 X 3 to 'mic_gp.4.3.inner_archive.obs_pop.csv'
-...resizing current inner populations to  20
-
-  ---  starting generation 4 :: iteration 4  ---  
-...generating PSO population of size 20
-...setting the current optimum from the current archive
-...saved inner decision variable population of size 20 X 50 to 'mic_gp.inner.dv_pop.csv'
-...saved inner-generation-specific decision variable population of size 20 X 50 to 'mic_gp.4.4.inner.dv_pop.csv'
-...saved inner observation population of size 20 X 3 to 'mic_gp.inner.obs_pop.csv'
-...saved inner-generation-specific observation population of size 20 X 3 to 'mic_gp.4.4.inner.obs_pop.csv'
-...ensemble sorting combined parent-child inner populations of size  40
-...wrote BGO ensemble summary to mic_gp.4.enbgo.summary.csv
-updating bgo pool of candidate infills
-adding 20 informative ensemble members to pool
-sorting ensemble archive of size 60
-...wrote BGO ensemble summary to mic_gp.4.enbgo.archive.summary.csv
-trimming inner archive size from 60 to max archive size 40
-...saved inner decision variable population of size 40 X 50 to 'mic_gp.inner_archive.dv_pop.csv'
-...saved inner-generation-specific decision variable population of size 40 X 50 to 'mic_gp.4.4.inner_archive.dv_pop.csv'
-...saved inner observation population of size 40 X 3 to 'mic_gp.inner_archive.obs_pop.csv'
-...saved inner-generation-specific observation population of size 40 X 3 to 'mic_gp.4.4.inner_archive.obs_pop.csv'
-...resizing current inner populations to  20
-starting surrogate-assisted greedy selection of infills
-...using specified infill size from control file:  10
-...setting the current optimum from the current archive
-greedy selection picked GEN=4_MEMBER=362_PSO. Current infill size: 1
-...saved updated training decision variable dataset of size 131 X 50 to 'mic_gp.training.dv_pop.csv'
-...saved updated training observation dataset of size 131 X 3 to 'mic_gp.training.obs_pop.csv'
-greedy selection picked GEN=4_MEMBER=364_PSO. Current infill size: 2
-...saved updated training decision variable dataset of size 132 X 50 to 'mic_gp.training.dv_pop.csv'
-...saved updated training observation dataset of size 132 X 3 to 'mic_gp.training.obs_pop.csv'
-greedy selection picked GEN=4_MEMBER=372_PSO. Current infill size: 3
-...saved updated training decision variable dataset of size 133 X 50 to 'mic_gp.training.dv_pop.csv'
-...saved updated training observation dataset of size 133 X 3 to 'mic_gp.training.obs_pop.csv'
-greedy selection picked GEN=4_MEMBER=381_PSO. Current infill size: 4
-...saved updated training decision variable dataset of size 134 X 50 to 'mic_gp.training.dv_pop.csv'
-...saved updated training observation dataset of size 134 X 3 to 'mic_gp.training.obs_pop.csv'
-greedy selection picked GEN=4_MEMBER=371_PSO. Current infill size: 5
-...saved updated training decision variable dataset of size 135 X 50 to 'mic_gp.training.dv_pop.csv'
-...saved updated training observation dataset of size 135 X 3 to 'mic_gp.training.obs_pop.csv'
-greedy selection picked GEN=4_MEMBER=399_PSO. Current infill size: 6
-...saved updated training decision variable dataset of size 136 X 50 to 'mic_gp.training.dv_pop.csv'
-...saved updated training observation dataset of size 136 X 3 to 'mic_gp.training.obs_pop.csv'
-greedy selection picked GEN=4_MEMBER=367_PSO. Current infill size: 7
-...saved updated training decision variable dataset of size 137 X 50 to 'mic_gp.training.dv_pop.csv'
-...saved updated training observation dataset of size 137 X 3 to 'mic_gp.training.obs_pop.csv'
-greedy selection picked GEN=4_MEMBER=406_PSO. Current infill size: 8
-...saved updated training decision variable dataset of size 138 X 50 to 'mic_gp.training.dv_pop.csv'
-...saved updated training observation dataset of size 138 X 3 to 'mic_gp.training.obs_pop.csv'
-greedy selection picked GEN=4_MEMBER=425_PSO. Current infill size: 9
-...saved updated training decision variable dataset of size 139 X 50 to 'mic_gp.training.dv_pop.csv'
-...saved updated training observation dataset of size 139 X 3 to 'mic_gp.training.obs_pop.csv'
-greedy selection picked GEN=4_MEMBER=385_PSO. Current infill size: 10
-...saved updated training decision variable dataset of size 140 X 50 to 'mic_gp.training.dv_pop.csv'
-...saved updated training observation dataset of size 140 X 3 to 'mic_gp.training.obs_pop.csv'
-...resetting training dataset. Removing temporarily added emulated IO pairs
-...saved updated training decision variable dataset of size 130 X 50 to 'mic_gp.training.dv_pop.csv'
-...saved updated training observation dataset of size 130 X 3 to 'mic_gp.training.obs_pop.csv'
-greedy selection finished with 10 selected candidate infills. Continuing inner iterations...
-
-  ---  starting generation 4 :: iteration 5  ---  
-...generating PSO population of size 20
-...setting the current optimum from the current archive
-...saved inner decision variable population of size 20 X 50 to 'mic_gp.inner.dv_pop.csv'
-...saved inner-generation-specific decision variable population of size 20 X 50 to 'mic_gp.4.5.inner.dv_pop.csv'
-...saved inner observation population of size 20 X 3 to 'mic_gp.inner.obs_pop.csv'
-...saved inner-generation-specific observation population of size 20 X 3 to 'mic_gp.4.5.inner.obs_pop.csv'
-...ensemble sorting combined parent-child inner populations of size  40
-...wrote BGO ensemble summary to mic_gp.4.enbgo.summary.csv
-updating bgo pool of candidate infills
-adding 20 informative ensemble members to pool
-sorting ensemble archive of size 60
-...wrote BGO ensemble summary to mic_gp.4.enbgo.archive.summary.csv
-trimming inner archive size from 60 to max archive size 40
-...saved inner decision variable population of size 40 X 50 to 'mic_gp.inner_archive.dv_pop.csv'
-...saved inner-generation-specific decision variable population of size 40 X 50 to 'mic_gp.4.5.inner_archive.dv_pop.csv'
-...saved inner observation population of size 40 X 3 to 'mic_gp.inner_archive.obs_pop.csv'
-...saved inner-generation-specific observation population of size 40 X 3 to 'mic_gp.4.5.inner_archive.obs_pop.csv'
-...resizing current inner populations to  20
-
-  ---  starting generation 4 :: iteration 6  ---  
-...generating PSO population of size 20
-...setting the current optimum from the current archive
-...saved inner decision variable population of size 20 X 50 to 'mic_gp.inner.dv_pop.csv'
-...saved inner-generation-specific decision variable population of size 20 X 50 to 'mic_gp.4.6.inner.dv_pop.csv'
-...saved inner observation population of size 20 X 3 to 'mic_gp.inner.obs_pop.csv'
-...saved inner-generation-specific observation population of size 20 X 3 to 'mic_gp.4.6.inner.obs_pop.csv'
-...ensemble sorting combined parent-child inner populations of size  40
-...wrote BGO ensemble summary to mic_gp.4.enbgo.summary.csv
-updating bgo pool of candidate infills
-adding 20 informative ensemble members to pool
-sorting ensemble archive of size 60
-...wrote BGO ensemble summary to mic_gp.4.enbgo.archive.summary.csv
-trimming inner archive size from 60 to max archive size 40
-...saved inner decision variable population of size 40 X 50 to 'mic_gp.inner_archive.dv_pop.csv'
-...saved inner-generation-specific decision variable population of size 40 X 50 to 'mic_gp.4.6.inner_archive.dv_pop.csv'
-...saved inner observation population of size 40 X 3 to 'mic_gp.inner_archive.obs_pop.csv'
-...saved inner-generation-specific observation population of size 40 X 3 to 'mic_gp.4.6.inner_archive.obs_pop.csv'
-...resizing current inner populations to  20
-starting surrogate-assisted greedy selection of infills
-...using specified infill size from control file:  10
-...setting the current optimum from the current archive
-greedy selection picked GEN=4_MEMBER=362_PSO. Current infill size: 1
-...saved updated training decision variable dataset of size 131 X 50 to 'mic_gp.training.dv_pop.csv'
-...saved updated training observation dataset of size 131 X 3 to 'mic_gp.training.obs_pop.csv'
-greedy selection picked GEN=4_MEMBER=457_PSO. Current infill size: 2
-...saved updated training decision variable dataset of size 132 X 50 to 'mic_gp.training.dv_pop.csv'
-...saved updated training observation dataset of size 132 X 3 to 'mic_gp.training.obs_pop.csv'
-greedy selection picked GEN=4_MEMBER=372_PSO. Current infill size: 3
-...saved updated training decision variable dataset of size 133 X 50 to 'mic_gp.training.dv_pop.csv'
-...saved updated training observation dataset of size 133 X 3 to 'mic_gp.training.obs_pop.csv'
-greedy selection picked GEN=4_MEMBER=381_PSO. Current infill size: 4
-...saved updated training decision variable dataset of size 134 X 50 to 'mic_gp.training.dv_pop.csv'
-...saved updated training observation dataset of size 134 X 3 to 'mic_gp.training.obs_pop.csv'
-greedy selection picked GEN=4_MEMBER=434_PSO. Current infill size: 5
-...saved updated training decision variable dataset of size 135 X 50 to 'mic_gp.training.dv_pop.csv'
-...saved updated training observation dataset of size 135 X 3 to 'mic_gp.training.obs_pop.csv'
-greedy selection picked GEN=4_MEMBER=399_PSO. Current infill size: 6
-...saved updated training decision variable dataset of size 136 X 50 to 'mic_gp.training.dv_pop.csv'
-...saved updated training observation dataset of size 136 X 3 to 'mic_gp.training.obs_pop.csv'
-greedy selection picked GEN=4_MEMBER=479_PSO. Current infill size: 7
-...saved updated training decision variable dataset of size 137 X 50 to 'mic_gp.training.dv_pop.csv'
-...saved updated training observation dataset of size 137 X 3 to 'mic_gp.training.obs_pop.csv'
-greedy selection picked GEN=4_MEMBER=453_PSO. Current infill size: 8
-...saved updated training decision variable dataset of size 138 X 50 to 'mic_gp.training.dv_pop.csv'
-...saved updated training observation dataset of size 138 X 3 to 'mic_gp.training.obs_pop.csv'
-greedy selection picked GEN=4_MEMBER=388_PSO. Current infill size: 9
-...saved updated training decision variable dataset of size 139 X 50 to 'mic_gp.training.dv_pop.csv'
-...saved updated training observation dataset of size 139 X 3 to 'mic_gp.training.obs_pop.csv'
-greedy selection picked GEN=4_MEMBER=367_PSO. Current infill size: 10
-...saved updated training decision variable dataset of size 140 X 50 to 'mic_gp.training.dv_pop.csv'
-...saved updated training observation dataset of size 140 X 3 to 'mic_gp.training.obs_pop.csv'
-...resetting training dataset. Removing temporarily added emulated IO pairs
-...saved updated training decision variable dataset of size 130 X 50 to 'mic_gp.training.dv_pop.csv'
-...saved updated training observation dataset of size 130 X 3 to 'mic_gp.training.obs_pop.csv'
-greedy selection finished with 10 selected infills. Proceeding with complex runs...
-...running population of size  10
-...saved updated training decision variable dataset of size 140 X 50 to 'mic_gp.training.dv_pop.csv'
-...saved updated training observation dataset of size 140 X 3 to 'mic_gp.training.obs_pop.csv'
-...saved updated training decision variable dataset of size 140 X 50 to 'mic_gp.4.training.dv_pop.csv'
-...saved updated training observation dataset of size 140 X 3 to 'mic_gp.4.training.obs_pop.csv'
-...saved decision variable population of size 10 X 50 to 'mic_gp.dv_pop.csv'
-...saved generation-specific decision variable population of size 10 X 50 to 'mic_gp.4.dv_pop.csv'
-...saved observation population of size 10 X 3 to 'mic_gp.obs_pop.csv'
-...saved generation-specific observation population of size 10 X 3 to 'mic_gp.4.obs_pop.csv'
-...pareto dominance sorting combined parent-child populations of size  30
-...wrote pareto summary to mic_gp.pareto.summary.csv
-updating archive
-all nondominated members in already in archive
-...resizing current populations to  20
-
-  ---  generation 4 decision variable summary:  ---  
-decision variable        ubnd      lbnd      mean   standard devation         min         max
-X1                          5        -5  0.569369             1.95978    -3.82173      4.7322
-X2                          5        -5   3.15128             2.64947    -2.93757           5
-X3                          5        -5  -3.11275             2.76413          -5     3.46938
-X4                          5        -5 0.0961552             2.53801    -4.11585           5
-X5                          5        -5   3.09006             2.84142    -3.15483           5
-X6                          5        -5  -2.55455             2.98636          -5     3.80392
-X7                          5        -5   2.63209             3.33594     -3.9109           5
-X8                          5        -5  -2.16894             3.22506          -5     3.61776
-X9                          5        -5  0.409548             2.87155          -5           5
-X10                         5        -5   3.42394             3.08268    -4.48573           5
-X11                         5        -5   -0.9818              3.2294          -5     4.92775
-X12                         5        -5  -2.71837             3.60725          -5     4.88877
-X13                         5        -5  -2.28417             2.86841          -5     3.51383
-X14                         5        -5  0.204103             3.64405          -5     4.92186
-X15                         5        -5   2.75981             3.27261    -4.68341           5
-X16                         5        -5  -2.39697             2.98845          -5     4.20856
-X17                         5        -5  -2.80998             3.35262          -5     4.45937
-X18                         5        -5  0.193568             3.08689          -5     4.94718
-X19                         5        -5   3.48307             2.46869    -4.58316           5
-X20                         5        -5  -2.27311             3.37935          -5     4.48359
-X21                         5        -5   1.38183             2.57423    -2.74163           5
-X22                         5        -5  -2.45462             1.86266          -5     1.47176
-X23                         5        -5   2.74623              2.7017    -4.00524           5
-X24                         5        -5  -2.27066             2.98449          -5     4.52873
-X25                         5        -5     2.088             3.62708    -4.88736           5
-X26                         5        -5  -2.53182             2.31961          -5     2.78659
-X27                         5        -5  -3.35078             2.48707          -5     2.62923
-X28                         5        -5   2.27335              3.3426          -5           5
-X29                         5        -5-0.0528932             2.56448          -5     4.70643
-X30                         5        -5  -2.45889             3.19048          -5     4.73595
-X31                         5        -5   2.79457             2.42079    -3.57057           5
-X32                         5        -5   3.27993             2.69408    -4.74543           5
-X33                         5        -5  -3.28269             2.41246          -5     1.47094
-X34                         5        -5  -2.82746              3.1701          -5     4.40202
-X35                         5        -5   2.08243             2.44904    -3.18485           5
-X36                         5        -5   1.36458              2.2242    -2.75906           5
-X37                         5        -5 -0.966064             3.19974          -5      4.3399
-X38                         5        -5 -0.976503             2.23209          -5     2.97599
-X39                         5        -5   3.11119             2.86068    -3.43499           5
-X40                         5        -5    -1.855             3.69553          -5     4.30995
-X41                         5        -5   3.10517              3.0986    -4.75596           5
-X42                         5        -5  -3.70319             2.04019          -5      1.8501
-X43                         5        -5  -2.37939             3.08468          -5     3.14688
-X44                         5        -5   3.15888              3.0299     -4.6663           5
-X45                         5        -5   -2.5382             3.17275          -5     4.95635
-X46                         5        -5   3.94741             1.44523    0.252755           5
-X47                         5        -5  -3.68109             2.60565          -5     3.90664
-X48                         5        -5  0.703175             2.09842    -4.32429     4.94117
-X49                         5        -5  -3.58639             1.91648          -5    0.700779
-X50                         5        -5   2.64769             3.17315     -4.5579           5
-
-
-  ---  generation 4 decision variable change summary:  ---  
-decision variable  mean change   % change max change   % change min change   % change
-X1                   0.0166009    2.83307     0.2678      5.356          0          0
-X2                   -0.238103   -8.17331          0          0          0          0
-X3                    0.319871          0          0          0          0          0
-X4                    0.204837    68.0539          0          0          0          0
-X5                   -0.431003   -16.2089          0          0   -0.46523          0
-X6                    0.421052          0          0          0          0          0
-X7                   -0.406902   -18.2862          0          0          0          0
-X8                    0.257989          0          0          0          0          0
-X9                   -0.104084    -34.074          0          0   0.480544          0
-X10                  -0.311602   -10.0118          0          0          0          0
-X11                  -0.216994          0          0          0          0          0
-X12                   0.460085          0          0          0          0          0
-X13                   0.188472          0          0          0          0          0
-X14                    0.26076    56.0939  0.0781375    1.56275          0          0
-X15                  -0.373893   -15.6709          0          0          0          0
-X16                   0.251889          0          0          0          0          0
-X17                  0.0774691          0          0          0          0          0
-X18                  -0.551162          0          0          0          0          0
-X19                  -0.377077   -12.1403          0          0          0          0
-X20                  -0.111057          0  -0.334072   -8.05086          0          0
-X21                  -0.230515    -20.022          0          0          0          0
-X22                   0.254033          0    0.90127    37.9797          0          0
-X23                 -0.0939787   -3.54336          0          0          0          0
-X24                   0.441706          0          0          0          0          0
-X25                  -0.440704   -26.7531          0          0          0          0
-X26                   0.277752          0          0          0          0          0
-X27                    0.39253          0    1.06628    28.8534          0          0
-X28                  -0.311415   -15.8728          0          0          0          0
-X29                   0.170369    145.025          0          0          0          0
-X30                   0.098043          0          0          0          0          0
-X31                  -0.406398   -17.0171          0          0          0          0
-X32                  -0.105805   -3.33334          0          0          0          0
-X33                   0.160489          0          0          0          0          0
-X34                  -0.044682          0          0          0          0          0
-X35                   0.106394    4.86079          0          0          0          0
-X36                   0.130864    8.75087          0          0          0          0
-X37                 -0.0869651          0          0          0          0          0
-X38                   0.534177          0    1.28015    30.0777          0          0
-X39                  -0.459833   -17.3433          0          0   -0.76167          0
-X40                  -0.401089          0          0          0          0          0
-X41                  -0.428273   -15.9989          0          0          0          0
-X42                   0.009865          0          0          0          0          0
-X43                  -0.283995          0          0          0          0          0
-X44                  -0.049596    -1.5951          0          0          0          0
-X45                   0.128365          0          0          0          0          0
-X46                  -0.180725     -4.798          0          0          0          0
-X47                   0.572031          0          0          0          0          0
-X48                   0.149755    17.5577          0          0          0          0
-X49                   0.361364          0    2.88649    80.4648          0          0
-X50                  -0.279598   -11.8069          0          0          0          0
-
-
-  ---  generation 4 objective function summary:  ---  
-seeking optimal trade-off point for single 'optimal' chance point runs
-using member GEN=1_MEMBER=92_PSO as single, 'optimal' point
-   with distance of 0 from optimal trade - off
-objective function   direction         mean      std dev          min          max         knee
-
-FUNC                  minimize    -1.461282     1.065864    -3.674382   -0.2487524    -3.674382
-
-
-  ---  generation 4 objective function change summary:  ---  
-objective function   mean change    % change  max change    % change  min change    % change knee change    % change
-FUNC                    0.150681           0    0.302836     559.936           0           0           0           0
-
-...number of feasible solutions at the end of generation 4: 30
-
-  ---  starting generation  5  ---  
-...generating PSO population of size 20
-
-  ---  starting generation 5 :: iteration 1  ---  
-...setting the current optimum from the current archive
-...saved inner decision variable population of size 20 X 50 to 'mic_gp.inner.dv_pop.csv'
-...saved inner-generation-specific decision variable population of size 20 X 50 to 'mic_gp.5.1.inner.dv_pop.csv'
-...saved inner observation population of size 20 X 3 to 'mic_gp.inner.obs_pop.csv'
-...saved inner-generation-specific observation population of size 20 X 3 to 'mic_gp.5.1.inner.obs_pop.csv'
-...ensemble sorting combined parent-child inner populations of size  40
-...wrote BGO ensemble summary to mic_gp.5.enbgo.summary.csv
-updating bgo pool of candidate infills
-adding 39 informative ensemble members to pool
-sorting ensemble archive of size 40
-...wrote BGO ensemble summary to mic_gp.5.enbgo.archive.summary.csv
-...saved inner decision variable population of size 40 X 50 to 'mic_gp.inner_archive.dv_pop.csv'
-...saved inner-generation-specific decision variable population of size 40 X 50 to 'mic_gp.5.1.inner_archive.dv_pop.csv'
-...saved inner observation population of size 40 X 3 to 'mic_gp.inner_archive.obs_pop.csv'
-...saved inner-generation-specific observation population of size 40 X 3 to 'mic_gp.5.1.inner_archive.obs_pop.csv'
-...resizing current inner populations to  20
-
-  ---  starting generation 5 :: iteration 2  ---  
-...generating PSO population of size 20
-...setting the current optimum from the current archive
-...saved inner decision variable population of size 20 X 50 to 'mic_gp.inner.dv_pop.csv'
-...saved inner-generation-specific decision variable population of size 20 X 50 to 'mic_gp.5.2.inner.dv_pop.csv'
-...saved inner observation population of size 20 X 3 to 'mic_gp.inner.obs_pop.csv'
-...saved inner-generation-specific observation population of size 20 X 3 to 'mic_gp.5.2.inner.obs_pop.csv'
-...ensemble sorting combined parent-child inner populations of size  40
-...wrote BGO ensemble summary to mic_gp.5.enbgo.summary.csv
-updating bgo pool of candidate infills
-adding 20 informative ensemble members to pool
-sorting ensemble archive of size 60
-...wrote BGO ensemble summary to mic_gp.5.enbgo.archive.summary.csv
-trimming inner archive size from 60 to max archive size 40
-...saved inner decision variable population of size 40 X 50 to 'mic_gp.inner_archive.dv_pop.csv'
-...saved inner-generation-specific decision variable population of size 40 X 50 to 'mic_gp.5.2.inner_archive.dv_pop.csv'
-...saved inner observation population of size 40 X 3 to 'mic_gp.inner_archive.obs_pop.csv'
-...saved inner-generation-specific observation population of size 40 X 3 to 'mic_gp.5.2.inner_archive.obs_pop.csv'
-...resizing current inner populations to  20
-starting surrogate-assisted greedy selection of infills
-...using specified infill size from control file:  10
-...setting the current optimum from the current archive
-greedy selection picked GEN=5_MEMBER=518_PSO. Current infill size: 1
-...saved updated training decision variable dataset of size 141 X 50 to 'mic_gp.training.dv_pop.csv'
-...saved updated training observation dataset of size 141 X 3 to 'mic_gp.training.obs_pop.csv'
-greedy selection picked GEN=5_MEMBER=497_PSO. Current infill size: 2
-...saved updated training decision variable dataset of size 142 X 50 to 'mic_gp.training.dv_pop.csv'
-...saved updated training observation dataset of size 142 X 3 to 'mic_gp.training.obs_pop.csv'
-greedy selection picked GEN=5_MEMBER=515_PSO. Current infill size: 3
-...saved updated training decision variable dataset of size 143 X 50 to 'mic_gp.training.dv_pop.csv'
-...saved updated training observation dataset of size 143 X 3 to 'mic_gp.training.obs_pop.csv'
-greedy selection picked GEN=5_MEMBER=491_PSO. Current infill size: 4
-...saved updated training decision variable dataset of size 144 X 50 to 'mic_gp.training.dv_pop.csv'
-...saved updated training observation dataset of size 144 X 3 to 'mic_gp.training.obs_pop.csv'
-greedy selection picked GEN=5_MEMBER=504_PSO. Current infill size: 5
-...saved updated training decision variable dataset of size 145 X 50 to 'mic_gp.training.dv_pop.csv'
-...saved updated training observation dataset of size 145 X 3 to 'mic_gp.training.obs_pop.csv'
-greedy selection picked GEN=5_MEMBER=490_PSO. Current infill size: 6
-...saved updated training decision variable dataset of size 146 X 50 to 'mic_gp.training.dv_pop.csv'
-...saved updated training observation dataset of size 146 X 3 to 'mic_gp.training.obs_pop.csv'
-greedy selection picked GEN=5_MEMBER=505_PSO. Current infill size: 7
-...saved updated training decision variable dataset of size 147 X 50 to 'mic_gp.training.dv_pop.csv'
-...saved updated training observation dataset of size 147 X 3 to 'mic_gp.training.obs_pop.csv'
-greedy selection picked GEN=5_MEMBER=500_PSO. Current infill size: 8
-...saved updated training decision variable dataset of size 148 X 50 to 'mic_gp.training.dv_pop.csv'
-...saved updated training observation dataset of size 148 X 3 to 'mic_gp.training.obs_pop.csv'
-greedy selection picked GEN=5_MEMBER=517_PSO. Current infill size: 9
-...saved updated training decision variable dataset of size 149 X 50 to 'mic_gp.training.dv_pop.csv'
-...saved updated training observation dataset of size 149 X 3 to 'mic_gp.training.obs_pop.csv'
-greedy selection picked GEN=5_MEMBER=503_PSO. Current infill size: 10
-...saved updated training decision variable dataset of size 150 X 50 to 'mic_gp.training.dv_pop.csv'
-...saved updated training observation dataset of size 150 X 3 to 'mic_gp.training.obs_pop.csv'
-...resetting training dataset. Removing temporarily added emulated IO pairs
-...saved updated training decision variable dataset of size 140 X 50 to 'mic_gp.training.dv_pop.csv'
-...saved updated training observation dataset of size 140 X 3 to 'mic_gp.training.obs_pop.csv'
-greedy selection finished with 10 selected candidate infills. Continuing inner iterations...
-
-  ---  starting generation 5 :: iteration 3  ---  
-...generating PSO population of size 20
-...setting the current optimum from the current archive
-...saved inner decision variable population of size 20 X 50 to 'mic_gp.inner.dv_pop.csv'
-...saved inner-generation-specific decision variable population of size 20 X 50 to 'mic_gp.5.3.inner.dv_pop.csv'
-...saved inner observation population of size 20 X 3 to 'mic_gp.inner.obs_pop.csv'
-...saved inner-generation-specific observation population of size 20 X 3 to 'mic_gp.5.3.inner.obs_pop.csv'
-...ensemble sorting combined parent-child inner populations of size  40
-...wrote BGO ensemble summary to mic_gp.5.enbgo.summary.csv
-updating bgo pool of candidate infills
-adding 20 informative ensemble members to pool
-sorting ensemble archive of size 60
-...wrote BGO ensemble summary to mic_gp.5.enbgo.archive.summary.csv
-trimming inner archive size from 60 to max archive size 40
-...saved inner decision variable population of size 40 X 50 to 'mic_gp.inner_archive.dv_pop.csv'
-...saved inner-generation-specific decision variable population of size 40 X 50 to 'mic_gp.5.3.inner_archive.dv_pop.csv'
-...saved inner observation population of size 40 X 3 to 'mic_gp.inner_archive.obs_pop.csv'
-...saved inner-generation-specific observation population of size 40 X 3 to 'mic_gp.5.3.inner_archive.obs_pop.csv'
-...resizing current inner populations to  20
-
-  ---  starting generation 5 :: iteration 4  ---  
-...generating PSO population of size 20
-...setting the current optimum from the current archive
-...saved inner decision variable population of size 20 X 50 to 'mic_gp.inner.dv_pop.csv'
-...saved inner-generation-specific decision variable population of size 20 X 50 to 'mic_gp.5.4.inner.dv_pop.csv'
-...saved inner observation population of size 20 X 3 to 'mic_gp.inner.obs_pop.csv'
-...saved inner-generation-specific observation population of size 20 X 3 to 'mic_gp.5.4.inner.obs_pop.csv'
-...ensemble sorting combined parent-child inner populations of size  40
-...wrote BGO ensemble summary to mic_gp.5.enbgo.summary.csv
-updating bgo pool of candidate infills
-adding 20 informative ensemble members to pool
-sorting ensemble archive of size 60
-...wrote BGO ensemble summary to mic_gp.5.enbgo.archive.summary.csv
-trimming inner archive size from 60 to max archive size 40
-...saved inner decision variable population of size 40 X 50 to 'mic_gp.inner_archive.dv_pop.csv'
-...saved inner-generation-specific decision variable population of size 40 X 50 to 'mic_gp.5.4.inner_archive.dv_pop.csv'
-...saved inner observation population of size 40 X 3 to 'mic_gp.inner_archive.obs_pop.csv'
-...saved inner-generation-specific observation population of size 40 X 3 to 'mic_gp.5.4.inner_archive.obs_pop.csv'
-...resizing current inner populations to  20
-starting surrogate-assisted greedy selection of infills
-...using specified infill size from control file:  10
-...setting the current optimum from the current archive
-greedy selection picked GEN=5_MEMBER=542_PSO. Current infill size: 1
-...saved updated training decision variable dataset of size 141 X 50 to 'mic_gp.training.dv_pop.csv'
-...saved updated training observation dataset of size 141 X 3 to 'mic_gp.training.obs_pop.csv'
-greedy selection picked GEN=5_MEMBER=494_PSO. Current infill size: 2
-...saved updated training decision variable dataset of size 142 X 50 to 'mic_gp.training.dv_pop.csv'
-...saved updated training observation dataset of size 142 X 3 to 'mic_gp.training.obs_pop.csv'
-greedy selection picked GEN=5_MEMBER=518_PSO. Current infill size: 3
-...saved updated training decision variable dataset of size 143 X 50 to 'mic_gp.training.dv_pop.csv'
-...saved updated training observation dataset of size 143 X 3 to 'mic_gp.training.obs_pop.csv'
-greedy selection picked GEN=5_MEMBER=555_PSO. Current infill size: 4
-...saved updated training decision variable dataset of size 144 X 50 to 'mic_gp.training.dv_pop.csv'
-...saved updated training observation dataset of size 144 X 3 to 'mic_gp.training.obs_pop.csv'
-greedy selection picked GEN=5_MEMBER=552_PSO. Current infill size: 5
-...saved updated training decision variable dataset of size 145 X 50 to 'mic_gp.training.dv_pop.csv'
-...saved updated training observation dataset of size 145 X 3 to 'mic_gp.training.obs_pop.csv'
-greedy selection picked GEN=5_MEMBER=497_PSO. Current infill size: 6
-...saved updated training decision variable dataset of size 146 X 50 to 'mic_gp.training.dv_pop.csv'
-...saved updated training observation dataset of size 146 X 3 to 'mic_gp.training.obs_pop.csv'
-greedy selection picked GEN=5_MEMBER=492_PSO. Current infill size: 7
-...saved updated training decision variable dataset of size 147 X 50 to 'mic_gp.training.dv_pop.csv'
-...saved updated training observation dataset of size 147 X 3 to 'mic_gp.training.obs_pop.csv'
-greedy selection picked GEN=5_MEMBER=540_PSO. Current infill size: 8
-...saved updated training decision variable dataset of size 148 X 50 to 'mic_gp.training.dv_pop.csv'
-...saved updated training observation dataset of size 148 X 3 to 'mic_gp.training.obs_pop.csv'
-greedy selection picked GEN=5_MEMBER=548_PSO. Current infill size: 9
-...saved updated training decision variable dataset of size 149 X 50 to 'mic_gp.training.dv_pop.csv'
-...saved updated training observation dataset of size 149 X 3 to 'mic_gp.training.obs_pop.csv'
-greedy selection picked GEN=5_MEMBER=503_PSO. Current infill size: 10
-...saved updated training decision variable dataset of size 150 X 50 to 'mic_gp.training.dv_pop.csv'
-...saved updated training observation dataset of size 150 X 3 to 'mic_gp.training.obs_pop.csv'
-...resetting training dataset. Removing temporarily added emulated IO pairs
-...saved updated training decision variable dataset of size 140 X 50 to 'mic_gp.training.dv_pop.csv'
-...saved updated training observation dataset of size 140 X 3 to 'mic_gp.training.obs_pop.csv'
-greedy selection finished with 10 selected candidate infills. Continuing inner iterations...
-
-  ---  starting generation 5 :: iteration 5  ---  
-...generating PSO population of size 20
-...setting the current optimum from the current archive
-...saved inner decision variable population of size 20 X 50 to 'mic_gp.inner.dv_pop.csv'
-...saved inner-generation-specific decision variable population of size 20 X 50 to 'mic_gp.5.5.inner.dv_pop.csv'
-...saved inner observation population of size 20 X 3 to 'mic_gp.inner.obs_pop.csv'
-...saved inner-generation-specific observation population of size 20 X 3 to 'mic_gp.5.5.inner.obs_pop.csv'
-...ensemble sorting combined parent-child inner populations of size  40
-...wrote BGO ensemble summary to mic_gp.5.enbgo.summary.csv
-updating bgo pool of candidate infills
-adding 20 informative ensemble members to pool
-sorting ensemble archive of size 60
-...wrote BGO ensemble summary to mic_gp.5.enbgo.archive.summary.csv
-trimming inner archive size from 60 to max archive size 40
-...saved inner decision variable population of size 40 X 50 to 'mic_gp.inner_archive.dv_pop.csv'
-...saved inner-generation-specific decision variable population of size 40 X 50 to 'mic_gp.5.5.inner_archive.dv_pop.csv'
-...saved inner observation population of size 40 X 3 to 'mic_gp.inner_archive.obs_pop.csv'
-...saved inner-generation-specific observation population of size 40 X 3 to 'mic_gp.5.5.inner_archive.obs_pop.csv'
-...resizing current inner populations to  20
-
-  ---  starting generation 5 :: iteration 6  ---  
-...generating PSO population of size 20
-...setting the current optimum from the current archive
-...saved inner decision variable population of size 20 X 50 to 'mic_gp.inner.dv_pop.csv'
-...saved inner-generation-specific decision variable population of size 20 X 50 to 'mic_gp.5.6.inner.dv_pop.csv'
-...saved inner observation population of size 20 X 3 to 'mic_gp.inner.obs_pop.csv'
-...saved inner-generation-specific observation population of size 20 X 3 to 'mic_gp.5.6.inner.obs_pop.csv'
-...ensemble sorting combined parent-child inner populations of size  40
-...wrote BGO ensemble summary to mic_gp.5.enbgo.summary.csv
-updating bgo pool of candidate infills
-adding 20 informative ensemble members to pool
-sorting ensemble archive of size 60
-...wrote BGO ensemble summary to mic_gp.5.enbgo.archive.summary.csv
-trimming inner archive size from 60 to max archive size 40
-...saved inner decision variable population of size 40 X 50 to 'mic_gp.inner_archive.dv_pop.csv'
-...saved inner-generation-specific decision variable population of size 40 X 50 to 'mic_gp.5.6.inner_archive.dv_pop.csv'
-...saved inner observation population of size 40 X 3 to 'mic_gp.inner_archive.obs_pop.csv'
-...saved inner-generation-specific observation population of size 40 X 3 to 'mic_gp.5.6.inner_archive.obs_pop.csv'
-...resizing current inner populations to  20
-starting surrogate-assisted greedy selection of infills
-...using specified infill size from control file:  10
-...setting the current optimum from the current archive
-greedy selection picked GEN=5_MEMBER=542_PSO. Current infill size: 1
-...saved updated training decision variable dataset of size 141 X 50 to 'mic_gp.training.dv_pop.csv'
-...saved updated training observation dataset of size 141 X 3 to 'mic_gp.training.obs_pop.csv'
-greedy selection picked GEN=5_MEMBER=494_PSO. Current infill size: 2
-...saved updated training decision variable dataset of size 142 X 50 to 'mic_gp.training.dv_pop.csv'
-...saved updated training observation dataset of size 142 X 3 to 'mic_gp.training.obs_pop.csv'
-greedy selection picked GEN=5_MEMBER=562_PSO. Current infill size: 3
-...saved updated training decision variable dataset of size 143 X 50 to 'mic_gp.training.dv_pop.csv'
-...saved updated training observation dataset of size 143 X 3 to 'mic_gp.training.obs_pop.csv'
-greedy selection picked GEN=5_MEMBER=555_PSO. Current infill size: 4
-...saved updated training decision variable dataset of size 144 X 50 to 'mic_gp.training.dv_pop.csv'
-...saved updated training observation dataset of size 144 X 3 to 'mic_gp.training.obs_pop.csv'
-greedy selection picked GEN=5_MEMBER=500_PSO. Current infill size: 5
-...saved updated training decision variable dataset of size 145 X 50 to 'mic_gp.training.dv_pop.csv'
-...saved updated training observation dataset of size 145 X 3 to 'mic_gp.training.obs_pop.csv'
-greedy selection picked GEN=5_MEMBER=561_PSO. Current infill size: 6
-...saved updated training decision variable dataset of size 146 X 50 to 'mic_gp.training.dv_pop.csv'
-...saved updated training observation dataset of size 146 X 3 to 'mic_gp.training.obs_pop.csv'
-greedy selection picked GEN=5_MEMBER=568_PSO. Current infill size: 7
-...saved updated training decision variable dataset of size 147 X 50 to 'mic_gp.training.dv_pop.csv'
-...saved updated training observation dataset of size 147 X 3 to 'mic_gp.training.obs_pop.csv'
-greedy selection picked GEN=5_MEMBER=584_PSO. Current infill size: 8
-...saved updated training decision variable dataset of size 148 X 50 to 'mic_gp.training.dv_pop.csv'
-...saved updated training observation dataset of size 148 X 3 to 'mic_gp.training.obs_pop.csv'
-greedy selection picked GEN=5_MEMBER=565_PSO. Current infill size: 9
-...saved updated training decision variable dataset of size 149 X 50 to 'mic_gp.training.dv_pop.csv'
-...saved updated training observation dataset of size 149 X 3 to 'mic_gp.training.obs_pop.csv'
-greedy selection picked GEN=5_MEMBER=518_PSO. Current infill size: 10
-...saved updated training decision variable dataset of size 150 X 50 to 'mic_gp.training.dv_pop.csv'
-...saved updated training observation dataset of size 150 X 3 to 'mic_gp.training.obs_pop.csv'
-...resetting training dataset. Removing temporarily added emulated IO pairs
-...saved updated training decision variable dataset of size 140 X 50 to 'mic_gp.training.dv_pop.csv'
-...saved updated training observation dataset of size 140 X 3 to 'mic_gp.training.obs_pop.csv'
-greedy selection finished with 10 selected infills. Proceeding with complex runs...
-...running population of size  10
-...saved updated training decision variable dataset of size 150 X 50 to 'mic_gp.training.dv_pop.csv'
-...saved updated training observation dataset of size 150 X 3 to 'mic_gp.training.obs_pop.csv'
-...saved updated training decision variable dataset of size 150 X 50 to 'mic_gp.5.training.dv_pop.csv'
-...saved updated training observation dataset of size 150 X 3 to 'mic_gp.5.training.obs_pop.csv'
-...saved decision variable population of size 10 X 50 to 'mic_gp.dv_pop.csv'
-...saved generation-specific decision variable population of size 10 X 50 to 'mic_gp.5.dv_pop.csv'
-...saved observation population of size 10 X 3 to 'mic_gp.obs_pop.csv'
-...saved generation-specific observation population of size 10 X 3 to 'mic_gp.5.obs_pop.csv'
-...pareto dominance sorting combined parent-child populations of size  30
-...wrote pareto summary to mic_gp.pareto.summary.csv
-updating archive
-all nondominated members in already in archive
-...resizing current populations to  20
-
-  ---  generation 5 decision variable summary:  ---  
-decision variable        ubnd      lbnd      mean   standard devation         min         max
-X1                          5        -5   0.40206             2.01772    -3.82173      4.7322
-X2                          5        -5   3.30195             2.48868    -2.93757           5
-X3                          5        -5  -3.21761             2.64035          -5     2.21103
-X4                          5        -5 -0.264662             2.78086    -4.53754           5
-X5                          5        -5   3.03576             2.84543    -3.15483           5
-X6                          5        -5  -2.64054             2.95543          -5     3.80392
-X7                          5        -5   2.72889             3.19668     -3.9109           5
-X8                          5        -5    -2.397             3.36428          -5           5
-X9                          5        -5  0.552047             3.01548          -5           5
-X10                         5        -5   3.29124             3.06646    -4.48573           5
-X11                         5        -5  -1.31372             2.71535          -5     4.92775
-X12                         5        -5  -3.21281             3.18349          -5     4.73971
-X13                         5        -5  -2.84756             2.78973          -5     3.51383
-X14                         5        -5 -0.362413             3.72374          -5     4.92186
-X15                         5        -5   3.12533               3.089    -4.68341           5
-X16                         5        -5    -2.493             2.93186          -5     4.20856
-X17                         5        -5  -2.95872             3.38038          -5     4.45937
-X18                         5        -5 -0.780828             3.43149          -5     4.94718
-X19                         5        -5   3.42333             2.54265    -4.58316           5
-X20                         5        -5  -2.74127             3.04984          -5     4.14952
-X21                         5        -5   1.61132             2.65083    -2.74163           5
-X22                         5        -5  -2.38251             1.88725          -5     1.47176
-X23                         5        -5   2.81747             2.71263    -4.00524           5
-X24                         5        -5  -2.34192             3.17346          -5     4.52873
-X25                         5        -5   1.80205             3.82946          -5           5
-X26                         5        -5  -2.48719             2.39163          -5     2.78659
-X27                         5        -5  -3.46381             2.53173          -5     2.62923
-X28                         5        -5   2.11411             3.29924          -5           5
-X29                         5        -5 -0.695794             3.11604          -5           5
-X30                         5        -5  -2.55602             2.99003          -5     4.73595
-X31                         5        -5   3.17566             1.96062    -2.12906           5
-X32                         5        -5   3.58615              2.5184    -4.74543           5
-X33                         5        -5    -3.103             2.88828          -5     3.76425
-X34                         5        -5  -3.27496             3.12603          -5     4.40202
-X35                         5        -5   2.43322             2.48687    -3.18485           5
-X36                         5        -5   1.88913             2.39722    -2.75906           5
-X37                         5        -5  -1.18297             3.34632          -5           5
-X38                         5        -5  -1.54069             2.40498          -5     2.97599
-X39                         5        -5   2.94377             2.94863    -3.43499           5
-X40                         5        -5  -2.00261             3.60455          -5      4.7829
-X41                         5        -5   3.35895             3.03489    -4.75596           5
-X42                         5        -5  -3.95115             1.87084          -5      1.8501
-X43                         5        -5  -2.83077             2.94606          -5     3.14688
-X44                         5        -5   3.23954             3.05625     -4.6663           5
-X45                         5        -5  -2.56717             3.39167          -5           5
-X46                         5        -5   3.99188             1.45706    0.252755           5
-X47                         5        -5  -4.09018             2.09468          -5     3.90664
-X48                         5        -5   1.07413             2.75537          -5           5
-X49                         5        -5  -3.68314             1.95655          -5    0.700779
-X50                         5        -5   2.44415              3.4854          -5           5
-
-
-  ---  generation 5 decision variable change summary:  ---  
-decision variable  mean change   % change max change   % change min change   % change
-X1                    0.167309    29.3851          0          0          0          0
-X2                   -0.150678   -4.78149          0          0          0          0
-X3                    0.104854          0    1.25835    36.2702          0          0
-X4                    0.360817    375.244          0          0   0.421688          0
-X5                   0.0543011    1.75728          0          0          0          0
-X6                   0.0859858          0          0          0          0          0
-X7                  -0.0968023   -3.67778          0          0          0          0
-X8                    0.228055          0   -1.38224   -38.2071          0          0
-X9                   -0.142498    -34.794          0          0          0          0
-X10                   0.132695     3.8755          0          0          0          0
-X11                   0.331916          0          0          0          0          0
-X12                   0.494438          0    0.14906    3.04903          0          0
-X13                   0.563393          0          0          0          0          0
-X14                   0.566517    277.563          0          0          0          0
-X15                  -0.365526   -13.2446          0          0          0          0
-X16                  0.0960304          0          0          0          0          0
-X17                   0.148734          0          0          0          0          0
-X18                   0.974396    503.387          0          0          0          0
-X19                  0.0597406    1.71517          0          0          0          0
-X20                   0.468163          0   0.334072    7.45099          0          0
-X21                  -0.229493   -16.6079          0          0          0          0
-X22                  -0.072112          0          0          0          0          0
-X23                 -0.0712492   -2.59444          0          0          0          0
-X24                  0.0712579          0          0          0          0          0
-X25                   0.285953    13.6951          0          0    0.11264          0
-X26                 -0.0446268          0          0          0          0          0
-X27                   0.113025          0          0          0          0          0
-X28                   0.159248    7.00496          0          0          0          0
-X29                   0.642901          0   -0.29357   -6.23764          0          0
-X30                  0.0971351          0          0          0          0          0
-X31                   -0.38109   -13.6368          0          0   -1.44151          0
-X32                  -0.306218   -9.33612          0          0          0          0
-X33                  -0.179687          0   -2.29331   -155.908          0          0
-X34                     0.4475          0          0          0          0          0
-X35                  -0.350785    -16.845          0          0          0          0
-X36                  -0.524557    -38.441          0          0          0          0
-X37                   0.216907          0    -0.6601     -15.21          0          0
-X38                   0.564189          0          0          0          0          0
-X39                   0.167425    5.38139          0          0          0          0
-X40                    0.14761          0  -0.472949   -10.9734          0          0
-X41                  -0.253778   -8.17274          0          0          0          0
-X42                   0.247954          0          0          0          0          0
-X43                    0.45138          0          0          0          0          0
-X44                 -0.0806635   -2.55355          0          0          0          0
-X45                   0.028963          0   -0.04365  -0.880688          0          0
-X46                 -0.0444712   -1.12659          0          0          0          0
-X47                   0.409095          0          0          0          0          0
-X48                  -0.370953    -52.754   -0.05883   -1.19061    0.67571          0
-X49                  0.0967528          0          0          0          0          0
-X50                   0.203538    7.68739          0          0     0.4421          0
-
-
-  ---  generation 5 objective function summary:  ---  
-seeking optimal trade-off point for single 'optimal' chance point runs
-using member GEN=1_MEMBER=92_PSO as single, 'optimal' point
-   with distance of 0 from optimal trade - off
-objective function   direction         mean      std dev          min          max         knee
-
-FUNC                  minimize     -1.69037    0.9419752    -3.674382    -0.526775    -3.674382
-
-
-  ---  generation 5 objective function change summary:  ---  
-objective function   mean change    % change  max change    % change  min change    % change knee change    % change
-FUNC                    0.229089           0    0.278023           0           0           0           0           0
-
-...number of feasible solutions at the end of generation 5: 30
-
-
-pestpp-mou analysis complete...
-started at 10/21/24 05:53:49
-finished at 10/21/24 06:44:50
-took 51 minutes
