@@ -100,12 +100,12 @@ gen=0_member=97,2.88202,0,0
 gen=0_member=98,0.107052,0,0
 gen=0_member=99,-0.705846,0,0
 gen=1_member=0_pso,3.06711,0,0
-gen=1_member=115_pso,1.74587,0,0
+gen=1_member=78_pso,1.45574,0,0
+gen=1_member=61_pso,1.89647,0,0
 gen=1_member=50_pso,1.1536,0,0
 gen=1_member=11_pso,1.50383,0,0
-gen=1_member=104_pso,3.53767,0,0
-gen=1_member=27_pso,3.05309,0,0
-gen=1_member=92_pso,-3.67438,0,0
 gen=1_member=56_pso,3.36822,0,0
-gen=1_member=29_pso,1.60982,0,0
+gen=1_member=27_pso,3.05309,0,0
+gen=1_member=44_pso,1.43665,0,0
+gen=1_member=18_pso,2.23565,0,0
 gen=1_member=42_pso,0.171646,0,0

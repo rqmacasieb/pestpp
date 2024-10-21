@@ -7165,10 +7165,20 @@ void MOEA::get_current_true_solution()
 	}//TO DO: what if the true solution is obtained from the initial ensemble that follows a PBM evaluation -- this is not a problem for now
 	else
 	{
-		message(1, "setting the current optimum from the current archive");
-
+		string name;
+		double val;
 		curr_opt = objectives.get_members(op_archive, dp_archive);
+		for (auto m : curr_opt)
+		{
+			name = m.first;
+			map<string, double> v = m.second;
+			for (auto o : obs_obj_names)
+				val= v[o];
+		}
 		
+		stringstream ss;
+		ss << "setting the current optimum from the current archive member " << name << ": function value = " << val;
+		message(1, ss.str());
 		/*stringstream ss;
 		ofstream& frec = file_manager.rec_ofstream();
 		ss << "Current optimum member: ";
