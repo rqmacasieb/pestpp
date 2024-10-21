@@ -1,10 +1,7 @@
 real_name,func,func_sd,ei
-gen=2_member=95_pso,-0.0395655,1.81923,0.0149226
-gen=2_member=111_pso,-0.00834849,1.84519,0.0156062
-gen=2_member=117_pso,0.0440004,1.87388,0.0159643
-gen=2_member=98_pso,-0.134777,1.85377,0.0192497
-gen=2_member=113_pso,-0.00149128,1.91087,0.0192148
-gen=2_member=96_pso,-0.595214,1.70793,0.0232578
+gen=1_member=19_pso,-0.445857,1.67856,0.0167356
+gen=1_member=11_pso,-0.58234,1.64974,0.018685
+gen=1_member=0_pso,-1.3094,1.59557,0.0468517
 gen=0_member=0,-1.35053,0,0
 gen=0_member=1,1.51326,0,0
 gen=0_member=2,0.325544,0,0
@@ -105,13 +102,3 @@ gen=0_member=96,-1.03503,0,0
 gen=0_member=97,2.88202,0,0
 gen=0_member=98,0.107052,0,0
 gen=0_member=99,-0.705846,0,0
-gen=1_member=0_pso,3.06711,0,0
-gen=1_member=78_pso,1.45574,0,0
-gen=1_member=61_pso,1.89647,0,0
-gen=1_member=50_pso,1.1536,0,0
-gen=1_member=11_pso,1.50383,0,0
-gen=1_member=56_pso,3.36822,0,0
-gen=1_member=27_pso,3.05309,0,0
-gen=1_member=44_pso,1.43665,0,0
-gen=1_member=18_pso,2.23565,0,0
-gen=1_member=42_pso,0.171646,0,0

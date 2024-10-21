@@ -448,6 +448,7 @@ void ParetoObjectives::update_bgo_ensemble(ObservationEnsemble& op, ParameterEns
 	drop_duplicates(member_struct);
 
 	bgo_ensemble_struct = get_bgo_ensemble_struct(member_struct);
+	drop_duplicates(bgo_ensemble_struct);
 
 	if (member_struct.size() == 0)
 		throw runtime_error("ParetoObjectives error: member_struct is empty");
@@ -2896,12 +2897,11 @@ void MOEA::update_archive_bgo(ObservationEnsemble& _op, ParameterEnsemble& _dp)
 		ss << iter << "." << BGO_ARC_SUM_TAG;
 		DomPair dompair = objectives.get_bgo_ensemble(inner_iter, iop_archive, idp_archive, &constraints, true, ss.str());
 
-		/*ss.str("");
-		ss << "resizing inner archive from " << iop_archive.shape().first << " to " << dompair.first.size()
+		/*ss << "resizing inner archive from " << iop_archive.shape().first << " to " << dompair.first.size()
 			<< " current informative solutions";
 		message(2, ss.str());*/
-		iop_archive.keep_rows(dompair.first);
-		idp_archive.keep_rows(dompair.first);
+		/*iop_archive.keep_rows(dompair.first);
+		idp_archive.keep_rows(dompair.first);*/
 	}
 
 	if (iop_archive.shape().first > infill_pool_size)
@@ -5144,13 +5144,13 @@ void MOEA::greedy_selection()
 	ObservationEnsemble otemp = ot, cop = iop_archive, op_pool;
 	stringstream ss;
 	vector<string> keep, picks;
+	vector<string> current_infill_names = dp_infill.get_real_names(), current_dt_names = dt.get_real_names();
 
 	if (dp_infill.shape().first != 0)
 	{
 		vector<string> cand_names = cdp.get_real_names();
-		vector<string> infill_names = dp_infill.get_real_names();
 		vector<string> names;
-		for (auto d : infill_names)
+		for (auto d : current_infill_names)
 		{
 			if (find(cand_names.begin(), cand_names.end(), d) == cand_names.end())
 				names.push_back(d);
@@ -5198,10 +5198,36 @@ void MOEA::greedy_selection()
 		stringstream greedyselc_sumtag;
 		greedyselc_sumtag << iter << "." << BGO_SELECTION_SUM_TAG;
 		DomPair dompair = objectives.get_bgo_ensemble(count, cop, cdp, &constraints, true, greedyselc_sumtag.str());
-		string pick_name = dompair.first[0];
-		picks.push_back(pick_name);
+		
 
-		keep = dtemp.get_real_names();
+		string pick_name;
+		int i = 0;
+		bool terminate = false;
+		while (true)
+		{
+			pick_name = dompair.first[i];
+			if (find(current_dt_names.begin(), current_dt_names.end(), pick_name) == current_dt_names.end())
+			{
+				picks.push_back(pick_name);
+				break;
+			}
+			i++;
+
+			if (i >= dompair.first.size())
+			{
+				if (picks.size() == 0)
+				{
+					message(1, "all candidate infills have already been selected. Terminating greedy search and proceeding...");
+					return;
+				}
+				else
+				{
+					message(1, "not enough candidate infills to fill the required infill size. Proceeding anyway...");
+					break;
+				}
+			}
+		}
+
 		pick = cdp.get_eigen(vector<string>{pick_name}, vector<string>());
 		ParameterEnsemble new_dt(&pest_scenario, &rand_gen, pick, { pick_name }, idp.get_var_names());
 		new_dt.append_other_rows(dtemp);
@@ -5217,7 +5243,6 @@ void MOEA::greedy_selection()
 		}
 		cdp.keep_rows(keep);
 
-		keep = otemp.get_real_names();
 		pick = cop.get_eigen(vector<string>{pick_name}, vector<string>());
 		ObservationEnsemble new_ot(&pest_scenario, &rand_gen, pick, { pick_name }, iop.get_var_names());
 		new_ot.append_other_rows(otemp);
