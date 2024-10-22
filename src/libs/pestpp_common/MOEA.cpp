@@ -420,7 +420,7 @@ void ParetoObjectives::get_spea2_archive_names_to_keep(int num_members, vector<s
 void ParetoObjectives::update_bgo_ensemble(ObservationEnsemble& op, ParameterEnsemble& dp, Constraints* constraints_ptr)
 {
 	stringstream ss;
-	ss << "ParetoObjectives::update() for  " << op.shape().first << " population members";
+	ss << "ParetoObjectives::update_bgo_ensemble() for  " << op.shape().first << " population members";
 	performance_log->log_event(ss.str());
 	performance_log->log_event("preparing fast-lookup containers");
 
@@ -448,7 +448,6 @@ void ParetoObjectives::update_bgo_ensemble(ObservationEnsemble& op, ParameterEns
 	drop_duplicates(member_struct);
 
 	bgo_ensemble_struct = get_bgo_ensemble_struct(member_struct);
-	drop_duplicates(bgo_ensemble_struct);
 
 	if (member_struct.size() == 0)
 		throw runtime_error("ParetoObjectives error: member_struct is empty");
@@ -7202,7 +7201,7 @@ void MOEA::get_current_true_solution()
 		}
 		
 		stringstream ss;
-		ss << "setting the current optimum from the current archive member " << name << ": function value = " << val;
+		ss << "setting the current optimum at the current archive member " << name << ": " << val;
 		message(1, ss.str());
 		/*stringstream ss;
 		ofstream& frec = file_manager.rec_ofstream();
