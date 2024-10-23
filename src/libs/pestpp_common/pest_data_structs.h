@@ -406,6 +406,8 @@ public:
 	void set_mou_de_f(double _val) { mou_de_f = _val; }
 	int get_mou_save_population_every() const { return mou_save_population_every; }
 	void set_mou_save_population_every(int every) { mou_save_population_every = every; }
+	int get_mou_save_inner_population_every() const { return mou_save_inner_population_every; }
+	void set_mou_save_inner_population_every(int every) { mou_save_inner_population_every = every; }
 	double get_mou_pso_omega() const { return mou_pso_omega; }
 	void set_mou_pso_omega(double val) { mou_pso_omega = val; }
 	double get_mou_pso_social_const() const { return mou_pso_social_const; }
@@ -780,6 +782,7 @@ private:
 	string mou_mating_selector;
 	double mou_de_f;
 	int mou_save_population_every;
+	int mou_save_inner_population_every;
 	double mou_pso_omega;
 	double mou_pso_social_const;
 	double mou_pso_cognitive_const;

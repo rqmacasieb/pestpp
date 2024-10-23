@@ -1428,6 +1428,11 @@ bool PestppOptions::assign_mou_value_by_key(const string& key, const string& val
 		convert_ip(value, mou_save_population_every);
 		return true;
 	}
+	else if (key == "MOU_SAVE_INNER_POPULATION_EVERY")
+	{
+		convert_ip(value, mou_save_inner_population_every);
+		return true;
+	}
 	else if (key == "MOU_PSO_OMEGA")
 	{
 		convert_ip(value, mou_pso_omega);
@@ -1807,6 +1812,7 @@ void PestppOptions::summary(ostream& os) const
 	os << "mou_mutation_prob: " << mou_mutation_prob << endl;
 	os << "mou_de_f: " << mou_de_f << endl;
 	os << "mou_save_population_every: " << mou_save_population_every << endl;
+	os << "mou_save_inner_population_every: " << mou_save_inner_population_every << endl;
 	os << "mou_pso_omega: " << mou_pso_omega << endl;
 	os << "mou_pso_social_const: " << mou_pso_social_const << endl;
 	os << "mou_pso_cognitive: " << mou_pso_cognitive_const << endl;
@@ -2018,6 +2024,7 @@ void PestppOptions::set_defaults()
 	set_mou_mutation_probability(-999);
 	set_mou_de_f(0.8);
 	set_mou_save_population_every(-1);
+	set_mou_save_inner_population_every(-1);
 	set_mou_pso_omega(0.7);
 	set_mou_pso_cognitive_const(2.0);
 	set_mou_pso_social_const(2.0);

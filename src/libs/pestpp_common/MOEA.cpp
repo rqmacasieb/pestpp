@@ -3505,6 +3505,7 @@ void MOEA::initialize()
 		throw_moea_error("'mou_mating_selector' type not recognized: " + mate + ", should be 'RANDOM' or 'TOURNAMENT'");
 
 	save_every = ppo->get_mou_save_population_every();
+	save_inner_every = ppo->get_mou_save_inner_population_every();
 	if (save_every <= 0)
 	{
 		message(1, "'mou_save_population_every' less than/equal to zero, not saving generation-specific populations (and archives)");
@@ -6631,7 +6632,7 @@ void MOEA::save_inner_population(ParameterEnsemble& _dp, ObservationEnsemble& _o
 	ss << "saved inner decision variable population of size " << _dp.shape().first << " X " << _dp.shape().second << " to '" << name << "'";
 	message(1, ss.str());
 	ss.str("");
-	if ((save_every > 0) && (inner_iter % save_every == 0))
+	if ((save_inner_every > 0) && ((inner_iter % save_inner_every == 0) || (inner_iter == 1)))
 	{
 		ss << file_manager.get_base_filename() << "." << iter << "." << inner_iter;
 		if (tag.size() > 0)
@@ -6678,7 +6679,7 @@ void MOEA::save_inner_population(ParameterEnsemble& _dp, ObservationEnsemble& _o
 	ss << "saved inner observation population of size " << _op.shape().first << " X " << _op.shape().second << " to '" << name << "'";
 	message(1, ss.str());
 
-	if ((save_every > 0) && (iter % save_every == 0))
+	if ((save_inner_every > 0) && ((inner_iter % save_inner_every == 0) || (inner_iter == 1)))
 	{
 		ss.str("");
 		ss << file_manager.get_base_filename() << "." << iter << "." << inner_iter;

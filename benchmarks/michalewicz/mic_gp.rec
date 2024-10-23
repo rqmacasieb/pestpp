@@ -6,12 +6,12 @@
 
 
 version: 5.2.5
-binary compiled on Oct 21 2024 at 05:48:24
+binary compiled on Oct 23 2024 at 21:33:15
 
 using control file: "mic_gp.pst"
 in directory: "C:\Users\mac732\OneDrive - CSIRO\Documents\GitHub\pestpp-moudev\benchmarks\michalewicz"
 on host: "DUMPLING-FL"
-started at 10/22/24 14:38:21
+started at 10/23/24 22:28:31
 
 on host: "DUMPLING-FL"
 
@@ -178,6 +178,7 @@ mou_crossover_prob: 0.75
 mou_mutation_prob: -999
 mou_de_f: 0.8
 mou_save_population_every: 1
+mou_save_inner_population_every: 3
 mou_pso_omega: 0.7
 mou_pso_social_const: 2
 mou_pso_cognitive: 2
@@ -531,9 +532,7 @@ sorting ensemble archive of size 40
 ...generating PSO population of size 20
 ...setting the current optimum at the current archive member GEN=0_MEMBER=14: -3.55965
 ...saved inner decision variable population of size 20 X 50 to 'mic_gp.inner.dv_pop.csv'
-...saved inner-generation-specific decision variable population of size 20 X 50 to 'mic_gp.1.2.inner.dv_pop.csv'
 ...saved inner observation population of size 20 X 3 to 'mic_gp.inner.obs_pop.csv'
-...saved inner-generation-specific observation population of size 20 X 3 to 'mic_gp.1.2.inner.obs_pop.csv'
 ...ensemble sorting combined parent-child inner populations of size  40
 ...wrote BGO ensemble summary to mic_gp.1.enbgo.summary.csv
 updating bgo pool of candidate infills
@@ -542,9 +541,7 @@ sorting ensemble archive of size 60
 ...wrote BGO ensemble summary to mic_gp.1.enbgo.archive.summary.csv
 trimming inner archive size from 60 to max archive size 40
 ...saved inner decision variable population of size 40 X 50 to 'mic_gp.inner_archive.dv_pop.csv'
-...saved inner-generation-specific decision variable population of size 40 X 50 to 'mic_gp.1.2.inner_archive.dv_pop.csv'
 ...saved inner observation population of size 40 X 3 to 'mic_gp.inner_archive.obs_pop.csv'
-...saved inner-generation-specific observation population of size 40 X 3 to 'mic_gp.1.2.inner_archive.obs_pop.csv'
 ...resizing current inner populations to  20
 starting surrogate-assisted greedy selection of infills
 ...using specified infill size from control file:  10
@@ -553,3 +550,82 @@ starting surrogate-assisted greedy selection of infills
 greedy selection picked GEN=1_MEMBER=0_PSO. Current infill size: 1
 ...saved updated training decision variable dataset of size 101 X 50 to 'mic_gp.training.dv_pop.csv'
 ...saved updated training observation dataset of size 101 X 3 to 'mic_gp.training.obs_pop.csv'
+...wrote BGO ensemble summary to mic_gp.1.infill_search.summary.csv
+greedy selection picked GEN=1_MEMBER=11_PSO. Current infill size: 2
+...saved updated training decision variable dataset of size 102 X 50 to 'mic_gp.training.dv_pop.csv'
+...saved updated training observation dataset of size 102 X 3 to 'mic_gp.training.obs_pop.csv'
+...wrote BGO ensemble summary to mic_gp.1.infill_search.summary.csv
+greedy selection picked GEN=1_MEMBER=19_PSO. Current infill size: 3
+...saved updated training decision variable dataset of size 103 X 50 to 'mic_gp.training.dv_pop.csv'
+...saved updated training observation dataset of size 103 X 3 to 'mic_gp.training.obs_pop.csv'
+...wrote BGO ensemble summary to mic_gp.1.infill_search.summary.csv
+greedy selection picked GEN=1_MEMBER=18_PSO. Current infill size: 4
+...saved updated training decision variable dataset of size 104 X 50 to 'mic_gp.training.dv_pop.csv'
+...saved updated training observation dataset of size 104 X 3 to 'mic_gp.training.obs_pop.csv'
+...wrote BGO ensemble summary to mic_gp.1.infill_search.summary.csv
+greedy selection picked GEN=1_MEMBER=8_PSO. Current infill size: 5
+...saved updated training decision variable dataset of size 105 X 50 to 'mic_gp.training.dv_pop.csv'
+...saved updated training observation dataset of size 105 X 3 to 'mic_gp.training.obs_pop.csv'
+...wrote BGO ensemble summary to mic_gp.1.infill_search.summary.csv
+greedy selection picked GEN=1_MEMBER=1_PSO. Current infill size: 6
+...saved updated training decision variable dataset of size 106 X 50 to 'mic_gp.training.dv_pop.csv'
+...saved updated training observation dataset of size 106 X 3 to 'mic_gp.training.obs_pop.csv'
+...wrote BGO ensemble summary to mic_gp.1.infill_search.summary.csv
+greedy selection picked GEN=1_MEMBER=2_PSO. Current infill size: 7
+...saved updated training decision variable dataset of size 107 X 50 to 'mic_gp.training.dv_pop.csv'
+...saved updated training observation dataset of size 107 X 3 to 'mic_gp.training.obs_pop.csv'
+...wrote BGO ensemble summary to mic_gp.1.infill_search.summary.csv
+greedy selection picked GEN=1_MEMBER=13_PSO. Current infill size: 8
+...saved updated training decision variable dataset of size 108 X 50 to 'mic_gp.training.dv_pop.csv'
+...saved updated training observation dataset of size 108 X 3 to 'mic_gp.training.obs_pop.csv'
+...wrote BGO ensemble summary to mic_gp.1.infill_search.summary.csv
+greedy selection picked GEN=1_MEMBER=3_PSO. Current infill size: 9
+...saved updated training decision variable dataset of size 109 X 50 to 'mic_gp.training.dv_pop.csv'
+...saved updated training observation dataset of size 109 X 3 to 'mic_gp.training.obs_pop.csv'
+...wrote BGO ensemble summary to mic_gp.1.infill_search.summary.csv
+greedy selection picked GEN=1_MEMBER=6_PSO. Current infill size: 10
+...saved updated training decision variable dataset of size 110 X 50 to 'mic_gp.training.dv_pop.csv'
+...saved updated training observation dataset of size 110 X 3 to 'mic_gp.training.obs_pop.csv'
+...resetting training dataset. Removing temporarily added emulated IO pairs
+...saved updated training decision variable dataset of size 100 X 50 to 'mic_gp.training.dv_pop.csv'
+...saved updated training observation dataset of size 100 X 3 to 'mic_gp.training.obs_pop.csv'
+greedy selection finished with 10 selected candidate infills. Continuing inner iterations...
+
+  ---  starting generation 1 :: iteration 3  ---  
+...generating PSO population of size 20
+...setting the current optimum at the current archive member GEN=0_MEMBER=14: -3.55965
+...saved inner decision variable population of size 20 X 50 to 'mic_gp.inner.dv_pop.csv'
+...saved inner-generation-specific decision variable population of size 20 X 50 to 'mic_gp.1.3.inner.dv_pop.csv'
+...saved inner observation population of size 20 X 3 to 'mic_gp.inner.obs_pop.csv'
+...saved inner-generation-specific observation population of size 20 X 3 to 'mic_gp.1.3.inner.obs_pop.csv'
+...ensemble sorting combined parent-child inner populations of size  40
+...wrote BGO ensemble summary to mic_gp.1.enbgo.summary.csv
+updating bgo pool of candidate infills
+adding 30 informative ensemble members to pool
+sorting ensemble archive of size 70
+...wrote BGO ensemble summary to mic_gp.1.enbgo.archive.summary.csv
+trimming inner archive size from 70 to max archive size 40
+...saved inner decision variable population of size 40 X 50 to 'mic_gp.inner_archive.dv_pop.csv'
+...saved inner-generation-specific decision variable population of size 40 X 50 to 'mic_gp.1.3.inner_archive.dv_pop.csv'
+...saved inner observation population of size 40 X 3 to 'mic_gp.inner_archive.obs_pop.csv'
+...saved inner-generation-specific observation population of size 40 X 3 to 'mic_gp.1.3.inner_archive.obs_pop.csv'
+...resizing current inner populations to  20
+
+  ---  starting generation 1 :: iteration 4  ---  
+...generating PSO population of size 20
+...setting the current optimum at the current archive member GEN=0_MEMBER=14: -3.55965
+...saved inner decision variable population of size 20 X 50 to 'mic_gp.inner.dv_pop.csv'
+...saved inner observation population of size 20 X 3 to 'mic_gp.inner.obs_pop.csv'
+...ensemble sorting combined parent-child inner populations of size  40
+...wrote BGO ensemble summary to mic_gp.1.enbgo.summary.csv
+updating bgo pool of candidate infills
+adding 30 informative ensemble members to pool
+sorting ensemble archive of size 70
+...wrote BGO ensemble summary to mic_gp.1.enbgo.archive.summary.csv
+trimming inner archive size from 70 to max archive size 40
+...saved inner decision variable population of size 40 X 50 to 'mic_gp.inner_archive.dv_pop.csv'
+...saved inner observation population of size 40 X 3 to 'mic_gp.inner_archive.obs_pop.csv'
+...resizing current inner populations to  20
+starting surrogate-assisted greedy selection of infills
+...using specified infill size from control file:  10
+...setting the current optimum at the current archive member GEN=0_MEMBER=14: -3.55965

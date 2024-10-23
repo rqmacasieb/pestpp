@@ -258,7 +258,7 @@ private:
 	bool prob_pareto = false, bgo = false;
 	bool ppd_sort;
 	int restart_iter_offset;
-	int save_every;
+	int save_every, save_inner_every;
 	map<int,int> population_schedule;
 
 	ParetoObjectives objectives;

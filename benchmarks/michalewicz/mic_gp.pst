@@ -78,6 +78,7 @@ output.ins output.dat
 ++mou_objectives(func)
 ++panther_agent_freeze_on_fail(True)
 ++mou_save_population_every(1)
+++mou_save_inner_population_every(3)
 ++mou_env_selector(NSGA_BGO)
 ++mou_bgo_aqf(EI)
 #++mou_bgo_lambda(0.6)
