@@ -966,8 +966,6 @@ void SeqQuadProgram::initialize()
 	best_phis.push_back(last_best);
     best_violations.push_back(last_viol);
 
-
-
     double v = constraints.get_sum_of_violations(current_ctl_dv_values, current_obs);
 	filter.update(last_best, v, 0, -1.0);
 
@@ -1757,8 +1755,8 @@ Parameters SeqQuadProgram::calc_gradient_vector(const Parameters& _current_dv_va
             //dv_anoms.transposeInPlace();
 
             rsvd.solve_ip(dv_anoms, s, U, V, pest_scenario.get_svd_info().eigthresh, pest_scenario.get_svd_info().maxsing);
-            Eigen::MatrixXd dv_anoms_pseudoinv = V * s.asDiagonal().inverse() * U.transpose();
-            Eigen::MatrixXd obj_anoms(dv.shape().first,1);
+			Eigen::MatrixXd dv_anoms_pseudoinv = V * s.asDiagonal().inverse() * U.transpose();
+			Eigen::MatrixXd obj_anoms(dv.shape().first,1);
             if (use_obj_obs) {
                 obj_anoms = oe.get_eigen_anomalies(vector<string>(), vector<string>{obj_func_str},center_on);
             }
@@ -1791,7 +1789,7 @@ Parameters SeqQuadProgram::calc_gradient_vector(const Parameters& _current_dv_va
 			// this is a matrix-vector product; the matrix being the pseudo inv of diag empirical dec var cov matrix and the vector being the dec var-phi cross-cov vector\
 			// see, e.g., Chen et al. (2009) and Fonseca et al. (2015) 
 			//grad = parcov_inv * cross_cov_vector;//*parcov.e_ptr() * cross_cov_vector;
-			grad = 1.0 / ((double)dv.shape().first - 1.0) * (dv_anoms_pseudoinv * obj_anoms);
+			grad = /*1.0 / ((double)dv.shape().first - 1.0) * */(dv_anoms_pseudoinv * obj_anoms);
 			// if (constraints)
 			//{
 			//	ss.str("");
@@ -1891,7 +1889,6 @@ pair<Eigen::VectorXd, Eigen::VectorXd> SeqQuadProgram::_kkt_null_space(Eigen::Ma
 	// prob put the beblow in a standalone function too
 	// ------
 	bool use_qr = false;  // unsure if needed with randomized SVD option
-	Eigen::MatrixXd Z;
 	// check A has more rows than cols // this should have been caught before this point
 	//if (use_qr)
 	//{
@@ -1905,27 +1902,32 @@ pair<Eigen::VectorXd, Eigen::VectorXd> SeqQuadProgram::_kkt_null_space(Eigen::Ma
 	SVD_REDSVD rsvd;
 	//SVD_EIGEN rsvd;
 	message(1, "using randomized SVD to compute basis matrices of constraint JCO for null space KKT solve", constraint_jco);
-	rsvd.set_performance_log(performance_log);
-
-	message(1, "A before", constraint_jco);
-	rsvd.solve_ip(constraint_jco, s, U, V, pest_scenario.get_svd_info().eigthresh, pest_scenario.get_svd_info().maxsing);
-	message(1, "A after", constraint_jco);
-	S_ = s.asDiagonal();  // check truncation done automatically
-	message(1, "singular values of A matrix", S_);  // tmp
+	//rsvd.set_performance_log(performance_log);
+	//rsvd.solve_ip(constraint_jco, s, U, V, pest_scenario.get_svd_info().eigthresh, pest_scenario.get_svd_info().maxsing);
+	Eigen::BDCSVD<Eigen::MatrixXd> svd_A(constraint_jco, Eigen::DecompositionOptions::ComputeFullU | 
+														Eigen::DecompositionOptions::ComputeFullV); //we need the full V to get the null space basis for A
+	s = svd_A.singularValues();
+	U = svd_A.matrixU();
+	V = svd_A.matrixV(); 
+	cout << endl << "s" << endl << s << endl << "U" << endl << U << endl << "V" << endl << V << endl;
+	message(1, "singular values of A matrix", s);  // tmp
+	Eigen::MatrixXd Y(V.rows(), s.size());
+	Eigen::MatrixXd Z(V.rows(), V.cols() > s.size() ? V.cols() - s.size() : 0); //can there be no null space?
+	for (int i = 0; i < V.cols(); i++)
+	{
+		if (i < s.size())
+			Y.col(i) = V.col(i);
+		else
+			Z.col(i-s.size()) = V.col(i);
+	}
 	message(1, "V", V);  // tmp
-	//Z = V.transpose().conjugate();
-	Z = V.conjugate();  // tmp
-	message(1, "Z", Z);  // tmp
-
-	Eigen::MatrixXd Y = constraint_jco.transpose();
 	message(1, "Y", Y);  // tmp
-	//}
-	// ------
+	message(1, "Z", Z);  // tmp
 
 	// solve p_range_space
 	Eigen::VectorXd p_y, rhs;
 	Eigen::MatrixXd coeff;
-	coeff = constraint_jco * Y;
+	coeff = constraint_jco * Y; //AY Eq. 16.18 Nocedal and Wright, pp. 457
 	message(1, "coeff matrix for p_range_space component", coeff);  // tmp
 	rhs = (-1. * constraint_diff);
 	message(1, "rhs", rhs);
@@ -2150,14 +2152,24 @@ pair<Eigen::VectorXd, Eigen::VectorXd> SeqQuadProgram::calc_search_direction_vec
 		}
 
 		// some transforms for solve
-		Eigen::MatrixXd G; // or //Eigen::SparseMatrix<double> G;?
-		//will hessian ever be singular?  If not, then just use inv method...
+		//Covariance cov = oe.get_empirical_cov_matrices(&file_manager).second;
+		//double obj_cvar; //this is always just one value?
+		//try {
+		//	obj_cvar = cov.get(obj_func_str, obj_func_str);
+		//}
+		//catch (const runtime_error& e) {
+		//	throw_sqp_error("Error getting objective function covariance: " + string(e.what()));
+		//}
 
-		G = *hessian.inv().e_ptr() * 2.;  // TODO: double check and give ref
+		//cout << endl << cov << endl;
+		//Eigen::MatrixXd G = grad_vector * pow(obj_cvar, -1) * grad_vector.transpose(); // or //Eigen::SparseMatrix<double> G;?
+		////will hessian ever be singular?  If not, then just use inv method...
+		
+		Eigen::MatrixXd G = *hessian.e_ptr();  // initialize the hessian as identity matrix (Dhedari et al 2012)
 
 		Eigen::VectorXd c;
 		c = grad_vector + G * _current_dv_values.get_data_eigen_vec(dv_names);  // TODO: check not just grad (see both) and check sign too...
-
+		//c is the rhs of Eq 18.20, p. 538 in Nocedal and Wright
 
 		string eqp_solve_method; // probably too heavy to be a ++arg
 		eqp_solve_method = "null_space";
@@ -2288,7 +2300,7 @@ Eigen::VectorXd SeqQuadProgram::fancy_solve_routine(const Parameters& _current_d
 	// grad vector computation
 	Eigen::VectorXd grad = _grad_vector.get_data_eigen_vec(dv_names);
 
-	// search direction computation
+	// search direction computation; RQM: this is for the QP subproblem assuming inqeuality constraints are active
 	//Eigen::VectorXd search_d = calc_search_direction_vector(_current_dv_num_values, grad);  
 	pair<Eigen::VectorXd, Eigen::VectorXd> x = calc_search_direction_vector(_current_dv_num_values, grad);
 

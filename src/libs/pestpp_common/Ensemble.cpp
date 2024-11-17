@@ -437,7 +437,7 @@ pair<Covariance,Covariance> Ensemble::get_empirical_cov_matrices(FileManager* fi
 				continue;
 			wij = anom.col(i).cwiseProduct(anom.col(j));
 			wij_sum = wij_sum + (wij.array() - wij.mean()).square().sum();
-
+			
 		}
 	}
 	double scale = (num_reals / ((num_reals - 1.) * (num_reals - 1.) * (num_reals - 1.))) * wij_sum;

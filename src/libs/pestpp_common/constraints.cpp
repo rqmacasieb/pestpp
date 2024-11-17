@@ -3156,6 +3156,7 @@ map<string, double> Constraints::get_constraint_map(Parameters& par_and_dec_vars
 
 Mat Constraints::get_working_set_constraint_matrix(Parameters& par_and_dec_vars, Observations& constraints_sim, ParameterEnsemble& dv, ObservationEnsemble& oe, bool do_shift, double working_set_tol)
 {
+	working_set_tol = 0.15; //just testing smthng
     pair<vector<string>,vector<string>> working_set = get_working_set(par_and_dec_vars,constraints_sim,do_shift,working_set_tol);
     Mat mat;
     if (working_set.first.size() > 0) {
@@ -3165,18 +3166,18 @@ Mat Constraints::get_working_set_constraint_matrix(Parameters& par_and_dec_vars,
         cov = oe.get_empirical_cov_matrices(file_mgr_ptr).second;
         Eigen::MatrixXd delta_oe = *cov.inv().e_ptr() * oe.get_eigen_anomalies().transpose();
         //todo: pseudo inv for delta_dv - will almost certainly be singular for large problems...
-        Eigen::MatrixXd s, V, U;
+        Eigen::MatrixXd s, s_, V, U;
         Eigen::BDCSVD<Eigen::MatrixXd> svd_fac(delta_dv, Eigen::DecompositionOptions::ComputeFullU |
                                                          Eigen::DecompositionOptions::ComputeFullV);
         s = svd_fac.singularValues();
         U = svd_fac.matrixU();
         V = svd_fac.matrixV();
-        s.col(0).asDiagonal().inverse();
+        s_ = s.asDiagonal().inverse();
         Eigen::MatrixXd full_s_inv(V.rows(), U.cols());
         full_s_inv.setZero();
-        for (int i = 0; i < s.size(); i++)
-            full_s_inv(i, i) = s(i);
-        delta_dv = V.transpose() * full_s_inv * U;
+		for (int i = 0; i < s.size(); i++)
+			full_s_inv(i, i) = s_(i,i);
+        delta_dv = V * full_s_inv * U.transpose();
         //delta_oe.transposeInPlace();
         //delta_dv.transposeInPlace();
         Eigen::MatrixXd approx_jco = delta_oe * delta_dv;
@@ -3194,7 +3195,7 @@ Mat Constraints::get_working_set_constraint_matrix(Parameters& par_and_dec_vars,
             i++;
         }
         mat = Mat(working_set.first, dv.get_var_names(), working_mat.sparseView());
-        //return Mat(working_set, dv.get_var_names(), working_mat.sparseView());
+		return mat;
     }
     if (working_set.second.size() > 0)
     {

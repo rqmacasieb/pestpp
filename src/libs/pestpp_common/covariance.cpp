@@ -1274,6 +1274,24 @@ Covariance Covariance::get(const vector<string> &other_names, bool update)
 	return new_cov;
 }
 
+double Covariance::get(const string& row_name, const string& col_name)
+{
+	// Find indices for the row and column names
+	auto row_iter = find(row_names.begin(), row_names.end(), row_name);
+	auto col_iter = find(col_names.begin(), col_names.end(), col_name);
+
+	if (row_iter == row_names.end() || col_iter == col_names.end())
+	{
+		throw runtime_error("Covariance::get() error: name not found in matrix: " +
+			(row_iter == row_names.end() ? row_name : col_name));
+	}
+
+	int row_idx = distance(row_names.begin(), row_iter);
+	int col_idx = distance(col_names.begin(), col_iter);
+
+	return matrix.coeff(row_idx, col_idx);
+}
+
 Covariance Covariance::extract(vector<string> &extract_names)
 {
 	Covariance new_cov(Mat::extract(extract_names, extract_names));
