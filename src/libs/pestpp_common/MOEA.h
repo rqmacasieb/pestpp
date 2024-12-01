@@ -19,9 +19,6 @@
 
 const string POP_SUM_TAG = "pareto.summary.csv";
 const string ARC_SUM_TAG = "pareto.archive.summary.csv";
-const string INNER_POP_SUM_TAG = "inner.pareto.summary.csv";
-const string INNER_ARC_SUM_TAG = "inner.pareto.archive.summary.csv";
-
 const string ARC_TRIM_SUM_TAG = "pareto.trimmed.archive.summary.csv";
 const string BGO_POP_SUM_TAG = "enbgo.summary.csv";
 const string BGO_ARC_SUM_TAG = "enbgo.archive.summary.csv";
@@ -228,7 +225,6 @@ public:
 	void initialize();
     void iterate_to_solution();
 	void finalize();
-	void process_bgo_objectives(bool bgomode = false);
 	typedef pair<vector<string>, vector<string>> DomPair;
 private:
 	MouEnvType envtype;
@@ -252,7 +248,7 @@ private:
 	chancePoints chancepoints;
 	FileManager &file_manager; 
 	std::mt19937 rand_gen;
-	vector<string> og_obj_names, obj_names, obs_obj_names, pi_obj_names, obs_obj_sd_names, pi_obj_sd_names;
+	vector<string> obj_names, obs_obj_names, pi_obj_names, obs_obj_sd_names, pi_obj_sd_names;
 	vector<string> dv_names;
 	vector<string> defcmd_vec;
 	map<string, double> obj_dir_mult;
@@ -311,7 +307,6 @@ private:
     void update_pso_velocity_map(ParameterEnsemble& _pso_velocity);
     void initialize_population_schedule();
 	void initialize_training_dataset();
-	ParameterEnsemble reinitialize_dv_population();
 	bool initialize_dv_population();
 	void initialize_obs_restart_population();
 
@@ -338,7 +333,7 @@ private:
 	void save_populations(ParameterEnsemble& _dp, ObservationEnsemble& _op, string tag = string());
 	void save_training_dataset(ParameterEnsemble& _dp, ObservationEnsemble& _op, string tag = string());
 	void save_inner_population(ParameterEnsemble& _dp, ObservationEnsemble& _op, string tag = string());
-	void select_infills();
+	void greedy_selection();
 
 	void gauss_mutation_ip(ParameterEnsemble& _dp);
 	pair<Eigen::VectorXd, Eigen::VectorXd> sbx(double probability, double eta_m, int idx1, int idx2);

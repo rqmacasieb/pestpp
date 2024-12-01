@@ -65,7 +65,7 @@ map<string, map<string, double>> ParetoObjectives::get_member_struct(Observation
 	}
 
 	//add variance info for obj values to member_struct
-	if (prob_pareto) {
+	if (prob_pareto || bgo) {
 		map<double, string> obj_sd_map;
 		map<string, double> t;
 		
@@ -2171,8 +2171,8 @@ bool ParetoObjectives::first_dominates_second(map<string, double>& first, map<st
 	{
 		for (auto f : first)
 		{
-			/*if (find(objsd.begin(), objsd.end(), f.first) != objsd.end()) 
-				continue; *///just to make sure that when in BGO mode, that SDs are not picked up
+			if (find(objsd.begin(), objsd.end(), f.first) != objsd.end()) 
+				continue; //just to make sure that when in BGO mode, that SDs are not picked up
 			if (f.second > second[f.first])
 				return false;
 		}
@@ -2848,9 +2848,8 @@ void MOEA::sanity_checks()
 
 void MOEA::update_archive_bgo(ObservationEnsemble& _op, ParameterEnsemble& _dp)
 {
-	int select_every = pest_scenario.get_pestpp_options().get_mou_bgo_greedy_select_every();
 	message(2, "updating bgo pool of candidate infills");
-	stringstream ss, inner_arcsumtag;
+	stringstream ss;
 	if (iop_archive.shape().first != idp_archive.shape().first)
 	{
 		ss.str("");
@@ -2866,18 +2865,7 @@ void MOEA::update_archive_bgo(ObservationEnsemble& _op, ParameterEnsemble& _dp)
 
 		ss.str("");
 		ss << iter << "." << inner_iter << "." << BGO_ARC_SUM_TAG;
-		DomPair dompair;
-
-		if (select_every <= -1)
-		{
-			inner_arcsumtag.str("");
-			inner_arcsumtag << iter << "." << BGO_ARC_SUM_TAG;
-			dompair = objectives.get_nsga2_pareto_dominance(inner_iter, iop_archive, idp_archive, &constraints, false, true, inner_arcsumtag.str());
-		}
-		else
-		{
-			dompair = objectives.get_bgo_ensemble(inner_iter, iop_archive, idp_archive, &constraints, true, ss.str());
-		}
+		DomPair dompair = objectives.get_bgo_ensemble(inner_iter, iop_archive, idp_archive, &constraints, true, ss.str());
 		idp_archive.keep_rows(dompair.first);
 		iop_archive.keep_rows(dompair.first);
 	}
@@ -2904,23 +2892,15 @@ void MOEA::update_archive_bgo(ObservationEnsemble& _op, ParameterEnsemble& _dp)
 		other.resize(0, 0);
 		message(2, "sorting ensemble archive of size", iop_archive.shape().first);
 
-		DomPair dompair;
 		ss.str("");
 		ss << iter << "." << BGO_ARC_SUM_TAG;
-		if (select_every <= -1)
-		{
-			dompair = objectives.get_nsga2_pareto_dominance(inner_iter, iop_archive, idp_archive, &constraints, false, true, ss.str());
-			
-			ss << "resizing inner archive from " << iop_archive.shape().first << " to " << dompair.first.size() << " current informative solutions";
-			message(2, ss.str());
-			iop_archive.keep_rows(dompair.first);
-			idp_archive.keep_rows(dompair.first);
+		DomPair dompair = objectives.get_bgo_ensemble(inner_iter, iop_archive, idp_archive, &constraints, true, ss.str());
 
-		}
-		else
-			dompair = objectives.get_bgo_ensemble(inner_iter, iop_archive, idp_archive, &constraints, true, ss.str());
-
-		
+		/*ss << "resizing inner archive from " << iop_archive.shape().first << " to " << dompair.first.size()
+			<< " current informative solutions";
+		message(2, ss.str());*/
+		/*iop_archive.keep_rows(dompair.first);
+		idp_archive.keep_rows(dompair.first);*/
 	}
 
 	if (iop_archive.shape().first > infill_pool_size)
@@ -3454,21 +3434,6 @@ void MOEA::finalize()
 
 }
 
-void MOEA::process_bgo_objectives(bool bgomode)
-{
-	if (bgomode)
-	{
-		for (auto sd : obs_obj_sd_names)
-		{
-			obs_obj_names.push_back(sd);
-			obj_dir_mult[sd] = 1.0;
-		}
-	}
-	else
-		obs_obj_names = og_obj_names;
-
-}
-
 void MOEA::initialize()
 {
 	stringstream ss;
@@ -3794,8 +3759,6 @@ void MOEA::initialize()
 		obs_obj_sd_names = keep_obs_sd;
 		pi_obj_names = keep_pi;
 		pi_obj_sd_names = keep_pi_sd;
-
-		og_obj_names = obj_names;
 	}
 
 	ss.str("");
@@ -4646,10 +4609,7 @@ ParameterEnsemble MOEA::generate_population(bool bgomode)
 
 	if (bgomode)
 	{
-		if (pest_scenario.get_pestpp_options().get_mou_bgo_greedy_select_every() <= -1)
-			objectives.get_nsga2_pareto_dominance(inner_iter, iop, idp, &constraints, false, false);
-		else
-			objectives.get_bgo_ensemble(inner_iter, iop, idp, &constraints, false);
+		objectives.get_bgo_ensemble(inner_iter, iop, idp, &constraints, false);
 		
 		for (auto gen_type : gen_types)
 		{
@@ -4767,46 +4727,30 @@ void MOEA::fill_infill_ensemble(ParameterEnsemble& _dp, ObservationEnsemble& _op
 	
 	int num_members = pest_scenario.get_pestpp_options().get_mou_population_size();
 	int nmax_inner = pest_scenario.get_pestpp_options().get_mou_inner_nmax();
-	process_bgo_objectives(bgo_mode);
-
+	
 	if (nmax_inner > 0)
 	{
 		ParameterEnsemble new_dp;
 		ObservationEnsemble new_op;
 		int select_every = pest_scenario.get_pestpp_options().get_mou_bgo_greedy_select_every();
-		
-		stringstream inner_sumtag, inner_arcsumtag, greedyselc_sumtag;
-		if (select_every <= -1)
-		{
-			message(1, "Batch BGO will be used for infill sampling ");
-
-			inner_sumtag.str("");
-			inner_sumtag << iter << "." << INNER_POP_SUM_TAG;
-			objectives.prep_pareto_summary_file(inner_sumtag.str());
-
-			inner_arcsumtag.str("");
-			inner_arcsumtag << iter << "." << INNER_ARC_SUM_TAG;
-			objectives.prep_pareto_summary_file(inner_arcsumtag.str());
-
-		}
-		else if (select_every > nmax_inner)
+		if (select_every <= 0 || select_every > nmax_inner)
 		{
 			select_every = nmax_inner;
 			message(1, "greedy selection interval set at nmax_inner: ", nmax_inner);
-
-			inner_sumtag.str("");
-			inner_sumtag << iter << "." << BGO_POP_SUM_TAG;
-			objectives.prep_bgo_ensemble_summary_file(inner_sumtag.str());
-
-			inner_arcsumtag.str("");
-			inner_arcsumtag << iter << "." << BGO_ARC_SUM_TAG;
-			objectives.prep_bgo_ensemble_summary_file(inner_arcsumtag.str());
-
-			greedyselc_sumtag.str("");
-			greedyselc_sumtag << iter << "." << BGO_SELECTION_SUM_TAG;
-			objectives.prep_bgo_ensemble_summary_file(greedyselc_sumtag.str());
-
 		}
+
+		stringstream inner_sumtag;
+		inner_sumtag << iter << "."  << BGO_POP_SUM_TAG;
+		objectives.prep_bgo_ensemble_summary_file(inner_sumtag.str());
+
+		stringstream inner_arcsumtag;
+		inner_arcsumtag << iter << "." << BGO_ARC_SUM_TAG;
+		objectives.prep_bgo_ensemble_summary_file(inner_arcsumtag.str());
+
+		stringstream greedyselc_sumtag;
+		greedyselc_sumtag << iter << "." << BGO_SELECTION_SUM_TAG;
+		objectives.prep_bgo_ensemble_summary_file(greedyselc_sumtag.str());
+
 
 		defcmd_vec = pest_scenario.get_model_exec_info().comline_vec;
 		run_mgr_ptr->override_command(pest_scenario.get_pestpp_options().get_mou_resample_command());
@@ -4859,17 +4803,8 @@ void MOEA::fill_infill_ensemble(ParameterEnsemble& _dp, ObservationEnsemble& _op
 
 			if (envtype == MouEnvType::NSGA)
 			{
-				DomPair dompair;
-				if (select_every <= -1)
-				{
-					message(1, "pareto dominance sorting combined parent-child populations of size ", new_dp.shape().first);
-					dompair = objectives.get_nsga2_pareto_dominance(inner_iter, new_rop, new_rdp, &constraints, false, true, inner_sumtag.str());
-				}
-				else
-				{
-					message(1, "ensemble sorting combined parent-child inner populations of size ", new_rdp.shape().first);
-					dompair = objectives.get_bgo_ensemble(inner_iter, new_rop, new_rdp, &constraints, true, inner_sumtag.str());
-				}
+				message(1, "ensemble sorting combined parent-child inner populations of size ", new_rdp.shape().first);
+				DomPair dompair = objectives.get_bgo_ensemble(inner_iter, new_rop, new_rdp, &constraints,  true, inner_sumtag.str());
 
 				if (should_use_multigen()) {
 					message(2, "keeping all feasible members from multi-generational population");
@@ -4884,28 +4819,16 @@ void MOEA::fill_infill_ensemble(ParameterEnsemble& _dp, ObservationEnsemble& _op
 					}
 				}
 
-				if (select_every <= -1)
-				{
-					if (keep.size() > 0)
-					{
-						//update the archive of nondom members
-						ParameterEnsemble new_rdp_repo = new_rdp;
-						new_rdp_repo.keep_rows(keep);
-						ObservationEnsemble new_rop_repo = new_rop;
-						new_rop_repo.keep_rows(keep);
-						update_archive_bgo(new_rop_repo, new_rdp_repo);
-					}
-
-					//now fill out the rest of keep with dom solutions
-					for (auto dom : dompair.second)
-					{
-						if (keep.size() >= num_members)
-							break;
-						keep.push_back(dom);
-					}
-				}
-				else
-					update_archive_bgo(new_rop, new_rdp);
+				update_archive_bgo(new_rop, new_rdp);
+				//if (keep.size() > 0)
+				//{
+				//	//update the archive of nondom members
+				//	ParameterEnsemble new_rdp_repo = new_rdp;
+				//	new_rdp_repo.keep_rows(keep);
+				//	ObservationEnsemble new_rop_repo = new_rop;
+				//	new_rop_repo.keep_rows(keep);
+				//	update_archive_bgo(new_rop_repo, new_rdp_repo);
+				//}
 
 				message(1, "resizing current inner populations to ", keep.size());
 				new_rdp.keep_rows(keep);
@@ -4919,8 +4842,8 @@ void MOEA::fill_infill_ensemble(ParameterEnsemble& _dp, ObservationEnsemble& _op
 				throw_moea_error("unrecognized 'mou_env'");
 			}
 
-			if ((select_every >= 0) && ((inner_iter % select_every) == 0))
-				select_infills();
+			if ((inner_iter % select_every) == 0)
+				greedy_selection();
 				
 			inner_iter++;
 			//if (((nmax_inner - inner_iter) / select_every) < 0)
@@ -4932,15 +4855,7 @@ void MOEA::fill_infill_ensemble(ParameterEnsemble& _dp, ObservationEnsemble& _op
 			//insert reports
 
 		}
-
-		if (select_every <= -1)
-		{
-			dp_infill = idp_archive;
-			op_infill = iop_archive;
-		}
-
 		run_mgr_ptr->override_command(defcmd_vec);
-		process_bgo_objectives(!bgo_mode);
 	}
 }
 
@@ -4989,11 +4904,7 @@ void MOEA::iterate_to_solution()
         }
 
 		//generate offspring
-		ParameterEnsemble new_dp;
-		/*if (pest_scenario.get_pestpp_options().get_mou_bgo_greedy_select_every() <= -1)
-			new_dp = reinitialize_dv_population();
-		else*/
-			new_dp = generate_population();
+		ParameterEnsemble new_dp = generate_population();
 
 		//run offspring thru the model while also running risk runs, possibly at many points in dec var space	
 		ObservationEnsemble new_op(&pest_scenario, &rand_gen);
@@ -5227,7 +5138,7 @@ bool MOEA::should_use_multigen() {
     return false;
 }
 
-void MOEA::select_infills()
+void MOEA::greedy_selection()
 {
 	ParameterEnsemble dtemp = dt, cdp = idp_archive, dp_pool;
 	ObservationEnsemble otemp = ot, cop = iop_archive, op_pool;
@@ -5259,129 +5170,102 @@ void MOEA::select_infills()
 	dp_pool = cdp;
 	op_pool = cop;
 
-	if (pest_scenario.get_pestpp_options().get_mou_bgo_greedy_select_every() <= -1)
-	{
-		message(2, "selecting infills from inner archive positions");
-		vector<string> cand_picks = idp_archive.get_real_names();
-		picks.clear();
-		for (auto p : cand_picks)
-		{
-			if (find(current_dt_names.begin(), current_dt_names.end(), p) == current_dt_names.end())
-				picks.push_back(p);
-		}
+	message(2, "starting surrogate-assisted greedy selection of infills");
 
-		if (picks.size() == 0)
-		{
-			message(1, "all candidate infills have already been selected. Terminating inner iteration and proceeding...");
-			return;
-		}
-		else if (picks.size() < infill_size)
-			message(1, "not enough candidate infills to fill the required infill size. Proceeding anyway with infill size: ", picks.size());
+	int infill_size = pest_scenario.get_pestpp_options().get_mou_infill_size();
+	if (infill_size == 0.0)
+	{
+		infill_size = pest_scenario.get_pestpp_options().get_mou_population_size() / 2;
+		message(1, "infill size not specified. Setting infill size to half the population size: ", infill_size);
 	}
-	else //greedy search
+	else if (infill_size == 1.0)
+		message(1, "performing classic BGO algorithm with one-at-a-time infill sampling");
+	else
+		message(1, "using specified infill size from control file: ", infill_size);
+
+	if (infill_size > idp_archive.shape().first)
+		throw_moea_error("Chosen infill size exceeds available candidate pool size!");
+
+	int count = 0;
+	Eigen::MatrixXd pick;
+	
+	get_current_true_solution();
+	defcmd_vec = pest_scenario.get_model_exec_info().comline_vec;
+	while (count < infill_size)
 	{
-		message(2, "starting surrogate-assisted greedy selection of infills");
+		run_surrogate(cdp, cop);
 
-		int infill_size = pest_scenario.get_pestpp_options().get_mou_infill_size();
-		if (infill_size == 0.0)
+		stringstream greedyselc_sumtag;
+		greedyselc_sumtag << iter << "." << BGO_SELECTION_SUM_TAG;
+		DomPair dompair = objectives.get_bgo_ensemble(count, cop, cdp, &constraints, true, greedyselc_sumtag.str());
+		
+
+		string pick_name;
+		int i = 0;
+		bool terminate = false;
+		while (true)
 		{
-			infill_size = pest_scenario.get_pestpp_options().get_mou_population_size() / 2;
-			message(1, "infill size not specified. Setting infill size to half the population size: ", infill_size);
-		}
-		else if (infill_size == 1.0)
-			message(1, "performing classic BGO algorithm with one-at-a-time infill sampling");
-		else
-			message(1, "using specified infill size from control file: ", infill_size);
-
-		if (infill_size > idp_archive.shape().first)
-			throw_moea_error("Chosen infill size exceeds available candidate pool size!");
-
-		int count = 0;
-		Eigen::MatrixXd pick;
-
-		get_current_true_solution();
-		defcmd_vec = pest_scenario.get_model_exec_info().comline_vec;
-		while (count < infill_size)
-		{
-			run_surrogate(cdp, cop);
-
-			stringstream greedyselc_sumtag;
-			greedyselc_sumtag << iter << "." << BGO_SELECTION_SUM_TAG;
-			DomPair dompair = objectives.get_bgo_ensemble(count, cop, cdp, &constraints, true, greedyselc_sumtag.str());
-
-
-			string pick_name;
-			int i = 0;
-			bool terminate = false;
-			while (true)
+			pick_name = dompair.first[i];
+			if (find(current_dt_names.begin(), current_dt_names.end(), pick_name) == current_dt_names.end())
 			{
-				pick_name = dompair.first[i];
-				if (find(current_dt_names.begin(), current_dt_names.end(), pick_name) == current_dt_names.end())
+				picks.push_back(pick_name);
+				break;
+			}
+			i++;
+
+			if (i >= dompair.first.size())
+			{
+				if (picks.size() == 0)
 				{
-					picks.push_back(pick_name);
+					message(1, "all candidate infills have already been selected. Terminating greedy search and proceeding...");
+					return;
+				}
+				else
+				{
+					message(1, "not enough candidate infills to fill the required infill size. Proceeding anyway...");
 					break;
 				}
-				i++;
-
-				if (i >= dompair.first.size())
-				{
-					if (picks.size() == 0)
-					{
-						message(1, "all candidate infills have already been selected. Terminating greedy search and proceeding...");
-						return;
-					}
-					else
-					{
-						message(1, "not enough candidate infills to fill the required infill size. Proceeding anyway...");
-						break;
-					}
-				}
 			}
-
-			pick = cdp.get_eigen(vector<string>{pick_name}, vector<string>());
-			ParameterEnsemble new_dt(&pest_scenario, &rand_gen, pick, { pick_name }, idp.get_var_names());
-			new_dt.append_other_rows(dtemp);
-			dtemp = new_dt;
-
-			//remove chosen infill from the pool to be rerun
-			keep.clear();
-			for (auto k : cdp.get_real_names())
-			{
-				if (k == pick_name)
-					continue;
-				keep.push_back(k);
-			}
-			cdp.keep_rows(keep);
-
-			pick = cop.get_eigen(vector<string>{pick_name}, vector<string>());
-			ObservationEnsemble new_ot(&pest_scenario, &rand_gen, pick, { pick_name }, iop.get_var_names());
-			new_ot.append_other_rows(otemp);
-			otemp = new_ot;
-
-			//remove chosen infill from the pool to be rerun
-			keep.clear();
-			for (auto k : cop.get_real_names())
-			{
-				if (k == pick_name)
-					continue;
-				keep.push_back(k);
-			}
-			cop.keep_rows(keep);
-			count++;
-
-			message(2, "greedy selection picked " + pick_name + ". Current infill size: " + to_string(count));
-
-			save_training_dataset(dtemp, otemp);
 		}
 
-		message(1, "resetting training dataset. Removing temporarily added emulated IO pairs");
-		save_training_dataset(dt, ot); //reset to the true training dataset
+		pick = cdp.get_eigen(vector<string>{pick_name}, vector<string>());
+		ParameterEnsemble new_dt(&pest_scenario, &rand_gen, pick, { pick_name }, idp.get_var_names());
+		new_dt.append_other_rows(dtemp);
+		dtemp = new_dt;
 
-		if (inner_iter == pest_scenario.get_pestpp_options().get_mou_inner_nmax())
-			message(2, "greedy selection finished with " + to_string(count) + " selected infills. Proceeding with complex runs...");
-		else
-			message(2, "greedy selection finished with " + to_string(count) + " selected candidate infills. Continuing inner iterations...");
+		//remove chosen infill from the pool to be rerun
+		keep.clear();
+		for (auto k : cdp.get_real_names())
+		{
+			if (k == pick_name)
+				continue;
+			keep.push_back(k);
+		}
+		cdp.keep_rows(keep);
+
+		pick = cop.get_eigen(vector<string>{pick_name}, vector<string>());
+		ObservationEnsemble new_ot(&pest_scenario, &rand_gen, pick, { pick_name }, iop.get_var_names());
+		new_ot.append_other_rows(otemp);
+		otemp = new_ot;
+
+		//remove chosen infill from the pool to be rerun
+		keep.clear();
+		for (auto k : cop.get_real_names())
+		{
+			if (k == pick_name)
+				continue;
+			keep.push_back(k);
+		}
+		cop.keep_rows(keep);
+		count++;
+
+		message(2, "greedy selection picked " + pick_name + ". Current infill size: " + to_string(count));
+
+		save_training_dataset(dtemp, otemp);
 	}
+
+	message(1, "resetting training dataset. Removing temporarily added emulated IO pairs");
+	save_training_dataset(dt, ot); //reset to the true training dataset
 
 	//update infill repo
 	Eigen::MatrixXd picks_dpreals = dp_pool.get_eigen(vector<string>{picks}, vector<string>());
@@ -5392,6 +5276,10 @@ void MOEA::select_infills()
 	dp_infill = new_dt_picks;
 	op_infill = new_ot_picks;
 
+	if (inner_iter == pest_scenario.get_pestpp_options().get_mou_inner_nmax())
+		message(2, "greedy selection finished with " + to_string(count) + " selected infills. Proceeding with complex runs...");
+	else
+		message(2, "greedy selection finished with " + to_string(count) + " selected candidate infills. Continuing inner iterations...");
 	
 }
 
@@ -5557,31 +5445,6 @@ void MOEA::initialize_training_dataset()
 
 	if (dt.shape().first != ot.shape().first)
 		throw_moea_error("dv training dataset size is not equal to obs training dataset size");
-}
-
-ParameterEnsemble MOEA::reinitialize_dv_population()
-{
-	stringstream ss;
-	int num_members = population_schedule[0];
-	ofstream& frec = file_manager.rec_ofstream();
-	message(1, "drawing dv population of size: ", num_members);
-	Parameters draw_par = pest_scenario.get_ctl_parameters();
-	
-	dp.draw_uniform(num_members, dv_names, performance_log, 1, file_manager.rec_ofstream());
-	ParameterEnsemble new_dp = dp;
-	vector<string> real_names, new_names;
-	string new_name;
-	for (auto real_name : new_dp.get_real_names())
-	{
-		new_name = get_new_member_name("pso");
-		new_names.push_back(new_name);
-	}
-	new_dp.set_real_names(new_names);
-	new_dp.set_trans_status(dp.get_trans_status());
-	new_dp.enforce_bounds(performance_log, false);
-	new_dp.check_for_normal("new pso population");
-
-	return new_dp;
 }
 
 bool MOEA::initialize_dv_population()

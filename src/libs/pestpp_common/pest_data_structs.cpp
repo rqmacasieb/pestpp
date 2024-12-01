@@ -2039,7 +2039,7 @@ void PestppOptions::set_defaults()
 	set_mou_fit_epsilon(0.05);
 	set_mou_fit_gamma(0.25);
 	set_mou_adaptive_ppd(false);
-	set_mou_bgo_greedy_select_every(-1);
+	set_mou_bgo_greedy_select_every(1);
 	set_mou_resample_command(vector<string>());
 	set_mou_bgo_aqf("EI");
 	set_mou_bgo_dv_training_file("");
