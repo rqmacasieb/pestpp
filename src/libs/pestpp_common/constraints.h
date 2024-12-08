@@ -148,7 +148,7 @@ public:
 
 	//workout a constraints sense
 	static pair<ConstraintSense, string> get_sense_from_group_name(const string& name);
-
+	map<string, string> get_constraint_sense() { return constraint_sense_name; }
 	//get risk-shifted simulated constraint values using current_constraints_sim_ptr
 	//Observations get_stack_shifted_chance_constraints();
 	//get risk-shifted simulated constraint values using _constraints_sim arg

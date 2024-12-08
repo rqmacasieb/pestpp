@@ -3160,6 +3160,9 @@ Mat Constraints::get_working_set_constraint_matrix(Parameters& par_and_dec_vars,
     pair<vector<string>,vector<string>> working_set = get_working_set(par_and_dec_vars,constraints_sim,do_shift,working_set_tol);
     Mat mat;
     if (working_set.first.size() > 0) {
+
+
+
         Covariance cov = dv.get_empirical_cov_matrices(file_mgr_ptr).second;
         Eigen::MatrixXd delta_dv = *cov.inv().e_ptr() * dv.get_eigen_anomalies().transpose();
 

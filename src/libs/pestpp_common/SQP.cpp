@@ -849,6 +849,7 @@ void SeqQuadProgram::initialize()
 		throw_sqp_error(ss.str());
 	}
 
+	constraint_sense = constraints.get_constraint_sense();
 	iter = 0;
 
 	if (pest_scenario.get_control_info().noptmax == 0)
@@ -890,7 +891,6 @@ void SeqQuadProgram::initialize()
 		constraints.sqp_report(0,current_ctl_dv_values, current_obs);
 		return;
 	}
-
 
 	message(1, "using the following upgrade vector scale (e.g. 'line search') values:", ppo->get_sqp_scale_facs());
 	
@@ -1941,15 +1941,14 @@ pair<Eigen::VectorXd, Eigen::VectorXd> SeqQuadProgram::_kkt_null_space(Eigen::Ma
 	coeff = V * S_ * U.transpose();
 
 	message(1, "coeff inv", coeff);
-	p_y = coeff * rhs;
+	p_y = coeff * rhs; //from Eq 18.19a pp. 538 Nocedal and Wright
 	message(1, "p_y", p_y);  // tmp
 	// todo assert here for p_y != 0 if sum_viol == 0 (this is the component that rectifies constraint viol)
 
 	// solve p_null_space
 	bool simplified_null_space_approach = false; // see Nocedal and Wright (2006) pg 538-9
 	message(1, "hess", G);
-	Eigen::MatrixXd red_hess = G;
-	red_hess = Z.transpose() * red_hess * Z;
+	Eigen::MatrixXd red_hess = Z.transpose() * G * Z;
 	message(1, "red hess", red_hess);
 	bool cholesky = false;
 	Eigen::VectorXd p_z;
@@ -1981,7 +1980,7 @@ pair<Eigen::VectorXd, Eigen::VectorXd> SeqQuadProgram::_kkt_null_space(Eigen::Ma
 			coeff = red_hess;
 			X1 = Z.transpose() * G * Y;
 			message(1, "larger cross-term matrix", X1);
-			rhs = (-1. * X1 * p_y) - (Z.transpose() * curved_grad);
+			rhs = (-1. * X1 * p_y) - (Z.transpose() * curved_grad); //Eq 18.19b pp. 538 Nocedal and Wright
 			if (cholesky)
 			{
 				
@@ -2000,7 +1999,7 @@ pair<Eigen::VectorXd, Eigen::VectorXd> SeqQuadProgram::_kkt_null_space(Eigen::Ma
 			{
 				// try straight inverse here
 				// todo rSVD here instead?
-				p_z = coeff.inverse() * rhs;
+				p_z = red_hess.inverse() * rhs;
 				message(1, "p_z", p_z);  // tmp
 
 			}
@@ -2015,7 +2014,7 @@ pair<Eigen::VectorXd, Eigen::VectorXd> SeqQuadProgram::_kkt_null_space(Eigen::Ma
 	// combine to make total direction
 	message(1, "combining range and null space components of search direction");  // tmp
 	search_d = Y * p_y + Z * p_z;
-    //message(1, "SD", search_d);  // tmp
+    message(1, "search d ", search_d);  // tmp
 
 	if (search_d.size() != curved_grad.size())
 	{
@@ -2036,7 +2035,7 @@ pair<Eigen::VectorXd, Eigen::VectorXd> SeqQuadProgram::_kkt_null_space(Eigen::Ma
 	else
 	{
 		// Nocedal and Wright pg. 457 and 538
-		rhs = Y.transpose() * curved_grad;
+		rhs = Y.transpose() * (curved_grad + G * search_d); 
 		coeff = (constraint_jco * Y).transpose();
 		lm = coeff.inverse() * rhs;
 		message(1, "lm", lm);  // tmp
@@ -2110,6 +2109,7 @@ pair<Eigen::VectorXd, Eigen::VectorXd> SeqQuadProgram::calc_search_direction_vec
     }
 	//todo:probably need to check if constraint_mat has any nonzeros?
 	vector<string> cnames = constraint_mat.get_row_names();
+	cout << constraint_mat;
 
 	if (cnames.size() > 0)  // solve constrained QP subproblem
 	{
@@ -2129,18 +2129,25 @@ pair<Eigen::VectorXd, Eigen::VectorXd> SeqQuadProgram::calc_search_direction_vec
 		message(0, "current working set:", cnames);
 		Eigen::MatrixXd constraint_jco = constraint_mat.e_ptr()->toDense();  // or would you pref to slice and dice each time - this won't get too big but want to avoid replicates  // and/or make Jacobian obj?
 
-		//constraint_jco = jco.get_matrix(cnames, dv_names);
-		message(1, "A:", constraint_jco);  // tmp
-		// add check here that A is full rank; warn that linearly dependent will be removed via factorization
-
 		// constraint diff (h = Ax - b)
 		// todo only for constraints in WS only
 		Eigen::VectorXd Ax, b;
 		Eigen::VectorXd constraint_diff(cnames.size());
-		
+		cout << endl << current_obs << endl;
 		pair<Eigen::VectorXd, Eigen::VectorXd> p = constraints.get_obs_resid_constraint_vectors(current_ctl_dv_values, current_obs, cnames);
 		b = p.first;
 		constraint_diff = p.second;
+
+		for (int i = 0;i < cnames.size();i++) {
+			if (constraint_sense[cnames[i]] == "less_than")
+			{
+				constraint_jco.row(i) *= -1;
+				constraint_diff[i] *= -1;
+			}	
+		}
+		
+		message(1, "A:", constraint_jco);  // tmp
+		// add check here that A is full rank; warn that linearly dependent will be removed via factorization
 		message(1, "constraint diff:", constraint_diff);  // tmp
 		
 		// throw error here if not all on/near constraint
@@ -2168,14 +2175,14 @@ pair<Eigen::VectorXd, Eigen::VectorXd> SeqQuadProgram::calc_search_direction_vec
 		Eigen::MatrixXd G = *hessian.e_ptr();  // initialize the hessian as identity matrix (Dhedari et al 2012)
 
 		Eigen::VectorXd c;
-		c = grad_vector + G * _current_dv_values.get_data_eigen_vec(dv_names);  // TODO: check not just grad (see both) and check sign too...
-		//c is the rhs of Eq 18.20, p. 538 in Nocedal and Wright
+		//c = grad_vector + G * _current_dv_values.get_data_eigen_vec(dv_names);  // TODO: check not just grad (see both) and check sign too...
+		////c is the rhs of Eq 18.20, p. 538 in Nocedal and Wright
 
 		string eqp_solve_method; // probably too heavy to be a ++arg
 		eqp_solve_method = "null_space";
 		if (eqp_solve_method == "null_space")
 		{
-			x = _kkt_null_space(G, constraint_jco, constraint_diff, c, cnames);
+			x = _kkt_null_space(G, constraint_jco, constraint_diff, grad_vector, cnames);
 			search_d = x.first;
 			lm = x.second;
 			message(1, "sd:", search_d);  // tmp
@@ -2286,8 +2293,8 @@ pair<Eigen::VectorXd, Eigen::VectorXd> SeqQuadProgram::calc_search_direction_vec
 	}
 
 	// sign of direction
-	if (obj_sense == "minimize")
-		search_d *= -1.;
+	/*if (obj_sense == "minimize")
+		search_d *= -1.;*/
 
 	message(1, "sd:", search_d.transpose());  // tmp
 
