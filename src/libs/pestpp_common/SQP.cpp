@@ -1948,7 +1948,7 @@ pair<Eigen::VectorXd, Eigen::VectorXd> SeqQuadProgram::_kkt_null_space(Eigen::Ma
 	// solve p_null_space
 	bool simplified_null_space_approach = false; // see Nocedal and Wright (2006) pg 538-9
 	message(1, "hess", G);
-	Eigen::MatrixXd red_hess = Z.transpose() * G * Z;
+	Eigen::MatrixXd red_hess = Z.transpose() * G * Z; 
 	message(1, "red hess", red_hess);
 	bool cholesky = false;
 	Eigen::VectorXd p_z;
@@ -1975,12 +1975,11 @@ pair<Eigen::VectorXd, Eigen::VectorXd> SeqQuadProgram::_kkt_null_space(Eigen::Ma
 		else
 		{
 			message(1, "carrying out KKT null space solve...");
-			Eigen::MatrixXd X1, coeff;
+			Eigen::MatrixXd ZtGY;
 			Eigen::VectorXd rhs;
-			coeff = red_hess;
-			X1 = Z.transpose() * G * Y;
-			message(1, "larger cross-term matrix", X1);
-			rhs = (-1. * X1 * p_y) - (Z.transpose() * curved_grad); //Eq 18.19b pp. 538 Nocedal and Wright
+			ZtGY = Z.transpose() * G * Y;
+			message(1, "larger cross-term matrix", ZtGY);
+			rhs = (-1. * ZtGY * p_y) - (Z.transpose() * curved_grad); //Eq 18.19b pp. 538 Nocedal and Wright
 			if (cholesky)
 			{
 				
@@ -1999,7 +1998,7 @@ pair<Eigen::VectorXd, Eigen::VectorXd> SeqQuadProgram::_kkt_null_space(Eigen::Ma
 			{
 				// try straight inverse here
 				// todo rSVD here instead?
-				p_z = red_hess.inverse() * rhs;
+				p_z = red_hess.inverse() * rhs; //From Eq 18.19b pp. 538 Nocedal and Wright
 				message(1, "p_z", p_z);  // tmp
 
 			}
@@ -2013,7 +2012,7 @@ pair<Eigen::VectorXd, Eigen::VectorXd> SeqQuadProgram::_kkt_null_space(Eigen::Ma
 
 	// combine to make total direction
 	message(1, "combining range and null space components of search direction");  // tmp
-	search_d = Y * p_y + Z * p_z;
+	search_d = Y * p_y + Z * p_z; // Eq. 18.18 p. 539 Nocedal and Wright 
     message(1, "search d ", search_d);  // tmp
 
 	if (search_d.size() != curved_grad.size())
@@ -2605,9 +2604,9 @@ bool SeqQuadProgram::solve_new()
     oe_candidates.to_csv(ss.str());
 	//todo: decide which if any dv candidate to accept...
 	map<string,double> sf_map;
-	for (int i=0;i<real_names.size();i++)
+	for (int i=0;i< dv_candidates.get_real_names().size();i++)
     {
-	    sf_map[real_names[i]] = used_scale_vals[i];
+	    sf_map[dv_candidates.get_real_names()[i]] = used_scale_vals[i];
     }
 	bool success = pick_candidate_and_update_current(dv_candidates, oe_candidates,sf_map);
 	if (!success)
