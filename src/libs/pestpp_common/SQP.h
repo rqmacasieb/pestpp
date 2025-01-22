@@ -221,6 +221,7 @@ private:
 	void message(int level, const string &_message, T extra);
 
 	void sanity_checks();
+	bool isfullrank(const Eigen::MatrixXd& mat);
 
 	void add_current_as_bases(ParameterEnsemble& _dv, ObservationEnsemble& _oe);
 

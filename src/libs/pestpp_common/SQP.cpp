@@ -722,6 +722,7 @@ void SeqQuadProgram::initialize_parcov()
 	if (pest_scenario.get_pestpp_options().get_ies_use_empirical_prior())
 		return;
 	string how = parcov.try_from(pest_scenario, file_manager);
+	cout << endl << parcov << endl;
 	message(1, "parcov loaded ", how);
 	//if (parcov.e_ptr()->rows() > 0)
 	parcov = parcov.get(act_par_names);
@@ -1458,12 +1459,25 @@ bool SeqQuadProgram::update_hessian_and_grad_vector()
 	message(1, "starting hessian update for iteration ", iter);
 	
 	Eigen::VectorXd old_grad = current_grad_vector.get_data_eigen_vec(dv_names);
-
+	cout << endl << "old_grad" << old_grad << endl;
 
 	//update
 	current_grad_vector = new_grad;
+	cout << endl << "new_grad" << new_grad << endl;
 	//if accepted, return true
 	return true;
+}
+
+bool SeqQuadProgram::isfullrank(const Eigen::MatrixXd& mat)
+{
+	Eigen::JacobiSVD<Eigen::MatrixXd> svd(mat, Eigen::ComputeThinU | Eigen::ComputeThinV);
+	Eigen::VectorXd singularValues = svd.singularValues();
+	double tol = 1e-5;
+	int rank = (singularValues.array() > tol).count();
+	if (rank == min(mat.rows(), mat.cols()))
+		return true;
+	else
+		return false;
 }
 
 void SeqQuadProgram::iterate_2_solution()
@@ -1882,6 +1896,7 @@ pair<Eigen::VectorXd, Eigen::VectorXd> SeqQuadProgram::_kkt_null_space(Eigen::Ma
 
 	Eigen::VectorXd search_d, lm;
 	
+	
 	// check: A full rank
 	// check: reduced hessian ZTGZ is non pos def
 
@@ -1960,7 +1975,7 @@ pair<Eigen::VectorXd, Eigen::VectorXd> SeqQuadProgram::_kkt_null_space(Eigen::Ma
 		if (simplified_null_space_approach)
 		{
 			message(1, "using simplified approach in KKT null space solve...");
-			//rhs = -1. * Z.transpose() * curved_grad;
+			rhs = -1. * Z.transpose() * curved_grad;
 			// simplify by removing cross term (or ``partial hessian'') matrix (zTgy), which is approp when approximating hessian (zTgz) (as p_y goes to zero faster than p_z)
 			if (cholesky)
 			{
@@ -1968,8 +1983,8 @@ pair<Eigen::VectorXd, Eigen::VectorXd> SeqQuadProgram::_kkt_null_space(Eigen::Ma
 			}
 			else
 			{
-				//throw_sqp_error("todo");
-				//p_z = solve: red_hess, rhs
+				p_z = red_hess.inverse() * rhs; //From Eq 18.23 pp. 539 Nocedal and Wright
+				message(1, "p_z", p_z);  // tmp
 			}
 		}
 		else
@@ -1996,8 +2011,6 @@ pair<Eigen::VectorXd, Eigen::VectorXd> SeqQuadProgram::_kkt_null_space(Eigen::Ma
 			}
 			else
 			{
-				// try straight inverse here
-				// todo rSVD here instead?
 				p_z = red_hess.inverse() * rhs; //From Eq 18.19b pp. 538 Nocedal and Wright
 				message(1, "p_z", p_z);  // tmp
 
@@ -2094,7 +2107,6 @@ pair<Eigen::VectorXd, Eigen::VectorXd> SeqQuadProgram::calc_search_direction_vec
 	Eigen::VectorXd search_d, lm;
 	pair<Eigen::VectorXd, Eigen::VectorXd> x;
 	
-
 	//message(1, "hessian:", hessian);  // tmp
     Mat constraint_mat;
     if (use_ensemble_grad) {
@@ -2128,6 +2140,8 @@ pair<Eigen::VectorXd, Eigen::VectorXd> SeqQuadProgram::calc_search_direction_vec
 		message(0, "current working set:", cnames);
 		Eigen::MatrixXd constraint_jco = constraint_mat.e_ptr()->toDense();  // or would you pref to slice and dice each time - this won't get too big but want to avoid replicates  // and/or make Jacobian obj?
 
+
+
 		// constraint diff (h = Ax - b)
 		// todo only for constraints in WS only
 		Eigen::VectorXd Ax, b;
@@ -2146,7 +2160,24 @@ pair<Eigen::VectorXd, Eigen::VectorXd> SeqQuadProgram::calc_search_direction_vec
 		}
 		
 		message(1, "A:", constraint_jco);  // tmp
-		// add check here that A is full rank; warn that linearly dependent will be removed via factorization
+
+		if (!isfullrank(constraint_jco)) {
+			message(0, "WARNING: constraint_jco is not full rank. Removing linear dependence by QR decomposition.");
+			Eigen::HouseholderQR<Eigen::MatrixXd> qr(constraint_jco);
+			Eigen::MatrixXd Q = qr.householderQ();
+			Eigen::MatrixXd R = qr.matrixQR().triangularView<Eigen::Upper>();
+
+			double tol = 1e-10;
+			int rank = 0;
+			for (int i = 0; i < R.cols(); ++i) {
+				if (R(i, i) > tol) {
+					rank++;
+				}
+			}
+
+			constraint_jco = Q.leftCols(rank);
+		}
+
 		message(1, "constraint diff:", constraint_diff);  // tmp
 		
 		// throw error here if not all on/near constraint
@@ -2170,7 +2201,7 @@ pair<Eigen::VectorXd, Eigen::VectorXd> SeqQuadProgram::calc_search_direction_vec
 		//cout << endl << cov << endl;
 		//Eigen::MatrixXd G = grad_vector * pow(obj_cvar, -1) * grad_vector.transpose(); // or //Eigen::SparseMatrix<double> G;?
 		////will hessian ever be singular?  If not, then just use inv method...
-		
+		cout << endl << "hessian" << endl << hessian << endl;
 		Eigen::MatrixXd G = *hessian.e_ptr();  // initialize the hessian as identity matrix (Dhedari et al 2012)
 
 		Eigen::VectorXd c;
@@ -2602,7 +2633,7 @@ bool SeqQuadProgram::solve_new()
     ss.str("");
     ss << file_manager.get_base_filename() << "." << iter << ".oe_candidates.csv";
     oe_candidates.to_csv(ss.str());
-	//todo: decide which if any dv candidate to accept...
+
 	map<string,double> sf_map;
 	for (int i=0;i< dv_candidates.get_real_names().size();i++)
     {
@@ -2876,7 +2907,7 @@ bool SeqQuadProgram::pick_candidate_and_update_current(ParameterEnsemble& dv_can
 	string tag;
 	vector<double> infeas_vec;
 	vector<int> accept_idxs;
-	bool accept;
+	bool accept = false;
 	for (int i = 0; i < obj_vec.size(); i++)
 	{
 		ss.str("");
@@ -2884,7 +2915,7 @@ bool SeqQuadProgram::pick_candidate_and_update_current(ParameterEnsemble& dv_can
 		ss << "candidate: " << real_names[i] << ", scale factor: " << sf_map.at(real_names[i]);
 		tag = ss.str();
 		ss.str("");
-		ss << "candidate: " << tag << " phi: " << obj_vec[i];
+		ss << tag << " phi: " << obj_vec[i];
 		double infeas_sum = 0.0;
 		for (auto& v : violations[real_names[i]])
 		{
@@ -2907,7 +2938,7 @@ bool SeqQuadProgram::pick_candidate_and_update_current(ParameterEnsemble& dv_can
             else{
                 accept_idxs.push_back(i);
             }
-            accept_idxs.push_back(i);
+            //accept_idxs.push_back(i);
 //            idx = i;
 //            oext = obj_vec[i];
 //            // now update the filter recs to remove any dominated pairs
@@ -2928,21 +2959,19 @@ bool SeqQuadProgram::pick_candidate_and_update_current(ParameterEnsemble& dv_can
     {
         accept = true;
         //since all of the these passed the filter, choose the one with lowest phi
-        double min_obj = 1.0e+300;
         ss.str("");
         ss << "number of scale factors passing filter:" << accept_idxs.size();
         message(1,ss.str());
         for (auto iidx : accept_idxs)
         {
-            if (obj_vec[iidx] < min_obj)
+			if (obj_vec[iidx] < oext) //rqm: this only currently applies if problem is minimisation?
             {
-                min_obj = obj_vec[iidx];
                 idx = iidx;
                 oext = obj_vec[iidx];
                 oviol = infeas_vec[iidx];
             }
         }
-        filter.update(min_obj,infeas_vec[idx],iter,sf_map.at(real_names.at(idx)));
+        filter.update(oext,infeas_vec[idx],iter,sf_map.at(real_names.at(idx)));
     }
 	else
     {
