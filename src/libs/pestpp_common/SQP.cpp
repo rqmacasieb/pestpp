@@ -1458,13 +1458,122 @@ bool SeqQuadProgram::update_hessian_and_grad_vector()
 	//fancy shit here...
 	message(1, "starting hessian update for iteration ", iter);
 	
-	Eigen::VectorXd old_grad = current_grad_vector.get_data_eigen_vec(dv_names);
-	cout << endl << "old_grad" << old_grad << endl;
+	Covariance old_hessian = hessian;
 
-	//update
+	// quasi-Newton Hessian updating via BFGS
+	// only if combination of conditions satisfies (some of which are user-specified)
+
+	Eigen::VectorXd prev_grad = current_grad_vector.get_data_eigen_vec(dv_names);
+	cout << endl << "old_grad" << prev_grad << endl;
+
 	current_grad_vector = new_grad;
+	Eigen::VectorXd curr_grad = current_grad_vector.get_data_eigen_vec(dv_names);
 	cout << endl << "new_grad" << new_grad << endl;
-	//if accepted, return true
+	
+	//compute gradient difference and step: Eq. 18.13 Nocedal and Wright, p. 536;
+	Eigen::VectorXd y_k = curr_grad - prev_grad; 
+	Eigen::VectorXd s_k = current_ctl_dv_values.get_data_eigen_vec(dv_names) - prev_ctl_dv_values.get_data_eigen_vec(dv_names);
+
+	//check if there's an active constraint for the current dv then compute constraint jco and update y_k
+	vector<string> prev_cnames, curr_cnames;
+	curr_cnames = current_constraint_mat.get_row_names();
+	prev_constraint_mat = current_constraint_mat;
+	prev_cnames = prev_constraint_mat.get_row_names();
+	
+	if (!curr_cnames.empty() && !prev_cnames.empty()) //if no active constraint previously, curr should also be empty right?
+	{
+		Eigen::MatrixXd current_jco = current_constraint_mat.e_ptr()->toDense();
+		Eigen::MatrixXd previous_jco = prev_constraint_mat.e_ptr()->toDense();
+	
+		// Adjust signs for inequality constraints
+		for (int i = 0; i < curr_cnames.size(); i++) {
+			if (constraint_sense[curr_cnames[i]] == "less_than") {
+				current_jco.row(i) *= -1;
+				previous_jco.row(i) *= -1;
+			}
+		}
+		y_k -= (current_jco.transpose() - previous_jco.transpose())* lambda; 
+	}
+	else
+	{
+		message(2, "no active constraints, using objective gradient difference only");
+	}
+
+	const double eps = 1e-10;
+	const double max_condition = 1e8;
+	const double damping_factor = 0.2;
+
+	if (s_k.norm() < eps || y_k.norm() < eps)
+	{
+		message(1, "skipping BFGS update - step or gradient difference too small"); 
+		return false;
+	}
+
+	// Check curvature condition and apply Powell's damping if needed
+	double s_dot_y = y_k.dot(s_k);
+	if (s_dot_y <= eps * s_k.norm() * y_k.norm())
+	{
+		message(1, "applying Powell's damping to maintain positive definiteness");
+		Eigen::VectorXd Hs = (*old_hessian.e_ptr()) * s_k;
+		double s_dot_Hs = s_k.dot(Hs);
+
+		// Powell's damping formula
+		double theta = (1.0 - damping_factor) *
+			s_dot_Hs / (s_dot_Hs - s_dot_y);
+		theta = std::max(theta, damping_factor);
+
+		// Modify y_k with damping
+		y_k = theta * y_k + (1.0 - theta) * Hs;
+		s_dot_y = y_k.dot(s_k);  // Recalculate with damped y_k
+	}
+
+	double rho = 1.0 / s_dot_y;
+
+	// BFGS Update formula with scaling
+	Eigen::MatrixXd H = *old_hessian.e_ptr();
+	Eigen::MatrixXd H_new = H;
+
+	// Initial scaling factor (Nocedal & Wright scaling)
+	if (iter == 1)
+	{
+		double scale = s_dot_y / (y_k.squaredNorm());
+		H_new *= scale;
+		message(2, "applying initial scaling factor: ", scale);
+	}
+
+	// First term: H_k*s_k*s_k^T*H_k
+	Eigen::VectorXd Hs = H_new * s_k;
+	H_new -= (Hs * s_k.transpose() * H_new) / (s_k.dot(Hs));
+
+	// Second term: y_k*y_k^T/(y_k^T*s_k) 
+	H_new += rho * (y_k * y_k.transpose());
+
+	// Check condition number
+	Eigen::SelfAdjointEigenSolver<Eigen::MatrixXd> eigensolver(H_new);
+	double cond = eigensolver.eigenvalues().maxCoeff() /
+		eigensolver.eigenvalues().minCoeff();
+
+	if (cond > max_condition)
+	{
+		message(1, "warning: condition number too large: ", cond);
+		// Apply regularization
+		double min_eig = eigensolver.eigenvalues().minCoeff();
+		if (min_eig < eps)
+		{
+			double reg = eps - min_eig;
+			H_new += reg * Eigen::MatrixXd::Identity(H_new.rows(), H_new.cols());
+			message(2, "applying regularization: ", reg);
+		}
+	}
+
+	// Ensure symmetry (can be lost due to numerical errors)
+	H_new = 0.5 * (H_new + H_new.transpose());
+
+	// Update the hessian
+	hessian = Covariance(dv_names, H_new.sparseView());
+
+	message(2, "BFGS Hessian update complete");
+
 	return true;
 }
 
@@ -2119,6 +2228,7 @@ pair<Eigen::VectorXd, Eigen::VectorXd> SeqQuadProgram::calc_search_direction_vec
         constraint_mat = constraints.get_working_set_constraint_matrix(current_ctl_dv_values, current_obs, jco, true);
     }
 	//todo:probably need to check if constraint_mat has any nonzeros?
+	current_constraint_mat = constraint_mat;
 	vector<string> cnames = constraint_mat.get_row_names();
 	cout << constraint_mat;
 
@@ -2240,6 +2350,7 @@ pair<Eigen::VectorXd, Eigen::VectorXd> SeqQuadProgram::calc_search_direction_vec
 		//----------
 		// see alg (16.3) of Nocedal and Wright (2006)
 
+		lambda = lm;
 		message(1, "current working set:", cnames);  // tmp
 		message(1, "lagrangian multipliers:", lm);  // tmp
 
@@ -2310,7 +2421,8 @@ pair<Eigen::VectorXd, Eigen::VectorXd> SeqQuadProgram::calc_search_direction_vec
 	else  // solve unconstrained QP subproblem
 	{
 		message(1, "constraint working set is empty, problem is currently unconstrained...");
-		search_d = *hessian.e_ptr() * grad_vector;
+		search_d = (*hessian.e_ptr()).triangularView<Eigen::Lower>().solve(grad_vector); //search_d = *hessian.e_ptr().inverse * grad_vector;
+		cout << endl << "hessian" << endl << hessian << endl;
 
 
 //		if (LBFGS)
@@ -3029,6 +3141,8 @@ bool SeqQuadProgram::pick_candidate_and_update_current(ParameterEnsemble& dv_can
     filter.report(file_manager.rec_ofstream(),iter);
 	//TODO: need more thinking here - do we accept only if filter accepts?  I think so....
 	//if (((obj_sense == "minimize") && (oext < last_best)) || ((obj_sense == "maximize") && (oext > last_best)))
+	
+	prev_ctl_dv_values = current_ctl_dv_values; //needed for BFGS later
 	if (accept)
 	{
 		//todo:update current_dv and current_obs
@@ -3039,6 +3153,7 @@ bool SeqQuadProgram::pick_candidate_and_update_current(ParameterEnsemble& dv_can
 		p.update_without_clear(vnames, t);
 		
 		pts.numeric2ctl_ip(p);
+		
 		for (auto& d : dv_names)
 			current_ctl_dv_values[d] = p[d];
 		t = _oe.get_real_vector(idx);

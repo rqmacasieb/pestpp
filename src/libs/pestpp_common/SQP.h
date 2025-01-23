@@ -137,10 +137,10 @@ private:
 	vector<string> dv_names;
 	//vector<int> subset_idxs;
 
-	Parameters current_ctl_dv_values;
+	Parameters current_ctl_dv_values, prev_ctl_dv_values;
 	Observations current_obs;
 
-	Parameters current_grad_vector;
+	Parameters current_grad_vector, prev_grad_vector;
 	map<int, Parameters> grad_vector_map;
 
 	ParameterEnsemble dv, dv_base;
