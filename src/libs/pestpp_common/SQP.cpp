@@ -1455,6 +1455,14 @@ bool SeqQuadProgram::update_hessian_and_grad_vector()
 		current_grad_vector = new_grad;
 		return false;
 	}
+
+	if (n_consec_failures >= max_consec_failures)
+	{
+		message(2, "filter rejected too many times, resetting hessian to identity matrix");
+
+		return false;
+	}
+
 	//fancy shit here...
 	message(1, "starting hessian update for iteration ", iter);
 	
@@ -1519,10 +1527,8 @@ bool SeqQuadProgram::update_hessian_and_grad_vector()
 		double s_dot_Hs = s_k.dot(Hs); //skTBksk rhs of Eq 18.14 in Nocedal and Wright, p. 537
 
 		// Powell's damping formula
-		double theta;
-		if (s_dot_y >= damping_factor * s_dot_Hs)
-			theta = 1;
-		else
+		double theta = 1.0;
+		if (s_dot_y < damping_factor * s_dot_Hs)
 			theta = (1.0 - damping_factor) * s_dot_Hs / (s_dot_Hs - s_dot_y); //lhs of Eq. 18.15 in Nocedal and Wright, p. 537
 		
 		// Modify y_k with damping
@@ -1674,7 +1680,7 @@ bool SeqQuadProgram::should_terminate()
     int best_idx_yet = -1;
     for (int i=0;i<best_phis.size();i++)
     {
-        if (best_phis[i]<=best_phi_yet)
+        if (best_phis[i]<best_phi_yet)
         {
             best_phi_yet = best_phis[i];
             best_violation_yet = best_violations[i];
@@ -1686,8 +1692,6 @@ bool SeqQuadProgram::should_terminate()
         throw_sqp_error("something is wrong in shouuld_terminate()");
     }
     nphired = best_phis.size() - best_idx_yet;
-
-
 
     //todo: save and write out the current phi grad vector (maybe save all of them???)
     ss.str("");
@@ -2762,13 +2766,22 @@ bool SeqQuadProgram::solve_new()
 	bool success = pick_candidate_and_update_current(dv_candidates, oe_candidates,sf_map);
 	if (!success)
 	{
-		//// deal with unsuccessful iteration
+		n_consec_failures++;
+		//reset hessian matrix to identity per Liu and Reynolds
+		if (n_consec_failures >= max_consec_failures)
+		{
+			Eigen::SparseMatrix<double> h(dv_names.size(), dv_names.size());
+			h.setIdentity();
+			hessian = Covariance(dv_names, h);
+		}
 
-		// call constraints.reduce_working_set(true) here
-		
+		// OR call constraints.reduce_working_set(true) here
+
 		return false;
-		
+
 	}
+	else
+		n_consec_failures = 0;
 	
 	return true;  // reporting and saving done next
 }

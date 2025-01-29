@@ -47,7 +47,7 @@ struct FilterRec
 class SqpFilter
 {
 public:
-	SqpFilter(bool _minimize=true,double _obj_tol = 0.05, double _viol_tol = 0.05) {
+	SqpFilter(bool _minimize=true,double _obj_tol = 0.01, double _viol_tol = 0.01) {
 		minimize = _minimize; obj_tol = _obj_tol; viol_tol = _viol_tol;
 	}
 	bool accept(double obj_val, double violation_val,int iter=0,double alpha=-1.0, bool keep=false);
@@ -118,6 +118,10 @@ private:
     //todo add warning for par_sigma_range too low
     double par_sigma_min = 10;
 	double eigthresh;
+	bool reset_hessian = false;
+
+	int n_consec_failures = 0;
+	int max_consec_failures = 2; //put this somewhere else later
 
 	set<string> pp_args;
 
