@@ -1463,22 +1463,23 @@ bool SeqQuadProgram::update_hessian_and_grad_vector()
 	// quasi-Newton Hessian updating via BFGS
 	// only if combination of conditions satisfies (some of which are user-specified)
 
-	Eigen::VectorXd prev_grad = current_grad_vector.get_data_eigen_vec(dv_names);
+	Eigen::VectorXd prev_grad = grad_vector_map[iter-1].get_data_eigen_vec(dv_names);
 	cout << endl << "old_grad" << prev_grad << endl;
 
 	current_grad_vector = new_grad;
-	Eigen::VectorXd curr_grad = current_grad_vector.get_data_eigen_vec(dv_names);
+	Eigen::VectorXd curr_grad = grad_vector_map[iter].get_data_eigen_vec(dv_names);
 	cout << endl << "new_grad" << new_grad << endl;
 	
-	//compute gradient difference and step: Eq. 18.13 Nocedal and Wright, p. 536;
+	//compute gradient difference (y_k) and step (s_k): Eq. 18.13 Nocedal and Wright, p. 536; Eq. 15.25 Andrei, p. 529 
 	Eigen::VectorXd y_k = curr_grad - prev_grad; 
 	Eigen::VectorXd s_k = current_ctl_dv_values.get_data_eigen_vec(dv_names) - prev_ctl_dv_values.get_data_eigen_vec(dv_names);
 
 	//check if there's an active constraint for the current dv then compute constraint jco and update y_k
 	vector<string> prev_cnames, curr_cnames;
-	curr_cnames = current_constraint_mat.get_row_names();
 	prev_constraint_mat = current_constraint_mat;
 	prev_cnames = prev_constraint_mat.get_row_names();
+	current_constraint_mat = get_constraint_mat();
+	curr_cnames = current_constraint_mat.get_row_names();
 	
 	if (!curr_cnames.empty() && !prev_cnames.empty()) //if no active constraint previously, curr should also be empty right?
 	{
@@ -1510,24 +1511,24 @@ bool SeqQuadProgram::update_hessian_and_grad_vector()
 	}
 
 	// Check curvature condition and apply Powell's damping if needed
-	double s_dot_y = y_k.dot(s_k);
+	double s_dot_y = y_k.dot(s_k); //Eq. 6.7 Nocedal and Wright, p. 137
 	if (s_dot_y <= eps * s_k.norm() * y_k.norm())
 	{
 		message(1, "applying Powell's damping to maintain positive definiteness");
 		Eigen::VectorXd Hs = (*old_hessian.e_ptr()) * s_k;
-		double s_dot_Hs = s_k.dot(Hs);
+		double s_dot_Hs = s_k.dot(Hs); //skTBksk rhs of Eq 18.14 in Nocedal and Wright, p. 537
 
 		// Powell's damping formula
-		double theta = (1.0 - damping_factor) *
-			s_dot_Hs / (s_dot_Hs - s_dot_y);
-		theta = std::max(theta, damping_factor);
-
+		double theta;
+		if (s_dot_y >= damping_factor * s_dot_Hs)
+			theta = 1;
+		else
+			theta = (1.0 - damping_factor) * s_dot_Hs / (s_dot_Hs - s_dot_y); //lhs of Eq. 18.15 in Nocedal and Wright, p. 537
+		
 		// Modify y_k with damping
-		y_k = theta * y_k + (1.0 - theta) * Hs;
+		y_k = theta * y_k + (1.0 - theta) * Hs; //r_k before Eq. 18.15 in Nocedal and Wright, p. 537
 		s_dot_y = y_k.dot(s_k);  // Recalculate with damped y_k
 	}
-
-	double rho = 1.0 / s_dot_y;
 
 	// BFGS Update formula with scaling
 	Eigen::MatrixXd H = *old_hessian.e_ptr();
@@ -1541,14 +1542,16 @@ bool SeqQuadProgram::update_hessian_and_grad_vector()
 		message(2, "applying initial scaling factor: ", scale);
 	}
 
-	// First term: H_k*s_k*s_k^T*H_k
+	// First term: H_k*s_k*s_k^T*H_k from Eq. 6.19, Nocedal and Wright, p. 140
 	Eigen::VectorXd Hs = H_new * s_k;
 	H_new -= (Hs * s_k.transpose() * H_new) / (s_k.dot(Hs));
 
-	// Second term: y_k*y_k^T/(y_k^T*s_k) 
-	H_new += rho * (y_k * y_k.transpose());
+	// Second term: y_k*y_k^T/(y_k^T*s_k) from Eq. 6.19, Nocedal and Wright, p. 140
+	H_new += (y_k * y_k.transpose()) / s_dot_y;
 
-	// Check condition number
+	// Check condition number per Nocedal and Wright p. 117. This is required to maintain stability
+	// Condition number is the ration between the max eigenvalue and min eigenvalue
+	// Too high condition number means that the matrix is close to being singular
 	Eigen::SelfAdjointEigenSolver<Eigen::MatrixXd> eigensolver(H_new);
 	double cond = eigensolver.eigenvalues().maxCoeff() /
 		eigensolver.eigenvalues().minCoeff();
@@ -1615,6 +1618,13 @@ void SeqQuadProgram::iterate_2_solution()
             //save par and res files for this iteration
             save_current_dv_obs();
         }
+
+		//update the underlying runs
+		make_gradient_runs(current_ctl_dv_values, current_obs);
+
+		//store the grad vector used for this iteration
+		grad_vector_map[iter] = calc_gradient_vector(current_ctl_dv_values);
+
         constraints.sqp_report(iter, current_ctl_dv_values, current_obs, true);
 
         //report dec var change stats - only for ensemble form
@@ -1624,9 +1634,6 @@ void SeqQuadProgram::iterate_2_solution()
             ss << file_manager.get_base_filename() << "." << iter << ".pcs.csv";
             pcs.summarize(dv, ss.str());
         }
-
-        //store the grad vector used for this iteration
-        grad_vector_map[iter] = current_grad_vector;
 
 		//check to break here before making more runs
 		if (should_terminate())
@@ -1641,8 +1648,6 @@ void SeqQuadProgram::iterate_2_solution()
 		    n_consec_infeas = 0;
         }
 
-        //update the underlying runs
-        make_gradient_runs(current_ctl_dv_values,current_obs);
 		//update the hessian
 		update_hessian_and_grad_vector();
 
@@ -2209,6 +2214,18 @@ pair<Eigen::VectorXd, Eigen::VectorXd> SeqQuadProgram::_kkt_direct(Eigen::Matrix
 	return pair<Eigen::VectorXd, Eigen::VectorXd> (search_d, lm);
 }
 
+Mat SeqQuadProgram::get_constraint_mat()
+{
+	if (use_ensemble_grad) {
+		message(1, "getting ensemble-based working set constraint matrix");
+		return constraints.get_working_set_constraint_matrix(current_ctl_dv_values, current_obs, dv, oe, true);
+	}
+	else
+	{
+		message(2, "getting working set constraint matrix");
+		return constraints.get_working_set_constraint_matrix(current_ctl_dv_values, current_obs, jco, true);
+	}
+}
 
 pair<Eigen::VectorXd, Eigen::VectorXd> SeqQuadProgram::calc_search_direction_vector(const Parameters& _current_dv_values, Eigen::VectorXd& grad_vector)
 {
@@ -2217,16 +2234,7 @@ pair<Eigen::VectorXd, Eigen::VectorXd> SeqQuadProgram::calc_search_direction_vec
 	pair<Eigen::VectorXd, Eigen::VectorXd> x;
 	
 	//message(1, "hessian:", hessian);  // tmp
-    Mat constraint_mat;
-    if (use_ensemble_grad) {
-        message(1, "getting ensemble-based working set constraint matrix");
-        constraint_mat = constraints.get_working_set_constraint_matrix(current_ctl_dv_values, current_obs, dv, oe,true);
-    }
-    else
-    {
-        message(2, "getting working set constraint matrix");
-        constraint_mat = constraints.get_working_set_constraint_matrix(current_ctl_dv_values, current_obs, jco, true);
-    }
+    Mat constraint_mat = get_constraint_mat();
 	//todo:probably need to check if constraint_mat has any nonzeros?
 	current_constraint_mat = constraint_mat;
 	vector<string> cnames = constraint_mat.get_row_names();

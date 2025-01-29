@@ -143,9 +143,12 @@ private:
 	Parameters current_grad_vector, prev_grad_vector;
 	map<int, Parameters> grad_vector_map;
 
+	Mat current_constraint_mat, prev_constraint_mat;
+
 	ParameterEnsemble dv, dv_base;
 	ObservationEnsemble oe, oe_base;
 	map<string, string> constraint_sense;
+	Eigen::VectorXd lambda;
 
 	//these are used so that we can update the constraints based on the current best values
 	//Parameters best_mean_dv_values;
@@ -178,13 +181,14 @@ private:
 	bool pick_candidate_and_update_current(ParameterEnsemble& dv_candidates, ObservationEnsemble& _oe, map<string,double>& sf_map);
 
 	Parameters calc_gradient_vector(const Parameters& _current_dv_values, string _center_on=string());
-
+	
 	Eigen::VectorXd calc_gradient_vector_from_coeffs(const Parameters & _current_dv_values);
 
 	Eigen::VectorXd get_obj_vector(ParameterEnsemble& _dv, ObservationEnsemble& _oe);
 
 	double get_obj_value(Parameters& _current_ctl_dv_vals, Observations& _current_obs);
 	map<string, double> get_obj_map(ParameterEnsemble& _dv, ObservationEnsemble& _oe);
+	Mat get_constraint_mat();
 
 	//Eigen::VectorXd calc_search_direction_vector(const Parameters& _current_dv_, Eigen::VectorXd &
 	// );
