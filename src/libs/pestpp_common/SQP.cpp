@@ -968,6 +968,7 @@ void SeqQuadProgram::initialize()
     best_violations.push_back(last_viol);
 
     double v = constraints.get_sum_of_violations(current_ctl_dv_values, current_obs);
+	filter.set_tol(pest_scenario.get_pestpp_options().get_sqp_filter_tol());
 	filter.update(last_best, v, 0, -1.0);
 
 	if (v > 0.0)
@@ -1045,9 +1046,9 @@ void SeqQuadProgram::prep_4_fd_grad()
 
 		if (vnames.size() > 0)
 		{
+			for (auto m : vnames)
 			ss.str("");
 			ss << "existing jacobian missing the following obs constraints:" << endl;
-			for (auto m : vnames)
 				ss << vnames << endl;
 			throw_sqp_error(ss.str());
 		}
@@ -1172,9 +1173,7 @@ void SeqQuadProgram::make_gradient_runs(Parameters& _current_dv_vals, Observatio
 		run_jacobian(_current_dv_vals, _current_obs, false);
 		jco.save(ss.str());
 		message(1, "saved jacobian to " + file_manager.get_base_filename() + "." + ss.str());
-
 	}
-
 }
 
 void SeqQuadProgram::prep_4_ensemble_grad()
@@ -1645,7 +1644,7 @@ void SeqQuadProgram::iterate_2_solution()
 		if (should_terminate())
 			break;
 
-		if (n_consec_infeas > MAX_CONSEC_INFEAS_IES)
+		if (n_consec_infeas > MAX_CONSEC_INFEAS_IES || !accept)
         {
 		    ss.str("");
 		    ss << "number of consecutive infeasible iterations > " << MAX_CONSEC_INFEAS << ", switching to IES to seek feasibility";
@@ -1970,6 +1969,7 @@ Parameters SeqQuadProgram::calc_gradient_vector(const Parameters& _current_dv_va
 			vector<string> obj_name_vec{ obj_func_str };
 			Eigen::MatrixXd t = jco.get_matrix(obj_name_vec, dv_names);
 			grad = t.row(0);
+			cout << "grad" << endl << grad << endl;
 		}
 		//pi based obj
 		else
@@ -2218,17 +2218,197 @@ pair<Eigen::VectorXd, Eigen::VectorXd> SeqQuadProgram::_kkt_direct(Eigen::Matrix
 	return pair<Eigen::VectorXd, Eigen::VectorXd> (search_d, lm);
 }
 
-Mat SeqQuadProgram::get_constraint_mat()
+Mat SeqQuadProgram::get_constraint_mat(const Eigen::VectorXd* lm)
 {
 	if (use_ensemble_grad) {
 		message(1, "getting ensemble-based working set constraint matrix");
-		return constraints.get_working_set_constraint_matrix(current_ctl_dv_values, current_obs, dv, oe, true);
+		return constraints.get_working_set_constraint_matrix(current_ctl_dv_values, current_obs, dv, oe, true, lm);
 	}
 	else
 	{
 		message(2, "getting working set constraint matrix");
-		return constraints.get_working_set_constraint_matrix(current_ctl_dv_values, current_obs, jco, true);
+		return constraints.get_working_set_constraint_matrix(current_ctl_dv_values, current_obs, jco, true, lm);
 	}
+}
+
+bool SeqQuadProgram::line_search(Eigen::VectorXd& search_d, const Parameters& _current_dv_values)
+{
+	//backtracking/line search factors
+	//TODO: make this a ++ arg or tunable or something clever
+		//if (constraints);
+	//	{
+	//		ss.str("");
+	//		ss << "specifying 'base' step length based on active set solve";
+	//		string s = ss.str();
+	//		message(1, s);
+	//		//step = alpha
+	//		throw_sqp_error("TODO");
+	//	}
+	//	else
+	//	{
+	//		ss.str("");
+	//		ss << "specifying 'base' step length based on bound-related heuristics";
+	//		string s = ss.str();
+	//		message(1, s);
+	//		//step = alpha
+	//		throw_sqp_error("TODO");
+	//	}
+
+	stringstream ss;
+	ParameterEnsemble dv_candidates(&pest_scenario, &rand_gen);
+	dv_candidates.set_trans_status(ParameterEnsemble::transStatus::NUM);
+
+	vector<string> real_names;
+	vector<double> scale_vals;
+	scale_vals.clear();
+	for (auto& sf : pest_scenario.get_pestpp_options().get_sqp_scale_facs())
+	{
+		scale_vals.push_back(sf * BASE_SCALE_FACTOR);
+	}
+
+	if ((use_ensemble_grad) && (SOLVE_EACH_REAL))
+	{
+		for (auto sv : scale_vals)
+		{
+			for (auto& real_name : dv.get_real_names())
+			{
+				ss.str("");
+				ss << "dv_cand_" << real_name << "_sv:" << left << setw(8) << setprecision(3) << sv;
+				real_names.push_back(ss.str());
+			}
+		}
+
+	}
+	else {
+		for (auto sv : scale_vals) {
+			ss.str("");
+			ss << "dv_cand_sv:" << left << setw(8) << setprecision(3) << sv;
+			real_names.push_back(ss.str());
+		}
+	}
+	dv_candidates.reserve(real_names, dv_names);
+	int ii = 0;
+	vector<double> used_scale_vals;
+	map<string, double> real_sf_map;
+	for (int i = 0;i < scale_vals.size();i++)
+	{
+		double scale_val = scale_vals[i];
+		ss.str("");
+		ss << "starting calcs for scaling factor" << scale_val;
+		message(1, "starting lambda calcs for scaling factor", scale_val);
+		message(2, "see .log file for more details");
+
+		if ((use_ensemble_grad) && (SOLVE_EACH_REAL))
+		{
+			Parameters real_grad, num_candidate = current_ctl_dv_values;
+			pest_scenario.get_base_par_tran_seq().ctl2numeric_ip(num_candidate);
+			Eigen::VectorXd real, scale_search_d, cvals;
+			dv.transform_ip(ParameterEnsemble::transStatus::NUM);
+
+			for (auto& real_name : dv.get_real_names())
+			{
+				real_grad = calc_gradient_vector(current_ctl_dv_values, real_name);
+
+				real = dv.get_real_vector(real_name);
+				num_candidate.update_without_clear(dv.get_var_names(), real);
+				search_d = fancy_solve_routine(num_candidate, real_grad);
+				scale_search_d = search_d * scale_val;
+				cvals = num_candidate.get_data_eigen_vec(dv_names);
+				cvals.array() += scale_search_d.array();
+				//num_candidate.update_without_clear(dv_names, cvals);
+				//Eigen::VectorXd vec = num_candidate.get_data_eigen_vec(dv_names);
+				dv_candidates.update_real_ip(real_names[ii], cvals);
+				real_sf_map[real_names[ii]] = scale_val;
+				ii++;
+				used_scale_vals.push_back(scale_val);
+
+
+			}
+		}
+		else {
+			//dv_num_candidate = fancy_solve_routine(scale_val, _current_num_dv_values);
+			Parameters num_candidate = _current_dv_values;
+
+			Eigen::VectorXd scale_search_d = search_d * scale_val;
+			if (scale_search_d.squaredNorm() < 1.0 - 10)
+				message(1, "very short upgrade for scale value", scale_val);
+
+			Eigen::VectorXd cvals = num_candidate.get_data_eigen_vec(dv_names);
+
+			cvals.array() += scale_search_d.array();
+			num_candidate.update_without_clear(dv_names, cvals);
+
+			//Eigen::VectorXd vec = dv_num_candidate.get_data_eigen_vec(dv_names);
+			Eigen::VectorXd vec = num_candidate.get_data_eigen_vec(dv_names);
+			dv_candidates.update_real_ip(real_names[i], vec);
+			used_scale_vals.push_back(scale_val);
+			real_sf_map[real_names[i]] = scale_val;
+		}
+
+		ss.str("");
+		message(1, "finished calcs for scaling factor:", scale_val);
+
+	}
+
+	if (pest_scenario.get_pestpp_options().get_ies_debug_upgrade_only())
+	{
+		message(0, "ies_debug_upgrade_only is true, exiting");
+		throw_sqp_error("ies_debug_upgrade_only is true, exiting");
+	}
+
+	//enforce bounds on candidates - TODO: report the shrinkage summary that enforce_bounds returns
+	dv_candidates.enforce_bounds(performance_log, false);
+	ss.str("");
+	ss << file_manager.get_base_filename() << "." << iter << ".dv_candidates.csv";
+	dv_candidates.to_csv(ss.str());
+
+	//check for duplicate candidates
+	Eigen::VectorXd v1, v2;
+	double d;
+	vector<string> drop;
+	set<int> jvals;
+	for (int i = 0;i < dv_candidates.shape().first;i++)
+	{
+		v1 = dv_candidates.get_real_vector(i);
+		for (int j = i + 1;j < dv_candidates.shape().first;j++) {
+			v2 = (dv_candidates.get_real_vector(j) - v1).array() / v1.array().cwiseAbs();
+			d = v2.transpose() * v2;
+			if ((abs(d) < 1e-7) && (jvals.find(j) == jvals.end())) {
+				message(1, "duplicate candidates:", vector<string>{real_names[i], real_names[j]});
+				drop.push_back(real_names[j]);
+				jvals.emplace(j);
+			}
+		}
+
+	}
+	if (drop.size() > 0)
+	{
+		message(1, "dropping the following duplicate candidates: ", drop);
+		dv_candidates.drop_rows(drop, true);
+		used_scale_vals.clear();
+		for (auto& real_name : dv_candidates.get_real_names())
+		{
+			used_scale_vals.push_back(real_sf_map.at(real_name));
+		}
+
+	}
+
+
+	message(0, "running candidate decision variable batch");
+	vector<double> passed_scale_vals = scale_vals;
+	//passed_scale_vals will get amended in this function based on run fails...
+
+	ObservationEnsemble oe_candidates = run_candidate_ensemble(dv_candidates);
+	ss.str("");
+	ss << file_manager.get_base_filename() << "." << iter << ".oe_candidates.csv";
+	oe_candidates.to_csv(ss.str());
+
+	map<string, double> sf_map;
+	for (int i = 0;i < dv_candidates.get_real_names().size();i++)
+	{
+		sf_map[dv_candidates.get_real_names()[i]] = used_scale_vals[i];
+	}
+	return pick_candidate_and_update_current(dv_candidates, oe_candidates, sf_map);
 }
 
 pair<Eigen::VectorXd, Eigen::VectorXd> SeqQuadProgram::calc_search_direction_vector(const Parameters& _current_dv_values, Eigen::VectorXd& grad_vector)
@@ -2236,13 +2416,6 @@ pair<Eigen::VectorXd, Eigen::VectorXd> SeqQuadProgram::calc_search_direction_vec
 
 	Eigen::VectorXd search_d, lm;
 	pair<Eigen::VectorXd, Eigen::VectorXd> x;
-	
-	//message(1, "hessian:", hessian);  // tmp
-    Mat constraint_mat = get_constraint_mat();
-	//todo:probably need to check if constraint_mat has any nonzeros?
-	current_constraint_mat = constraint_mat;
-	vector<string> cnames = constraint_mat.get_row_names();
-	cout << constraint_mat;
 
 	if (cnames.size() > 0)  // solve constrained QP subproblem
 	{
@@ -2260,9 +2433,6 @@ pair<Eigen::VectorXd, Eigen::VectorXd> SeqQuadProgram::calc_search_direction_vec
 		
 		//todo: something better than just echoing working set to screen and rec...
 		message(0, "current working set:", cnames);
-		Eigen::MatrixXd constraint_jco = constraint_mat.e_ptr()->toDense();  // or would you pref to slice and dice each time - this won't get too big but want to avoid replicates  // and/or make Jacobian obj?
-
-
 
 		// constraint diff (h = Ax - b)
 		// todo only for constraints in WS only
@@ -2273,12 +2443,15 @@ pair<Eigen::VectorXd, Eigen::VectorXd> SeqQuadProgram::calc_search_direction_vec
 		b = p.first;
 		constraint_diff = p.second;
 
-		for (int i = 0;i < cnames.size();i++) {
-			if (constraint_sense[cnames[i]] == "less_than")
-			{
-				constraint_jco.row(i) *= -1;
-				constraint_diff[i] *= -1;
-			}	
+		if (use_ensemble_grad)
+		{
+			for (int i = 0;i < cnames.size();i++) {
+				if (constraint_sense[cnames[i]] == "less_than")
+				{
+					constraint_jco.row(i) *= -1;
+					constraint_diff[i] *= -1;
+				}
+			}
 		}
 		
 		message(1, "A:", constraint_jco);  // tmp
@@ -2354,9 +2527,6 @@ pair<Eigen::VectorXd, Eigen::VectorXd> SeqQuadProgram::calc_search_direction_vec
 			throw_sqp_error("eqp_solve_method not implemented");
 		}
 
-		//todo check sign of search_d; think the way the system is formulated, it solves for -dx
-
-
 		// put the following in constraints.reduce_working_set(bool& unsuccessful) func
 		// call here constraints.reduce_working_set(false);
 		//----------
@@ -2369,65 +2539,8 @@ pair<Eigen::VectorXd, Eigen::VectorXd> SeqQuadProgram::calc_search_direction_vec
 		// check whether to `stop and drop` a single constraint from working set due to p ~= 0 or convergence in p (or unsuccessful iteration)
 		// note sign of search_d doesn't matter here
 		bool converged = false;  // todo approx step convergence test here? e.g. current search_d is within 5% of last itn and WS is same as last itn
-		bool unsuccessful = false;  // todo JDub pass unsuccessful arg to constraints.reduce_working_set() if accept is false 
+		//bool unsuccessful = false;  // todo JDub pass unsuccessful arg to constraints.reduce_working_set() if accept is false 
 		// can also check convergence with orthogonality of p_y / p_z > 1.0 if using null_space KKT solve method.. later
-
-		bool search_d_approx_zero = false;
-		double tol = 0.01; //todo: move this to a ++arg
-		for (int i=0;i<search_d.size();i++)
-			if (abs(search_d[i]) < tol)
-			{
-				search_d_approx_zero = true;
-				break;
-			}
-		
-		//search_d_approx_zero = true;  // tmp
-
-		if (search_d_approx_zero | converged | unsuccessful)
-		{
-			vector<string> working_set_ineq_names = constraints.get_working_set_ineq_names(cnames);  // lm sign only iterpret-able for ineq constraints in working set
-			message(1, "ineq constraints in working set:", working_set_ineq_names);  // tmp
-
-			double lm_min = 0.0;
-			int idx;
-			for (int i = 0; i < cnames.size(); i++)
-			{
-				// todo JDub - need another if here such that we get the idx and lm_min for ineq constraints only
-				//jwhite: this is slow if heaps (1000+) in working_set_ineq_names - can swap to set<string> to be faster
-				if (find(working_set_ineq_names.begin(), working_set_ineq_names.end(), cnames[i]) == working_set_ineq_names.end())
-					continue;
-				if ((lm[i] < 0.0) && (lm[i] < lm_min))
-				{
-					idx = i;
-					lm_min = lm[i];
-				}
-			}
-
-			if (lm_min == 0.0)
-			{
-				throw_sqp_error("optimal soln detected at solve EQP step (lagrangian multiplier for all ineq constraints in working set is non-neg)...");
-			}
-			message(1, "lm_min:", lm_min);  // tmp
-			message(1, "lm_min_idx:", cnames[idx]);  // tmp
-
-			string to_drop = cnames[idx];
-			cnames.erase(cnames.begin() + idx);
-			message(1, "cnames after dropping attempting:", cnames);  // tmp
-
-			// todo JDub now we need to skip alpha testing for this iter and recalc search_d without this constraint... i moved to next iter in proto because it was cheap, probably want to go back to start of search_d computation?
-			// jwhite: will this process happen multiple times?  If so, we probably need to wrap this process in a "while true" loop
-			// mjk: as we discussed, the while true would be awesome!
-			//}
-		}
-		else  // progress with this iter
-		{
-			// todo determine clever (base) alpha
-			double alpha = 1.;
-		}
-
-		// return alpha, go_to
-		//----------
-
 
 	}
 	else  // solve unconstrained QP subproblem
@@ -2435,20 +2548,7 @@ pair<Eigen::VectorXd, Eigen::VectorXd> SeqQuadProgram::calc_search_direction_vec
 		message(1, "constraint working set is empty, problem is currently unconstrained...");
 		search_d = (*hessian.e_ptr()).triangularView<Eigen::Lower>().solve(grad_vector); //search_d = *hessian.e_ptr().inverse * grad_vector;
 		cout << endl << "hessian" << endl << hessian << endl;
-
-
-//		if (LBFGS)
-//		ss.str("");
-//		ss << "use LBFGS algorithm to solve for search direction in unconstrained case";
-//		string s = ss.str();
-//		message(1, s);
-//		//self.search_d = self._LBFGS_hess_update(memory = memory, self_scale = hess_self_scaling)
-//		throw_sqp_error("TODO");
 	}
-
-	// sign of direction
-	/*if (obj_sense == "minimize")
-		search_d *= -1.;*/
 
 	message(1, "sd:", search_d.transpose());  // tmp
 
@@ -2463,7 +2563,7 @@ Eigen::VectorXd SeqQuadProgram::fancy_solve_routine(const Parameters& _current_d
 
 	// search direction computation; RQM: this is for the QP subproblem assuming inqeuality constraints are active
 	//Eigen::VectorXd search_d = calc_search_direction_vector(_current_dv_num_values, grad);  
-	pair<Eigen::VectorXd, Eigen::VectorXd> x = calc_search_direction_vector(_current_dv_num_values, grad);
+	//pair<Eigen::VectorXd, Eigen::VectorXd> x = calc_search_direction_vector(_current_dv_num_values, grad);
 
 	// todo undertake search direction-related tests, e.g., point down-hill
 	// and check if constraints in working set cause zero search_d (and go to next iteration if so)
@@ -2478,7 +2578,8 @@ Eigen::VectorXd SeqQuadProgram::fancy_solve_routine(const Parameters& _current_d
 	//	}
 
 
-	return x.first;  // search_d;
+	//return x.first;  // search_d;
+	return grad;
 }
 
 bool SeqQuadProgram::solve_new()
@@ -2511,279 +2612,80 @@ bool SeqQuadProgram::solve_new()
 		_current_num_dv_values.update(dv_names, mean_vec);
 	}
 
-	//Parameters dv_num_candidate;
-	ParameterEnsemble dv_candidates(&pest_scenario,&rand_gen);
-	dv_candidates.set_trans_status(ParameterEnsemble::transStatus::NUM);
-	
+	Mat constraint_mat = get_constraint_mat();
+	current_constraint_mat = constraint_mat;
+	cnames = constraint_mat.get_row_names();
 	
 	// search direction computation
-	Eigen::VectorXd search_d;
-	search_d = fancy_solve_routine(_current_num_dv_values,current_grad_vector);
+	Eigen::VectorXd search_d, lm;
+	Eigen::VectorXd grad = current_grad_vector.get_data_eigen_vec(dv_names);
+	bool successful = false;
 
-	
-	//backtracking/line search factors
-	//TODO: make this a ++ arg or tunable or something clever
-		//if (constraints);
-	//	{
-	//		ss.str("");
-	//		ss << "specifying 'base' step length based on active set solve";
-	//		string s = ss.str();
-	//		message(1, s);
-	//		//step = alpha
-	//		throw_sqp_error("TODO");
-	//	}
-	//	else
-	//	{
-	//		ss.str("");
-	//		ss << "specifying 'base' step length based on bound-related heuristics";
-	//		string s = ss.str();
-	//		message(1, s);
-	//		//step = alpha
-	//		throw_sqp_error("TODO");
-	//	}
-	
-	vector<string> real_names;
-    vector<double> scale_vals;
-	scale_vals.clear();
-	for (auto& sf : pest_scenario.get_pestpp_options().get_sqp_scale_facs())
-    {
-	    scale_vals.push_back(sf * BASE_SCALE_FACTOR);
-    }
-
-    if ((use_ensemble_grad) && (SOLVE_EACH_REAL))
-    {
-        for (auto sv : scale_vals)
-        {
-            for (auto& real_name : dv.get_real_names())
-             {
-                ss.str("");
-                ss << "dv_cand_" << real_name << "_sv:" << left << setw(8) << setprecision(3) << sv;
-                real_names.push_back(ss.str());
-            }
-        }
-
-    }
-    else {
-        for (auto sv : scale_vals) {
-            ss.str("");
-            ss << "dv_cand_sv:" << left << setw(8) << setprecision(3) << sv;
-            real_names.push_back(ss.str());
-        }
-    }
-	dv_candidates.reserve(real_names, dv_names);
-    int ii = 0;
-    vector<double> used_scale_vals;
-    map<string,double> real_sf_map;
-	for (int i=0;i<scale_vals.size();i++)
+	int max_line_search_attempts = 5;
+	int line_search_attempts = 0;
+	while (!successful && line_search_attempts < max_line_search_attempts)
 	{
-		double scale_val = scale_vals[i];
-		ss.str("");
-		ss << "starting calcs for scaling factor" << scale_val;
-		message(1, "starting lambda calcs for scaling factor", scale_val);
-		message(2, "see .log file for more details");
+		
+		constraint_jco = constraint_mat.e_ptr()->toDense();
+		pair<Eigen::VectorXd, Eigen::VectorXd> x = calc_search_direction_vector(_current_num_dv_values, grad);
+		search_d = x.first;
+		lm = x.second;
 
-		if ((use_ensemble_grad) && (SOLVE_EACH_REAL))
-        {
-		    Parameters real_grad,num_candidate=current_ctl_dv_values;
-		    pest_scenario.get_base_par_tran_seq().ctl2numeric_ip(num_candidate);
-		    Eigen::VectorXd real,scale_search_d,cvals;
-		    dv.transform_ip(ParameterEnsemble::transStatus::NUM);
+		bool search_d_approx_zero = false;
+		double tol = 0.01; //todo: move this to a ++arg
+		for (int i = 0;i < search_d.size();i++)
+			if (abs(search_d[i]) < tol)
+			{
+				search_d_approx_zero = true;
+				break;
+			}
 
-		    for (auto& real_name : dv.get_real_names())
-            {
-		        real_grad = calc_gradient_vector(current_ctl_dv_values,real_name);
-
-                real = dv.get_real_vector(real_name);
-                num_candidate.update_without_clear(dv.get_var_names(),real);
-                search_d = fancy_solve_routine(num_candidate,real_grad);
-                scale_search_d = search_d * scale_val;
-                cvals = num_candidate.get_data_eigen_vec(dv_names);
-                cvals.array() += scale_search_d.array();
-                //num_candidate.update_without_clear(dv_names, cvals);
-                //Eigen::VectorXd vec = num_candidate.get_data_eigen_vec(dv_names);
-                dv_candidates.update_real_ip(real_names[ii], cvals);
-                real_sf_map[real_names[ii]] = scale_val;
-                ii++;
-                used_scale_vals.push_back(scale_val);
-
-
-            }
-        }
-		else {
-            //dv_num_candidate = fancy_solve_routine(scale_val, _current_num_dv_values);
-            Parameters num_candidate = _current_num_dv_values;
-
-            Eigen::VectorXd scale_search_d = search_d * scale_val;
-            if (scale_search_d.squaredNorm() < 1.0 - 10)
-                message(1, "very short upgrade for scale value", scale_val);
-
-            Eigen::VectorXd cvals = num_candidate.get_data_eigen_vec(dv_names);
-
-            cvals.array() += scale_search_d.array();
-            num_candidate.update_without_clear(dv_names, cvals);
-
-            //Eigen::VectorXd vec = dv_num_candidate.get_data_eigen_vec(dv_names);
-            Eigen::VectorXd vec = num_candidate.get_data_eigen_vec(dv_names);
-            dv_candidates.update_real_ip(real_names[i], vec);
-            used_scale_vals.push_back(scale_val);
-            real_sf_map[real_names[i]] = scale_val;
-        }
-
-		ss.str("");
-		message(1, "finished calcs for scaling factor:", scale_val);
-
-	}
-
-
-//// check that we need to have the gradient at candidate, e.g., for Hessian purposes
-// if (use_ensemble_grad)
-//	{
-//		ss.str("");
-//		ss << "draw dec var en at candidate mean vector";
-//		string s = ss.str();
-//		message(1, s);
-//		throw_sqp_error("TODO");
-
-//		ss.str("");
-//		ss << "evaluate ensembles at trial alphas";
-//		string s = ss.str();
-//		message(1, s);
-//		throw_sqp_error("TODO");
-//	}
-
-	//	if (constraints); // and if active set size is > 1?
-	//	{
-	//		ss.str("");
-	//		ss << "adopt filtering method to handle constraints and select best step size";
-	//		string s = ss.str();
-	//		message(1, s);
-	//		//self._filter, accept, c_viol = self._filter_constraint_eval(self.obsensemble_1, self._filter, step_size,
-	//			//	biobj_weight = biobj_weight, biobj_transf = biobj_transf,
-	//				//opt_direction = self.opt_direction)
-	//		throw_sqp_error("TODO");
-
-	//		if (accept);
-	//		{
-	//			// tracking
-
-	//			ss.str("");
-	//			ss << "check for blocking constraints; break if so";
-	//			string s = ss.str();
-	//			message(1, s);
-	//			throw_sqp_error("TODO");
-	//		}
-	//	}
-	//	else  // unconstrained
-	//	{
-	//		if ((LBFGS) & (iter_num > 1));  // BFGS comes later
-	//		{
-	//			ss.str("");
-	//			ss << "check first (sufficiency) Wolfe condition for each alpha; next alpha if not";
-	//			string s = ss.str();
-	//			message(1, s);
-	//			throw_sqp_error("TODO");
-
-	//			ss.str("");
-	//			ss << "evaluate grad at candidate step size";
-	//			string s = ss.str();
-	//			message(1, s);
-	//			// can also do some re-use here
-	//			throw_sqp_error("TODO");
-
-	//			ss.str("");
-	//			ss << "check second (curvature) Wolfe condition for each alpha; next alpha if not";
-	//			string s = ss.str();
-	//			message(1, s);
-	//			throw_sqp_error("TODO");
-	//		}
-	//		// can compute curvature (y^Ts) here for reference and phi-curvature trade off
-
-	//		if; //current alpha is best
-	//		{
-	//			// tracking
-	//		}
-	//	}
-	//}
-	
-	if (pest_scenario.get_pestpp_options().get_ies_debug_upgrade_only())
-	{
-		message(0, "ies_debug_upgrade_only is true, exiting");
-		throw_sqp_error("ies_debug_upgrade_only is true, exiting");
-	}
-
-	//enforce bounds on candidates - TODO: report the shrinkage summary that enforce_bounds returns
-	dv_candidates.enforce_bounds(performance_log,false);
-	ss.str("");
-	ss << file_manager.get_base_filename() << "." << iter << ".dv_candidates.csv";
-	dv_candidates.to_csv(ss.str());
-
-	//check for duplicate candidates
-	Eigen::VectorXd v1,v2;
-	double d;
-	vector<string> drop;
-	set<int> jvals;
-	for (int i=0;i<dv_candidates.shape().first;i++)
-    {
-	    v1 = dv_candidates.get_real_vector(i);
-	    for (int j=i+1;j<dv_candidates.shape().first;j++) {
-            v2 = (dv_candidates.get_real_vector(j) - v1).array() / v1.array().cwiseAbs();
-            d = v2.transpose() * v2;
-            if ((abs(d) < 1e-7) && (jvals.find(j) == jvals.end())) {
-                message(1, "duplicate candidates:", vector<string>{real_names[i], real_names[j]});
-                drop.push_back(real_names[j]);
-                jvals.emplace(j);
-            }
-        }
-
-    }
-	if (drop.size() > 0)
-    {
-	    message(1,"dropping the following duplicate candidates: ",drop);
-	    dv_candidates.drop_rows(drop,true);
-	    used_scale_vals.clear();
-	    for (auto& real_name : dv_candidates.get_real_names())
-        {
-	        used_scale_vals.push_back(real_sf_map.at(real_name));
-        }
-
-    }
-
-
-	message(0, "running candidate decision variable batch");
-	vector<double> passed_scale_vals = scale_vals;	
-	//passed_scale_vals will get amended in this function based on run fails...
-
-	ObservationEnsemble oe_candidates = run_candidate_ensemble(dv_candidates);
-    ss.str("");
-    ss << file_manager.get_base_filename() << "." << iter << ".oe_candidates.csv";
-    oe_candidates.to_csv(ss.str());
-
-	map<string,double> sf_map;
-	for (int i=0;i< dv_candidates.get_real_names().size();i++)
-    {
-	    sf_map[dv_candidates.get_real_names()[i]] = used_scale_vals[i];
-    }
-	bool success = pick_candidate_and_update_current(dv_candidates, oe_candidates,sf_map);
-	if (!success)
-	{
-		n_consec_failures++;
-		//reset hessian matrix to identity per Liu and Reynolds
-		if (n_consec_failures >= max_consec_failures)
+		if (cnames.size() > 0)
 		{
-			Eigen::SparseMatrix<double> h(dv_names.size(), dv_names.size());
-			h.setIdentity();
-			hessian = Covariance(dv_names, h);
+			bool search_d_approx_zero = false;
+			double tol = 0.01; //todo: move this to a ++arg
+			for (int i = 0; i < search_d.size(); i++)
+			{
+				if (abs(search_d[i]) < tol)
+				{
+					search_d_approx_zero = true;
+					break;
+				}
+			}
+
+			if (search_d_approx_zero) //Algorithm 16.3 in Nocedal and Wright, pp. 472-473
+			{
+				constraint_mat = get_constraint_mat(&lm);
+				current_constraint_mat = constraint_mat;
+				cnames = constraint_mat.get_row_names();
+				message(1, "cnames after dropping attempting:", cnames);
+				continue;
+			}
 		}
 
-		// OR call constraints.reduce_working_set(true) here
+		successful = line_search(search_d, _current_num_dv_values);
+		if (!successful)
+		{
+			n_consec_failures++;
+			line_search_attempts++;
+			//reset hessian matrix to identity per Liu and Reynolds
+			if (n_consec_failures >= max_consec_failures)
+			{
+				Eigen::SparseMatrix<double> h(dv_names.size(), dv_names.size());
+				h.setIdentity();
+				hessian = Covariance(dv_names, h);
+				n_consec_failures = 0;
+			}
 
-		return false;
+			if (line_search_attempts >= max_line_search_attempts)
+			{
+				message(1, "Line search struggling - seek feasible");
+				break;
+			}
+		}
 
 	}
-	else
-		n_consec_failures = 0;
-	
-	return true;  // reporting and saving done next
+	return successful; //RQM: this is just a placeholder return value at the moment
 }
 
 bool SeqQuadProgram::seek_feasible()

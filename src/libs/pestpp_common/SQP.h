@@ -47,13 +47,16 @@ struct FilterRec
 class SqpFilter
 {
 public:
-	SqpFilter(bool _minimize=true,double _obj_tol = 0.01, double _viol_tol = 0.01) {
+	SqpFilter(bool _minimize=true,double _obj_tol = 0.05, double _viol_tol = 0.05) {
 		minimize = _minimize; obj_tol = _obj_tol; viol_tol = _viol_tol;
 	}
 	bool accept(double obj_val, double violation_val,int iter=0,double alpha=-1.0, bool keep=false);
 	bool update(double obj_val, double violation_val, int iter=0,double alpha=-1.0);
     void report(ofstream& frec,int iter);
     double get_viol_tol() {return viol_tol;}
+	void set_tol(double tol) { 
+		obj_tol = tol; 
+		viol_tol = tol;}
 
 private:
 	bool minimize;
@@ -148,6 +151,8 @@ private:
 	map<int, Parameters> grad_vector_map;
 
 	Mat current_constraint_mat, prev_constraint_mat;
+	Eigen::MatrixXd constraint_jco;
+	vector<string> cnames;
 
 	ParameterEnsemble dv, dv_base;
 	ObservationEnsemble oe, oe_base;
@@ -181,7 +186,7 @@ private:
 	bool solve_new();
 
 	bool seek_feasible();
-
+	bool line_search(Eigen::VectorXd& search_d, const Parameters& _current_dv_values);
 	bool pick_candidate_and_update_current(ParameterEnsemble& dv_candidates, ObservationEnsemble& _oe, map<string,double>& sf_map);
 
 	Parameters calc_gradient_vector(const Parameters& _current_dv_values, string _center_on=string());
@@ -192,7 +197,7 @@ private:
 
 	double get_obj_value(Parameters& _current_ctl_dv_vals, Observations& _current_obs);
 	map<string, double> get_obj_map(ParameterEnsemble& _dv, ObservationEnsemble& _oe);
-	Mat get_constraint_mat();
+	Mat get_constraint_mat(const Eigen::VectorXd* lagrange_mults = nullptr);
 
 	//Eigen::VectorXd calc_search_direction_vector(const Parameters& _current_dv_, Eigen::VectorXd &
 	// );

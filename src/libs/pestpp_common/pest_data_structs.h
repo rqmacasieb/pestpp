@@ -380,7 +380,8 @@ public:
 	void set_sqp_update_hessian(bool _flag) { sqp_update_hessian = _flag; }
 	vector<double> get_sqp_scale_facs() const { return sqp_scale_facs; }  // perhaps change arg name to sqp_alpha_mults
 	void set_sqp_scale_facs(vector<double> _mults) { sqp_scale_facs = _mults; }
-
+	double get_sqp_filter_tol() const { return sqp_filter_tol; }
+	void set_sqp_filter_tol(double val) { sqp_filter_tol = val; }
 
 	string get_mou_generator() const { return mou_generator; }
 	void set_mou_generator(string name) { mou_generator = name; }
@@ -739,6 +740,12 @@ private:
 	int sqp_num_reals;
 	bool sqp_update_hessian;
 	vector<double> sqp_scale_facs;
+	double sqp_filter_tol;
+	int sqp_max_consec_infeas;
+	int sqp_max_consec_infeas_ies;
+	int max_consec_phiinc;
+	double sf_dec_fac;
+	double df_inc_fac;
 
 	int mou_population_size;
 	string mou_generator; 

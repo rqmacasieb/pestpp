@@ -3154,14 +3154,58 @@ map<string, double> Constraints::get_constraint_map(Parameters& par_and_dec_vars
 	return constraint_map;
 }
 
-Mat Constraints::get_working_set_constraint_matrix(Parameters& par_and_dec_vars, Observations& constraints_sim, ParameterEnsemble& dv, ObservationEnsemble& oe, bool do_shift, double working_set_tol)
+vector<string> Constraints::reduce_working_set(vector<string>& working_set, const Eigen::VectorXd& lagrange_mults)
+{
+//	// If unsuccessful iteration, drop the constraint with largest violation
+//	if (unsuccessful)
+//	{
+//		// TODO: Implement logic for unsuccessful iterations
+//		// Could look at constraint violations and remove most violated constraint
+//		return working_set;
+//	}
+
+	// Following Algorithm 16.3 in Nocedal & Wright
+	vector<string> working_set_ineq_names = get_working_set_ineq_names(working_set);
+
+	// Find most negative Lagrange multiplier for inequality constraints
+	double lm_min = 0.0;
+	int idx = -1;
+	set<string> working_set_ineq_set(working_set_ineq_names.begin(), working_set_ineq_names.end());
+
+	for (int i = 0; i < working_set.size(); i++)
+	{
+		if (working_set_ineq_set.find(working_set[i]) == working_set_ineq_set.end())
+			continue;
+		if ((lagrange_mults[i] < 0.0) && (lagrange_mults[i] < lm_min))
+		{
+			idx = i;
+			lm_min = lagrange_mults[i];
+		}
+	}
+
+	if (lm_min == 0.0)
+	{
+		throw_constraints_error("optimal solution detected at solve EQP step (lagrangian multiplier for all ineq constraints in working set is non-neg)");
+	}
+
+	if (idx >= 0)
+	{
+		string to_drop = working_set[idx];
+		working_set.erase(working_set.begin() + idx);
+	}
+
+	return working_set;
+}
+
+Mat Constraints::get_working_set_constraint_matrix(Parameters& par_and_dec_vars, Observations& constraints_sim, ParameterEnsemble& dv, ObservationEnsemble& oe, bool do_shift, const Eigen::VectorXd* lagrange_mults, double working_set_tol)
 {
     pair<vector<string>,vector<string>> working_set = get_working_set(par_and_dec_vars,constraints_sim,do_shift,working_set_tol);
     Mat mat;
     if (working_set.first.size() > 0) {
 
-
-
+		if (lagrange_mults != nullptr)
+			working_set.first = reduce_working_set(working_set.first, *lagrange_mults);
+		
         Covariance cov = dv.get_empirical_cov_matrices(file_mgr_ptr).second;
         Eigen::MatrixXd delta_dv = *cov.inv().e_ptr() * dv.get_eigen_anomalies().transpose();
 
@@ -3207,13 +3251,18 @@ Mat Constraints::get_working_set_constraint_matrix(Parameters& par_and_dec_vars,
     return Mat();
 }
 
-Mat Constraints::get_working_set_constraint_matrix(Parameters& par_and_dec_vars, Observations& constraints_sim, const Jacobian_1to1& _jco, bool do_shift, double working_set_tol)
+
+
+Mat Constraints::get_working_set_constraint_matrix(Parameters& par_and_dec_vars, Observations& constraints_sim, const Jacobian_1to1& _jco, bool do_shift, const Eigen::VectorXd* lagrange_mults, double working_set_tol)
 {
 	pair<vector<string>,vector<string>> working_set = get_working_set(par_and_dec_vars,constraints_sim,do_shift,working_set_tol);
 	Mat mat;
     if (working_set.first.size() > 0) {
+		if (lagrange_mults != nullptr)
+			working_set.first = reduce_working_set(working_set.first, *lagrange_mults);
+
         Eigen::SparseMatrix<double> t = _jco.get_matrix(working_set.first, dec_var_names);
-        Mat(working_set.first, dec_var_names, t);
+        mat = Mat(working_set.first, dec_var_names, t);
     }
 	if (working_set.second.size() > 0) {
         augment_constraint_mat_with_pi(mat,working_set.second);
