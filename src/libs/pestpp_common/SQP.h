@@ -47,7 +47,7 @@ struct FilterRec
 class SqpFilter
 {
 public:
-	SqpFilter(bool _minimize=true,double _obj_tol = 0.05, double _viol_tol = 0.05) {
+	SqpFilter(bool _minimize=true,double _obj_tol = 0.001, double _viol_tol = 0.001) {
 		minimize = _minimize; obj_tol = _obj_tol; viol_tol = _viol_tol;
 	}
 	bool accept(double obj_val, double violation_val,int iter=0,double alpha=-1.0, bool keep=false);
@@ -126,7 +126,7 @@ private:
 
 	int n_consec_failures = 0;
 	int max_consec_failures = 2; //put this somewhere else later
-	int max_line_search_attempts = 10;
+	int max_line_search_attempts = 3;
 
 	//trust region parameters
 	//TODO: Maybe put these as ++args later
@@ -138,10 +138,13 @@ private:
 	double gamma1 = 0.5; // radius reduction factor
 	double gamma2 = 2.0; // radius increase factor
 	const int batch_size = 10;
-
-	double compute_actual_reduction(Parameters& trial_dv_values, Observations& trial_obs);
-	double compute_predicted_reduction(const Eigen::VectorXd& step, const Eigen::VectorXd& grad);
-	bool trust_region_step(Parameters& current_dv_values, Eigen::VectorXd& step);
+	
+	vector<double> previous_obj_values;
+	const int memory_length = 5;  // Number of previous objectives to remember
+	double prev_successful_scale = 1.0;
+	const double c1 = 0.0001;  // Armijo condition parameter
+	const double c2 = 0.9;     // curvature condition parameter
+	const double min_scale = 1e-8;
 
 	set<string> pp_args;
 
@@ -159,6 +162,7 @@ private:
 	vector<string> oe_org_real_names, pe_org_real_names;
 	vector<string> act_obs_names, act_par_names;
 	vector<string> dv_names;
+	string best_name;
 	//vector<int> subset_idxs;
 
 	Parameters current_ctl_dv_values, prev_ctl_dv_values;
@@ -203,8 +207,15 @@ private:
 	bool solve_new();
 
 	bool seek_feasible();
-	bool line_search(Eigen::VectorXd& search_d, const Parameters& _current_dv_values);
+	bool line_search(Eigen::VectorXd& search_d, const Parameters& _current_dv_values, Eigen::VectorXd& grad);
 	bool pick_candidate_and_update_current(ParameterEnsemble& dv_candidates, ObservationEnsemble& _oe, map<string,double>& sf_map);
+	bool check_wolfe_conditions(Parameters& trial_dv_values, Observations& trial_obs, const Eigen::VectorXd& search_d, 
+		const Eigen::VectorXd& grad, double scale, double initial_obj, double initial_slope);
+	double get_reference_obj();
+
+	double compute_actual_reduction(Parameters& trial_dv_values, Observations& trial_obs);
+	double compute_predicted_reduction(const Eigen::VectorXd& step, const Eigen::VectorXd& grad);
+	bool trust_region_step(Parameters& current_dv_values, Eigen::VectorXd& step);
 
 	Parameters calc_gradient_vector(const Parameters& _current_dv_values, string _center_on=string());
 	

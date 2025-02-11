@@ -1974,7 +1974,6 @@ Parameters SeqQuadProgram::calc_gradient_vector(const Parameters& _current_dv_va
 			vector<string> obj_name_vec{ obj_func_str };
 			Eigen::MatrixXd t = jco.get_matrix(obj_name_vec, dv_names);
 			grad = t.row(0);
-			cout << "grad" << endl << grad << endl;
 		}
 		//pi based obj
 		else
@@ -2242,117 +2241,149 @@ bool SeqQuadProgram::trust_region_step(Parameters& current_dv_values, Eigen::Vec
 	double current_obj = get_obj_value(current_dv_values, current_obs);
 	Eigen::VectorXd grad = current_grad_vector.get_data_eigen_vec(dv_names);
 
-	// RMac: creating a batch this way for now, but we will use the same scale_vals used in line search method
-	vector<double> scales; //replace with scale vals and remove the for loop below; OR maybe this is better and simpler?
-	double scale = 1.0;
-	for (int i = 0; i < batch_size; i++)
+	vector<string> real_names;
+	vector<double> scale_vals;
+	scale_vals.clear();
+	for (auto& sf : pest_scenario.get_pestpp_options().get_sqp_scale_facs())
 	{
-		scales.push_back(scale);
-		scale *= 0.5;
+		scale_vals.push_back(sf * BASE_SCALE_FACTOR);
 	}
 
 	ParameterEnsemble cand_ensemble(&pest_scenario, &rand_gen);
-	cand_ensemble.reserve(vector<string>(), dv_names);
+	cand_ensemble.set_trans_status(ParameterEnsemble::transStatus::NUM);
 
-	for (int i = 0; i < scales.size(); i++)
+	if ((use_ensemble_grad) && (SOLVE_EACH_REAL))
 	{
+		for (auto sv : scale_vals)
+		{
+			for (auto& real_name : dv.get_real_names())
+			{
+				stringstream ss;
+				ss << "cand_" << real_name << "_sv:" << left << setw(8) << setprecision(3) << sv;
+				real_names.push_back(ss.str());
+			}
+		}
+	}
+	else {
+		for (auto sv : scale_vals) {
+			stringstream ss;
+			ss << "cand_sv:" << left << setw(8) << setprecision(3) << sv;
+			real_names.push_back(ss.str());
+		}
+	}
 
-		Parameters cand_dv_values = current_dv_values;
-		Eigen::VectorXd cand_vec = cand_dv_values.get_data_eigen_vec(dv_names);
-		cand_vec += scales[i] * step;
-		cand_dv_values.update_without_clear(dv_names, cand_vec);
+	cand_ensemble.reserve(real_names, dv_names);
+	map<string, double> real_sf_map;
+	vector<double> used_scale_vals;
+	int ii = 0;
 
-		string cand_name = "cand_" + to_string(i);
-		cand_ensemble.append(cand_name, cand_vec);
+	for (size_t i = 0; i < scale_vals.size(); i++)
+	{
+		double scale_val = scale_vals[i];
+		if ((use_ensemble_grad) && (SOLVE_EACH_REAL))
+		{
+			Parameters num_candidate = current_dv_values;
+			Eigen::VectorXd scale_step = step * scale_val;
+
+			for (auto& real_name : dv.get_real_names())
+			{
+				Eigen::VectorXd cvals = num_candidate.get_data_eigen_vec(dv_names);
+				cvals.array() += scale_step.array();
+				cand_ensemble.update_real_ip(real_names[ii], cvals);
+				real_sf_map[real_names[ii]] = scale_val;
+				used_scale_vals.push_back(scale_val);
+				ii++;
+			}
+		}
+		else
+		{
+			Parameters num_candidate = current_dv_values;
+			Eigen::VectorXd scale_step = step * scale_val;
+
+			if (scale_step.squaredNorm() < 1.0e-10)
+				message(1, "very short step for scale value", scale_val);
+
+			Eigen::VectorXd cvals = num_candidate.get_data_eigen_vec(dv_names);
+			cvals.array() += scale_step.array();
+			cand_ensemble.update_real_ip(real_names[i], cvals);
+			used_scale_vals.push_back(scale_val);
+			real_sf_map[real_names[i]] = scale_val;
+		}
 	}
 	cand_ensemble.enforce_bounds(performance_log, false);
 
 	ObservationEnsemble cand_obs_ensemble = run_candidate_ensemble(cand_ensemble);
 
-	vector<double> rho_values, obj_values, violation_values;
-	vector<string> cand_names = cand_obs_ensemble.get_real_names();
-
-	for (int i = 0; i < scales.size(); i++)
+	vector<string> acceptable_candidates;
+	for (size_t i = 0; i < cand_ensemble.get_real_names().size(); i++)
 	{
-		string cand_name = cand_names[i];
+		string real_name = cand_ensemble.get_real_names()[i];
+		double scale = real_sf_map[real_name];
 
-		Eigen::VectorXd obs_vec = cand_obs_ensemble.get_real_vector(cand_name);
-		Observations cand_obs = current_obs;
-		cand_obs.update(cand_obs_ensemble.get_var_names(), obs_vec);
-
-		Eigen::VectorXd par_vec = cand_ensemble.get_real_vector(cand_name);
 		Parameters cand_dv_values = current_dv_values;
+		Eigen::VectorXd par_vec = cand_ensemble.get_real_vector(real_name);
 		cand_dv_values.update_without_clear(dv_names, par_vec);
 
+		Observations cand_obs = current_obs;
+		Eigen::VectorXd obs_vec = cand_obs_ensemble.get_real_vector(real_name);
+		cand_obs.update(cand_obs_ensemble.get_var_names(), obs_vec);
+
 		double actual_reduction = compute_actual_reduction(cand_dv_values, cand_obs); //Numerator of Eq 4.4, pp. 68 Nocedal and Wright
-		double predicted_reduction = compute_predicted_reduction(scales[i] * step, grad); //Denominator of Eq 4.4, pp. 68 Nocedal and Wright
+		double predicted_reduction = compute_predicted_reduction(scale * step, grad); //Denominator of Eq 4.4, pp. 68 Nocedal and Wright
 
 		if (abs(predicted_reduction) > 1e-10)
 		{
-			double rho = actual_reduction / predicted_reduction; //Eq 4.4, pp. 68 Nocedal and Wright
-			rho_values.push_back(rho);
-
-			double cand_obj = get_obj_value(cand_dv_values, cand_obs);
-			obj_values.push_back(cand_obj);
-			double violation = constraints.get_sum_of_violations(cand_dv_values, cand_obs);
-			violation_values.push_back(violation);
-		}
-		else
-		{
-			rho_values.push_back(-1.0); 
-		}
-	}
-
-	// Find best acceptable step
-	int best_idx = -1;
-	double best_rho = -1.0;
-
-	for (int i = 0; i < scales.size(); i++)
-	{
-		if (rho_values[i] < 0)  // Skip invalid steps
-			continue;
-
-		bool filter_accept = filter.accept(obj_values[i], violation_values[i], iter, scales[i], true);
-
-		if (filter_accept && rho_values[i] > eta1)
-		{
-			if (rho_values[i] > best_rho)
+			double rho = actual_reduction / predicted_reduction;
+			if (rho > eta1)
 			{
-				best_rho = rho_values[i];
-				best_idx = i;
+				acceptable_candidates.push_back(real_name);
 			}
 		}
 	}
 
-	if (best_idx >= 0)
+	if (!acceptable_candidates.empty())
 	{
-		// Update trust radius based on best step
-		if (best_rho > eta2)
+		ParameterEnsemble filtered_dv(&pest_scenario, &rand_gen);
+		ObservationEnsemble filtered_oe(&pest_scenario, &rand_gen);
+
+		filtered_dv.reserve(acceptable_candidates, dv_names);
+		filtered_oe.reserve(acceptable_candidates, cand_obs_ensemble.get_var_names());
+
+		filtered_dv.set_eigen(Eigen::MatrixXd::Zero(acceptable_candidates.size(), dv_names.size()));
+		filtered_oe.set_eigen(Eigen::MatrixXd::Zero(acceptable_candidates.size(), cand_obs_ensemble.get_var_names().size()));
+
+		map<string, double> filtered_sf_map;
+
+		for (const auto& name : acceptable_candidates)
 		{
-			trust_radius = min(trust_radius_max, gamma2 * trust_radius);
+			filtered_dv.update_real_ip(name, cand_ensemble.get_real_vector(name));
+			filtered_oe.update_real_ip(name, cand_obs_ensemble.get_real_vector(name));
+			filtered_sf_map[name] = real_sf_map[name];
 		}
 
-		// Update current solution with best step
-		Eigen::VectorXd best_par_vec = cand_ensemble.get_real_vector(cand_names[best_idx]);
-		current_dv_values.update_without_clear(dv_names, best_par_vec);
+		bool success = pick_candidate_and_update_current(filtered_dv, filtered_oe, filtered_sf_map);
 
-		Eigen::VectorXd best_obs_vec = cand_obs_ensemble.get_real_vector(cand_names[best_idx]);
-		current_obs.update(cand_obs_ensemble.get_var_names(), best_obs_vec);
+		if (success)
+		{
+			double scale = filtered_sf_map[best_name];
 
-		stringstream ss;
-		ss << "accepted trust region step with rho=" << best_rho
-			<< ", scale=" << scales[best_idx]
-			<< ", new radius=" << trust_radius;
-		message(1, ss.str());
+			// If very successful step
+			if (scale > eta2)
+			{
+				trust_radius = min(trust_radius_max, gamma2 * trust_radius);
+			}
 
-		return true;
+			stringstream ss;
+			ss << "accepted trust region step with scale=" << scale
+				<< ", new radius=" << trust_radius;
+			message(1, ss.str());
+
+			return true;
+		}
 	}
-	else
-	{
-		// No acceptable step found, reduce trust radius
-		trust_radius = max(trust_radius_min, gamma1 * trust_radius);
-		return false;
-	}
+
+	trust_radius = max(trust_radius_min, gamma1 * trust_radius);
+	return false;
 }
 
 double SeqQuadProgram::compute_actual_reduction(Parameters& trial_dv_values, Observations& trial_obs)
@@ -2371,28 +2402,17 @@ double SeqQuadProgram::compute_predicted_reduction(const Eigen::VectorXd& step,
 	return linear_term + quadratic_term;
 }
 
-bool SeqQuadProgram::line_search(Eigen::VectorXd& search_d, const Parameters& _current_dv_values)
+bool SeqQuadProgram::line_search(Eigen::VectorXd& search_d, const Parameters& _current_dv_values, Eigen::VectorXd& grad)
 {
-	//backtracking/line search factors
-	//TODO: make this a ++ arg or tunable or something clever
-		//if (constraints);
-	//	{
-	//		ss.str("");
-	//		ss << "specifying 'base' step length based on active set solve";
-	//		string s = ss.str();
-	//		message(1, s);
-	//		//step = alpha
-	//		throw_sqp_error("TODO");
-	//	}
-	//	else
-	//	{
-	//		ss.str("");
-	//		ss << "specifying 'base' step length based on bound-related heuristics";
-	//		string s = ss.str();
-	//		message(1, s);
-	//		//step = alpha
-	//		throw_sqp_error("TODO");
-	//	}
+	double initial_obj = get_obj_value(current_ctl_dv_values, current_obs);
+	double initial_slope = grad.dot(search_d);
+
+	//sanity check
+	if (initial_slope >= 0) {
+		message(1, "Warning: search direction is not a descent direction");
+		return false;
+	}
+
 
 	stringstream ss;
 	ParameterEnsemble dv_candidates(&pest_scenario, &rand_gen);
@@ -2549,6 +2569,100 @@ bool SeqQuadProgram::line_search(Eigen::VectorXd& search_d, const Parameters& _c
 		sf_map[dv_candidates.get_real_names()[i]] = used_scale_vals[i];
 	}
 	return pick_candidate_and_update_current(dv_candidates, oe_candidates, sf_map);
+
+	//RQM: Not sure, this might be redundant unnecessary checks if filter can pick already, bu let's see...
+	//keeps kicking out candidates even before picking by filter. commenting out for now...
+	//evaluate cand using non-monotone criteria (see pp 444-445, Nocedal and Wright) and Wolfe conditions (see pp 33-34, Nocedal and Wright)
+	//double best_obj = numeric_limits<double>::max();
+	//double reference_obj = get_reference_obj();
+
+	//vector<string> acceptable_candidates;
+	//for (size_t i = 0; i < dv_candidates.get_real_names().size(); i++)
+	//{
+	//	string real_name = dv_candidates.get_real_names()[i];
+	//	double scale = real_sf_map[real_name];
+
+	//	//get trial values
+	//	Parameters trial_dv_values = _current_dv_values;
+	//	Eigen::VectorXd trial_par_vec = dv_candidates.get_real_vector(real_name);
+	//	trial_dv_values.update_without_clear(dv_names, trial_par_vec);
+
+	//	Observations trial_obs = current_obs;
+	//	Eigen::VectorXd trial_obs_vec = oe_candidates.get_real_vector(real_name);
+	//	trial_obs.update(oe_candidates.get_var_names(), trial_obs_vec);
+
+	//	//check Wolfe conditions against reference value
+	//	if (check_wolfe_conditions(trial_dv_values, trial_obs, search_d, grad,
+	//		scale, reference_obj, initial_slope))
+	//	{
+	//		acceptable_candidates.push_back(real_name);
+	//	}
+	//}
+
+	////second pass: pick among acceptable candidates
+	//if (!acceptable_candidates.empty())
+	//{
+	//	// Create filtered ensembles with only acceptable candidates
+	//	ParameterEnsemble filtered_dv(&pest_scenario, &rand_gen);
+	//	ObservationEnsemble filtered_oe(&pest_scenario, &rand_gen);
+	//	map<string, double> filtered_sf_map;
+
+	//	for (const auto& name : acceptable_candidates)
+	//	{
+	//		filtered_dv.append(name, dv_candidates.get_real_vector(name));
+	//		filtered_oe.append(name, oe_candidates.get_real_vector(name));
+	//		filtered_sf_map[name] = real_sf_map[name];
+	//	}
+
+	//	// Use existing selection logic
+	//	bool success = pick_candidate_and_update_current(filtered_dv, filtered_oe, filtered_sf_map);
+
+	//	if (success)
+	//	{
+	//		// Update successful scale and objective history
+	//		prev_successful_scale = filtered_sf_map[best_name];
+
+	//		double best_obj = get_obj_value(current_ctl_dv_values, current_obs);
+	//		previous_obj_values.push_back(best_obj);
+	//		if (previous_obj_values.size() > memory_length)
+	//			previous_obj_values.erase(previous_obj_values.begin());
+	//	}
+
+	//	return success;
+	//}
+
+	//return false;
+
+}
+
+bool SeqQuadProgram::check_wolfe_conditions(Parameters& trial_dv_values, Observations& trial_obs, const Eigen::VectorXd& search_d,
+	const Eigen::VectorXd& grad, double scale, double initial_obj, double initial_slope)
+{
+	//Algorithm 3.5, pp. 60-61 Nocedal and Wright
+	double trial_obj = get_obj_value(trial_dv_values, trial_obs);
+
+	//Armijo condition (sufficient decrease)
+	if (trial_obj > initial_obj + c1 * scale * initial_slope) //Eq. 3.6a pp. 34, Nocedal and Wright
+		return false;
+
+	//get new gradient at trial point
+	Parameters trial_grad = calc_gradient_vector(trial_dv_values);
+	Eigen::VectorXd trial_grad_vec = trial_grad.get_data_eigen_vec(dv_names);
+
+	//curvature condition
+	double trial_slope = trial_grad_vec.dot(search_d);
+	if (abs(trial_slope) > c2 * abs(initial_slope)) //Eq. 3.6b pp. 34, Nocedal and Wright
+		return false;
+
+	return true;
+}
+
+double SeqQuadProgram::get_reference_obj()
+{
+	if (previous_obj_values.empty()) {
+		return get_obj_value(current_ctl_dv_values, current_obs);
+	}
+	return *max_element(previous_obj_values.begin(), previous_obj_values.end());
 }
 
 pair<Eigen::VectorXd, Eigen::VectorXd> SeqQuadProgram::calc_search_direction_vector(const Parameters& _current_dv_values, Eigen::VectorXd& grad_vector)
@@ -2800,8 +2914,10 @@ bool SeqQuadProgram::solve_new()
 			}
 		}
 
-		successful = trust_region_step(current_ctl_dv_values, search_d);
-		//successful = line_search(search_d, _current_num_dv_values);
+		//maybe this could be a ++arg to choose either
+		//what if we switch, trust region early on, then line search for refinements?
+		successful = trust_region_step(current_ctl_dv_values, search_d); 
+		//successful = line_search(search_d, _current_num_dv_values, grad);
 		if (!successful)
 		{
 			n_consec_failures++;
@@ -3208,6 +3324,7 @@ bool SeqQuadProgram::pick_candidate_and_update_current(ParameterEnsemble& dv_can
 	{
 		//todo:update current_dv and current_obs
 		message(0, "accepting upgrade", real_names[idx]);
+		best_name = real_names[idx];
 		t = dv_candidates.get_real_vector(idx);
 		vector<string> vnames = dv_candidates.get_var_names();
 		Parameters p;
