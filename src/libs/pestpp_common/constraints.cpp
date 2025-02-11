@@ -3154,7 +3154,7 @@ map<string, double> Constraints::get_constraint_map(Parameters& par_and_dec_vars
 	return constraint_map;
 }
 
-vector<string> Constraints::reduce_working_set(vector<string>& working_set, const Eigen::VectorXd& lagrange_mults)
+pair<vector<string>, bool> Constraints::reduce_working_set(vector<string>& working_set, const Eigen::VectorXd& lagrange_mults)
 {
 //	// If unsuccessful iteration, drop the constraint with largest violation
 //	if (unsuccessful)
@@ -3185,7 +3185,8 @@ vector<string> Constraints::reduce_working_set(vector<string>& working_set, cons
 
 	if (lm_min == 0.0)
 	{
-		throw_constraints_error("optimal solution detected at solve EQP step (lagrangian multiplier for all ineq constraints in working set is non-neg)");
+		return pair<vector<string>, bool>(working_set, true);
+		//throw_constraints_error("optimal solution detected at solve EQP step (lagrangian multiplier for all ineq constraints in working set is non-neg)");
 	}
 
 	if (idx >= 0)
@@ -3194,18 +3195,23 @@ vector<string> Constraints::reduce_working_set(vector<string>& working_set, cons
 		working_set.erase(working_set.begin() + idx);
 	}
 
-	return working_set;
+	return pair<vector<string>, bool>(working_set, false);
 }
 
-Mat Constraints::get_working_set_constraint_matrix(Parameters& par_and_dec_vars, Observations& constraints_sim, ParameterEnsemble& dv, ObservationEnsemble& oe, bool do_shift, const Eigen::VectorXd* lagrange_mults, double working_set_tol)
+pair<Mat, bool> Constraints::get_working_set_constraint_matrix(Parameters& par_and_dec_vars, Observations& constraints_sim, ParameterEnsemble& dv, ObservationEnsemble& oe, bool do_shift, const Eigen::VectorXd* lagrange_mults, double working_set_tol)
 {
     pair<vector<string>,vector<string>> working_set = get_working_set(par_and_dec_vars,constraints_sim,do_shift,working_set_tol);
     Mat mat;
+	bool converged = false;
     if (working_set.first.size() > 0) {
 
 		if (lagrange_mults != nullptr)
-			working_set.first = reduce_working_set(working_set.first, *lagrange_mults);
-		
+		{
+			auto result = reduce_working_set(working_set.first, *lagrange_mults);
+			working_set.first = result.first;
+			converged = result.second;
+		}
+
         Covariance cov = dv.get_empirical_cov_matrices(file_mgr_ptr).second;
         Eigen::MatrixXd delta_dv = *cov.inv().e_ptr() * dv.get_eigen_anomalies().transpose();
 
@@ -3241,35 +3247,39 @@ Mat Constraints::get_working_set_constraint_matrix(Parameters& par_and_dec_vars,
             i++;
         }
         mat = Mat(working_set.first, dv.get_var_names(), working_mat.sparseView());
-		return mat;
     }
     if (working_set.second.size() > 0)
     {
         //deal with pi constraints in the working set
         augment_constraint_mat_with_pi(mat,working_set.second);
     }
-    return Mat();
+	return pair<Mat, bool>(mat, converged);
 }
 
 
 
-Mat Constraints::get_working_set_constraint_matrix(Parameters& par_and_dec_vars, Observations& constraints_sim, const Jacobian_1to1& _jco, bool do_shift, const Eigen::VectorXd* lagrange_mults, double working_set_tol)
+pair<Mat, bool> Constraints::get_working_set_constraint_matrix(Parameters& par_and_dec_vars, Observations& constraints_sim, const Jacobian_1to1& _jco, bool do_shift, const Eigen::VectorXd* lagrange_mults, double working_set_tol)
 {
 	pair<vector<string>,vector<string>> working_set = get_working_set(par_and_dec_vars,constraints_sim,do_shift,working_set_tol);
 	Mat mat;
-    if (working_set.first.size() > 0) {
-		if (lagrange_mults != nullptr)
-			working_set.first = reduce_working_set(working_set.first, *lagrange_mults);
+	bool converged = false;
+    if (working_set.first.size() > 0) 
+	{
+		if (lagrange_mults != nullptr) 
+		{
+			auto result = reduce_working_set(working_set.first, *lagrange_mults);
+			working_set.first = result.first;
+			converged = result.second;
+		}
 
         Eigen::SparseMatrix<double> t = _jco.get_matrix(working_set.first, dec_var_names);
         mat = Mat(working_set.first, dec_var_names, t);
     }
 	if (working_set.second.size() > 0) {
         augment_constraint_mat_with_pi(mat,working_set.second);
-
-
     }
-	return mat;
+	
+	return pair<Mat, bool>(mat, converged);
 }
 
 void Constraints::augment_constraint_mat_with_pi(Mat& mat, vector<string>& pi_names)

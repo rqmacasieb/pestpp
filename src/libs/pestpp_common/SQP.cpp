@@ -1485,7 +1485,7 @@ bool SeqQuadProgram::update_hessian_and_grad_vector()
 	vector<string> prev_cnames, curr_cnames;
 	prev_constraint_mat = current_constraint_mat;
 	prev_cnames = prev_constraint_mat.get_row_names();
-	current_constraint_mat = get_constraint_mat();
+	current_constraint_mat = get_constraint_mat().first;
 	curr_cnames = current_constraint_mat.get_row_names();
 	
 	if (!curr_cnames.empty() && !prev_cnames.empty()) //if no active constraint previously, curr should also be empty right?
@@ -1751,6 +1751,11 @@ bool SeqQuadProgram::should_terminate()
         message(1, "phi-based termination criteria satisfied, all done");
         return true;
     }
+	if (converged)
+	{
+		message(1, "optimal solution detected at solve EQP step (lagrangian multiplier for all ineq constraints in working set is non-neg)");
+		return true;
+	}
     int q = pest_utils::quit_file_found();
     if ((q == 1) || (q == 2))
     {
@@ -2218,7 +2223,7 @@ pair<Eigen::VectorXd, Eigen::VectorXd> SeqQuadProgram::_kkt_direct(Eigen::Matrix
 	return pair<Eigen::VectorXd, Eigen::VectorXd> (search_d, lm);
 }
 
-Mat SeqQuadProgram::get_constraint_mat(const Eigen::VectorXd* lm)
+pair<Mat, bool> SeqQuadProgram::get_constraint_mat(const Eigen::VectorXd* lm)
 {
 	if (use_ensemble_grad) {
 		message(1, "getting ensemble-based working set constraint matrix");
@@ -2612,21 +2617,21 @@ bool SeqQuadProgram::solve_new()
 		_current_num_dv_values.update(dv_names, mean_vec);
 	}
 
-	Mat constraint_mat = get_constraint_mat();
-	current_constraint_mat = constraint_mat;
-	cnames = constraint_mat.get_row_names();
+	pair<Mat, bool> constraint_mat = get_constraint_mat();
+	current_constraint_mat = constraint_mat.first;
+	cnames = constraint_mat.first.get_row_names();
 	
 	// search direction computation
 	Eigen::VectorXd search_d, lm;
 	Eigen::VectorXd grad = current_grad_vector.get_data_eigen_vec(dv_names);
 	bool successful = false;
 
-	int max_line_search_attempts = 5;
+
 	int line_search_attempts = 0;
 	while (!successful && line_search_attempts < max_line_search_attempts)
 	{
 		
-		constraint_jco = constraint_mat.e_ptr()->toDense();
+		constraint_jco = constraint_mat.first.e_ptr()->toDense();
 		pair<Eigen::VectorXd, Eigen::VectorXd> x = calc_search_direction_vector(_current_num_dv_values, grad);
 		search_d = x.first;
 		lm = x.second;
@@ -2655,9 +2660,15 @@ bool SeqQuadProgram::solve_new()
 
 			if (search_d_approx_zero) //Algorithm 16.3 in Nocedal and Wright, pp. 472-473
 			{
-				constraint_mat = get_constraint_mat(&lm);
-				current_constraint_mat = constraint_mat;
-				cnames = constraint_mat.get_row_names();
+				pair<Mat, bool> constraint_mat = get_constraint_mat(&lm);
+				if (constraint_mat.second)
+				{
+					message(1, "optimal solution found - all Lagrange multipliers non-negative");
+					converged = true;
+					return true;  // Converged to optimal solution
+				}
+				current_constraint_mat = constraint_mat.first;
+				cnames = constraint_mat.first.get_row_names();
 				message(1, "cnames after dropping attempting:", cnames);
 				continue;
 			}

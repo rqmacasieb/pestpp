@@ -102,6 +102,7 @@ private:
 	string obj_sense;
 	bool use_obj_obs;
 	bool use_obj_pi;
+	bool converged = false;
 	map<string, double> obj_func_coef_map;
 
 	int num_threads;
@@ -125,6 +126,7 @@ private:
 
 	int n_consec_failures = 0;
 	int max_consec_failures = 2; //put this somewhere else later
+	int max_line_search_attempts = 10;
 
 	set<string> pp_args;
 
@@ -197,7 +199,7 @@ private:
 
 	double get_obj_value(Parameters& _current_ctl_dv_vals, Observations& _current_obs);
 	map<string, double> get_obj_map(ParameterEnsemble& _dv, ObservationEnsemble& _oe);
-	Mat get_constraint_mat(const Eigen::VectorXd* lagrange_mults = nullptr);
+	pair<Mat, bool> get_constraint_mat(const Eigen::VectorXd* lagrange_mults = nullptr);
 
 	//Eigen::VectorXd calc_search_direction_vector(const Parameters& _current_dv_, Eigen::VectorXd &
 	// );
