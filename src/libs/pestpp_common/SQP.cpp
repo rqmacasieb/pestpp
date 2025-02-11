@@ -2236,6 +2236,141 @@ pair<Mat, bool> SeqQuadProgram::get_constraint_mat(const Eigen::VectorXd* lm)
 	}
 }
 
+bool SeqQuadProgram::trust_region_step(Parameters& current_dv_values, Eigen::VectorXd& step)
+{
+	//Algorithm 4.1, pp. 68-69 Nocedal and Wright
+	double current_obj = get_obj_value(current_dv_values, current_obs);
+	Eigen::VectorXd grad = current_grad_vector.get_data_eigen_vec(dv_names);
+
+	// RMac: creating a batch this way for now, but we will use the same scale_vals used in line search method
+	vector<double> scales; //replace with scale vals and remove the for loop below; OR maybe this is better and simpler?
+	double scale = 1.0;
+	for (int i = 0; i < batch_size; i++)
+	{
+		scales.push_back(scale);
+		scale *= 0.5;
+	}
+
+	ParameterEnsemble cand_ensemble(&pest_scenario, &rand_gen);
+	cand_ensemble.reserve(vector<string>(), dv_names);
+
+	for (int i = 0; i < scales.size(); i++)
+	{
+
+		Parameters cand_dv_values = current_dv_values;
+		Eigen::VectorXd cand_vec = cand_dv_values.get_data_eigen_vec(dv_names);
+		cand_vec += scales[i] * step;
+		cand_dv_values.update_without_clear(dv_names, cand_vec);
+
+		string cand_name = "cand_" + to_string(i);
+		cand_ensemble.append(cand_name, cand_vec);
+	}
+	cand_ensemble.enforce_bounds(performance_log, false);
+
+	ObservationEnsemble cand_obs_ensemble = run_candidate_ensemble(cand_ensemble);
+
+	vector<double> rho_values, obj_values, violation_values;
+	vector<string> cand_names = cand_obs_ensemble.get_real_names();
+
+	for (int i = 0; i < scales.size(); i++)
+	{
+		string cand_name = cand_names[i];
+
+		Eigen::VectorXd obs_vec = cand_obs_ensemble.get_real_vector(cand_name);
+		Observations cand_obs = current_obs;
+		cand_obs.update(cand_obs_ensemble.get_var_names(), obs_vec);
+
+		Eigen::VectorXd par_vec = cand_ensemble.get_real_vector(cand_name);
+		Parameters cand_dv_values = current_dv_values;
+		cand_dv_values.update_without_clear(dv_names, par_vec);
+
+		double actual_reduction = compute_actual_reduction(cand_dv_values, cand_obs); //Numerator of Eq 4.4, pp. 68 Nocedal and Wright
+		double predicted_reduction = compute_predicted_reduction(scales[i] * step, grad); //Denominator of Eq 4.4, pp. 68 Nocedal and Wright
+
+		if (abs(predicted_reduction) > 1e-10)
+		{
+			double rho = actual_reduction / predicted_reduction; //Eq 4.4, pp. 68 Nocedal and Wright
+			rho_values.push_back(rho);
+
+			double cand_obj = get_obj_value(cand_dv_values, cand_obs);
+			obj_values.push_back(cand_obj);
+			double violation = constraints.get_sum_of_violations(cand_dv_values, cand_obs);
+			violation_values.push_back(violation);
+		}
+		else
+		{
+			rho_values.push_back(-1.0); 
+		}
+	}
+
+	// Find best acceptable step
+	int best_idx = -1;
+	double best_rho = -1.0;
+
+	for (int i = 0; i < scales.size(); i++)
+	{
+		if (rho_values[i] < 0)  // Skip invalid steps
+			continue;
+
+		bool filter_accept = filter.accept(obj_values[i], violation_values[i], iter, scales[i], true);
+
+		if (filter_accept && rho_values[i] > eta1)
+		{
+			if (rho_values[i] > best_rho)
+			{
+				best_rho = rho_values[i];
+				best_idx = i;
+			}
+		}
+	}
+
+	if (best_idx >= 0)
+	{
+		// Update trust radius based on best step
+		if (best_rho > eta2)
+		{
+			trust_radius = min(trust_radius_max, gamma2 * trust_radius);
+		}
+
+		// Update current solution with best step
+		Eigen::VectorXd best_par_vec = cand_ensemble.get_real_vector(cand_names[best_idx]);
+		current_dv_values.update_without_clear(dv_names, best_par_vec);
+
+		Eigen::VectorXd best_obs_vec = cand_obs_ensemble.get_real_vector(cand_names[best_idx]);
+		current_obs.update(cand_obs_ensemble.get_var_names(), best_obs_vec);
+
+		stringstream ss;
+		ss << "accepted trust region step with rho=" << best_rho
+			<< ", scale=" << scales[best_idx]
+			<< ", new radius=" << trust_radius;
+		message(1, ss.str());
+
+		return true;
+	}
+	else
+	{
+		// No acceptable step found, reduce trust radius
+		trust_radius = max(trust_radius_min, gamma1 * trust_radius);
+		return false;
+	}
+}
+
+double SeqQuadProgram::compute_actual_reduction(Parameters& trial_dv_values, Observations& trial_obs)
+{
+	double current_obj = get_obj_value(current_ctl_dv_values, current_obs);
+	double trial_obj = get_obj_value(trial_dv_values, trial_obs);
+	return current_obj - trial_obj;
+}
+
+double SeqQuadProgram::compute_predicted_reduction(const Eigen::VectorXd& step,
+	const Eigen::VectorXd& grad)
+{
+	// Compute predicted reduction using quadratic model
+	double linear_term = -grad.dot(step);
+	double quadratic_term = -0.5 * step.dot(hessian.get_matrix() * step);
+	return linear_term + quadratic_term;
+}
+
 bool SeqQuadProgram::line_search(Eigen::VectorXd& search_d, const Parameters& _current_dv_values)
 {
 	//backtracking/line search factors
@@ -2636,19 +2771,10 @@ bool SeqQuadProgram::solve_new()
 		search_d = x.first;
 		lm = x.second;
 
-		bool search_d_approx_zero = false;
-		double tol = 0.01; //todo: move this to a ++arg
-		for (int i = 0;i < search_d.size();i++)
-			if (abs(search_d[i]) < tol)
-			{
-				search_d_approx_zero = true;
-				break;
-			}
-
 		if (cnames.size() > 0)
 		{
 			bool search_d_approx_zero = false;
-			double tol = 0.01; //todo: move this to a ++arg
+			double tol = 0.001; //todo: move this to a ++arg
 			for (int i = 0; i < search_d.size(); i++)
 			{
 				if (abs(search_d[i]) < tol)
@@ -2674,7 +2800,8 @@ bool SeqQuadProgram::solve_new()
 			}
 		}
 
-		successful = line_search(search_d, _current_num_dv_values);
+		successful = trust_region_step(current_ctl_dv_values, search_d);
+		//successful = line_search(search_d, _current_num_dv_values);
 		if (!successful)
 		{
 			n_consec_failures++;

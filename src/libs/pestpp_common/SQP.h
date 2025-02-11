@@ -128,6 +128,21 @@ private:
 	int max_consec_failures = 2; //put this somewhere else later
 	int max_line_search_attempts = 10;
 
+	//trust region parameters
+	//TODO: Maybe put these as ++args later
+	double trust_radius = 1.0;
+	double trust_radius_max = 10.0;
+	double trust_radius_min = 1e-4;
+	double eta1 = 0.25;  // ratio threshold for radius reduction
+	double eta2 = 0.75;  // ratio threshold for radius increase
+	double gamma1 = 0.5; // radius reduction factor
+	double gamma2 = 2.0; // radius increase factor
+	const int batch_size = 10;
+
+	double compute_actual_reduction(Parameters& trial_dv_values, Observations& trial_obs);
+	double compute_predicted_reduction(const Eigen::VectorXd& step, const Eigen::VectorXd& grad);
+	bool trust_region_step(Parameters& current_dv_values, Eigen::VectorXd& step);
+
 	set<string> pp_args;
 
 	int iter;
