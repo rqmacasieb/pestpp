@@ -216,6 +216,8 @@ private:
 	double compute_actual_reduction(Parameters& trial_dv_values, Observations& trial_obs);
 	double compute_predicted_reduction(const Eigen::VectorXd& step, const Eigen::VectorXd& grad);
 	bool trust_region_step(Parameters& current_dv_values, Eigen::VectorXd& step);
+	Eigen::VectorXd solve_trust_region_subproblem(const Eigen::MatrixXd& B, const Eigen::VectorXd& g, double radius);
+	Eigen::VectorXd compute_boundary_solution(const Eigen::VectorXd& p,	const Eigen::VectorXd& d, double radius);
 
 	Parameters calc_gradient_vector(const Parameters& _current_dv_values, string _center_on=string());
 	

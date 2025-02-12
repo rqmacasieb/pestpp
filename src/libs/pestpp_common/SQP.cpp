@@ -2235,155 +2235,300 @@ pair<Mat, bool> SeqQuadProgram::get_constraint_mat(const Eigen::VectorXd* lm)
 	}
 }
 
+Eigen::VectorXd SeqQuadProgram::solve_trust_region_subproblem(const Eigen::MatrixXd& B,	const Eigen::VectorXd& g, double radius)
+{
+	//Steihaug-Toint CG method algorithm 7.2, p. 171 Nocedal and Wright
+	int n = g.size();
+	Eigen::VectorXd p = Eigen::VectorXd::Zero(n);
+	Eigen::VectorXd r = g;  // r = g + Bp = g + 0 initially
+	Eigen::VectorXd d = -r;
+
+	double g_norm = g.norm();
+	double tol = min(0.1, sqrt(g_norm)) * g_norm;
+
+	for (int i = 0; i < n; i++)
+	{
+		Eigen::VectorXd Bd = B * d;
+		double dBd = d.dot(Bd);
+
+		if (dBd <= 0)
+		{
+			return compute_boundary_solution(p, d, radius);
+		}
+
+		double alpha = r.dot(r) / dBd;
+		Eigen::VectorXd p_new = p + alpha * d;
+
+		if (p_new.norm() >= radius)
+		{
+			return compute_boundary_solution(p, d, radius);
+		}
+
+		Eigen::VectorXd r_new = r + alpha * Bd;
+
+		if (r_new.norm() < tol)
+		{
+			return p_new;
+		}
+
+		double beta = r_new.dot(r_new) / r.dot(r);
+		d = -r_new + beta * d;
+		p = p_new;
+		r = r_new;
+	}
+
+	return p;
+}
+
+Eigen::VectorXd SeqQuadProgram::compute_boundary_solution(const Eigen::VectorXd& p,
+	const Eigen::VectorXd& d, double radius)
+{
+	//compute tau where ||p + tau*d|| = radius
+	double a = d.squaredNorm();
+	double b = 2 * p.dot(d);
+	double c = p.squaredNorm() - radius * radius;
+
+	//solve: a*tau^2 + b*tau + c = 0
+	double discriminant = b * b - 4 * a * c;
+	double tau = (-b + sqrt(discriminant)) / (2 * a);
+
+	return p + tau * d;
+}
+
 bool SeqQuadProgram::trust_region_step(Parameters& current_dv_values, Eigen::VectorXd& step)
 {
+	prev_ctl_dv_values = current_ctl_dv_values; //saving a copy for BFGS later
+
 	//Algorithm 4.1, pp. 68-69 Nocedal and Wright
 	double current_obj = get_obj_value(current_dv_values, current_obs);
 	Eigen::VectorXd grad = current_grad_vector.get_data_eigen_vec(dv_names);
 
-	vector<string> real_names;
-	vector<double> scale_vals;
-	scale_vals.clear();
-	for (auto& sf : pest_scenario.get_pestpp_options().get_sqp_scale_facs())
-	{
-		scale_vals.push_back(sf * BASE_SCALE_FACTOR);
+	vector<Eigen::VectorXd> p_ensemble;
+	vector<string> trial_names;
+
+	Eigen::VectorXd p_base = solve_trust_region_subproblem(hessian.get_matrix(), grad, trust_radius);
+	p_ensemble.push_back(p_base);
+	trial_names.push_back("trial_base");
+
+	int n_trials = 5; //add as ++args?
+	for (int i = 1; i < n_trials; i++) {
+		// Perturb the base solution while maintaining trust region constraint
+		double scale = 0.5 + (double)i / n_trials; // Varies from 0.7 to 1.3
+		Eigen::VectorXd p_trial = scale * p_base;
+		if (p_trial.norm() > trust_radius) {
+			p_trial *= trust_radius / p_trial.norm();
+		}
+		p_ensemble.push_back(p_trial);
+		trial_names.push_back("trial_" + std::to_string(i));
 	}
 
-	ParameterEnsemble cand_ensemble(&pest_scenario, &rand_gen);
-	cand_ensemble.set_trans_status(ParameterEnsemble::transStatus::NUM);
+	ParameterEnsemble trial_pe(&pest_scenario, &rand_gen);
+	trial_pe.reserve(trial_names, dv_names);
 
-	if ((use_ensemble_grad) && (SOLVE_EACH_REAL))
-	{
-		for (auto sv : scale_vals)
-		{
-			for (auto& real_name : dv.get_real_names())
-			{
-				stringstream ss;
-				ss << "cand_" << real_name << "_sv:" << left << setw(8) << setprecision(3) << sv;
-				real_names.push_back(ss.str());
+	// Add all trial points to ensemble
+	for (size_t i = 0; i < p_ensemble.size(); i++) {
+		Eigen::VectorXd trial_vec = current_dv_values.get_data_eigen_vec(dv_names);
+		trial_vec += p_ensemble[i];
+		trial_pe.update_real_ip(trial_names[i], trial_vec);
+	}
+
+	//vector<string> real_names;
+	//vector<double> scale_vals;
+	//scale_vals.clear();
+	//for (auto& sf : pest_scenario.get_pestpp_options().get_sqp_scale_facs())
+	//{
+	//	scale_vals.push_back(sf * BASE_SCALE_FACTOR);
+	//}
+
+	//ParameterEnsemble cand_ensemble(&pest_scenario, &rand_gen);
+	//cand_ensemble.set_trans_status(ParameterEnsemble::transStatus::NUM);
+
+	//if ((use_ensemble_grad) && (SOLVE_EACH_REAL))
+	//{
+	//	for (auto sv : scale_vals)
+	//	{
+	//		for (auto& real_name : dv.get_real_names())
+	//		{
+	//			stringstream ss;
+	//			ss << "cand_" << real_name << "_sv:" << left << setw(8) << setprecision(3) << sv;
+	//			real_names.push_back(ss.str());
+	//		}
+	//	}
+	//}
+	//else {
+	//	for (auto sv : scale_vals) {
+	//		stringstream ss;
+	//		ss << "cand_sv:" << left << setw(8) << setprecision(3) << sv;
+	//		real_names.push_back(ss.str());
+	//	}
+	//}
+
+	//cand_ensemble.reserve(real_names, dv_names);
+	//map<string, double> real_sf_map;
+	//vector<double> used_scale_vals;
+	//int ii = 0;
+
+	//for (size_t i = 0; i < scale_vals.size(); i++)
+	//{
+	//	double scale_val = scale_vals[i];
+	//	if ((use_ensemble_grad) && (SOLVE_EACH_REAL))
+	//	{
+	//		Parameters num_candidate = current_dv_values;
+	//		Eigen::VectorXd scale_step = step * scale_val;
+
+	//		for (auto& real_name : dv.get_real_names())
+	//		{
+	//			Eigen::VectorXd cvals = num_candidate.get_data_eigen_vec(dv_names);
+	//			cvals.array() += scale_step.array();
+	//			cand_ensemble.update_real_ip(real_names[ii], cvals);
+	//			real_sf_map[real_names[ii]] = scale_val;
+	//			used_scale_vals.push_back(scale_val);
+	//			ii++;
+	//		}
+	//	}
+	//	else
+	//	{
+	//		Parameters num_candidate = current_dv_values;
+	//		Eigen::VectorXd scale_step = step * scale_val;
+
+	//		if (scale_step.squaredNorm() < 1.0e-10)
+	//			message(1, "very short step for scale value", scale_val);
+
+	//		Eigen::VectorXd cvals = num_candidate.get_data_eigen_vec(dv_names);
+	//		cvals.array() += scale_step.array();
+	//		cand_ensemble.update_real_ip(real_names[i], cvals);
+	//		used_scale_vals.push_back(scale_val);
+	//		real_sf_map[real_names[i]] = scale_val;
+	//	}
+	//}
+	//cand_ensemble.enforce_bounds(performance_log, false);
+
+	ObservationEnsemble trial_oe = run_candidate_ensemble(trial_pe);
+
+	double best_rho = -1.0;
+	int best_idx = -1;
+
+	for (size_t i = 0; i < trial_names.size(); i++) {
+		Observations trial_obs = pest_scenario.get_ctl_observations();
+		if (trial_oe.shape().first > 0) {
+			Eigen::VectorXd obs_vec = trial_oe.get_real_vector(trial_names[i]);
+			trial_obs.update(trial_oe.get_var_names(), obs_vec);
+
+			Parameters trial_dv_values = current_dv_values;
+			trial_dv_values.update_without_clear(dv_names,
+				trial_pe.get_real_vector(trial_names[i]));
+
+			double actual_reduction = compute_actual_reduction(trial_dv_values, trial_obs);
+			double predicted_reduction = compute_predicted_reduction(p_ensemble[i], grad);
+
+			if (abs(predicted_reduction) > 1e-10) {
+				double rho = actual_reduction / predicted_reduction;
+				if (rho > best_rho) {
+					best_rho = rho;
+					best_idx = i;
+				}
 			}
 		}
 	}
-	else {
-		for (auto sv : scale_vals) {
-			stringstream ss;
-			ss << "cand_sv:" << left << setw(8) << setprecision(3) << sv;
-			real_names.push_back(ss.str());
+
+	// Update trust region and accept/reject based on best point
+	if (best_idx >= 0 && best_rho > eta1) {
+		// Accept best step
+		Eigen::VectorXd best_obs_vec = trial_oe.get_real_vector(trial_names[best_idx]);
+		current_obs.update(trial_oe.get_var_names(), best_obs_vec);
+		current_ctl_dv_values.update_without_clear(dv_names,
+			trial_pe.get_real_vector(trial_names[best_idx]));
+
+		// Update trust region radius
+		if (best_rho > 0.75 && p_ensemble[best_idx].norm() >= 0.95 * trust_radius) {
+			trust_radius = min(2.0 * trust_radius, trust_radius_max);
 		}
+
+		stringstream ss;
+		ss << "accepted ensemble trust region step " << best_idx
+			<< " with rho=" << best_rho << ", new radius=" << trust_radius;
+		message(1, ss.str());
+		return true;
 	}
 
-	cand_ensemble.reserve(real_names, dv_names);
-	map<string, double> real_sf_map;
-	vector<double> used_scale_vals;
-	int ii = 0;
-
-	for (size_t i = 0; i < scale_vals.size(); i++)
-	{
-		double scale_val = scale_vals[i];
-		if ((use_ensemble_grad) && (SOLVE_EACH_REAL))
-		{
-			Parameters num_candidate = current_dv_values;
-			Eigen::VectorXd scale_step = step * scale_val;
-
-			for (auto& real_name : dv.get_real_names())
-			{
-				Eigen::VectorXd cvals = num_candidate.get_data_eigen_vec(dv_names);
-				cvals.array() += scale_step.array();
-				cand_ensemble.update_real_ip(real_names[ii], cvals);
-				real_sf_map[real_names[ii]] = scale_val;
-				used_scale_vals.push_back(scale_val);
-				ii++;
-			}
-		}
-		else
-		{
-			Parameters num_candidate = current_dv_values;
-			Eigen::VectorXd scale_step = step * scale_val;
-
-			if (scale_step.squaredNorm() < 1.0e-10)
-				message(1, "very short step for scale value", scale_val);
-
-			Eigen::VectorXd cvals = num_candidate.get_data_eigen_vec(dv_names);
-			cvals.array() += scale_step.array();
-			cand_ensemble.update_real_ip(real_names[i], cvals);
-			used_scale_vals.push_back(scale_val);
-			real_sf_map[real_names[i]] = scale_val;
-		}
-	}
-	cand_ensemble.enforce_bounds(performance_log, false);
-
-	ObservationEnsemble cand_obs_ensemble = run_candidate_ensemble(cand_ensemble);
-
-	vector<string> acceptable_candidates;
-	for (size_t i = 0; i < cand_ensemble.get_real_names().size(); i++)
-	{
-		string real_name = cand_ensemble.get_real_names()[i];
-		double scale = real_sf_map[real_name];
-
-		Parameters cand_dv_values = current_dv_values;
-		Eigen::VectorXd par_vec = cand_ensemble.get_real_vector(real_name);
-		cand_dv_values.update_without_clear(dv_names, par_vec);
-
-		Observations cand_obs = current_obs;
-		Eigen::VectorXd obs_vec = cand_obs_ensemble.get_real_vector(real_name);
-		cand_obs.update(cand_obs_ensemble.get_var_names(), obs_vec);
-
-		double actual_reduction = compute_actual_reduction(cand_dv_values, cand_obs); //Numerator of Eq 4.4, pp. 68 Nocedal and Wright
-		double predicted_reduction = compute_predicted_reduction(scale * step, grad); //Denominator of Eq 4.4, pp. 68 Nocedal and Wright
-
-		if (abs(predicted_reduction) > 1e-10)
-		{
-			double rho = actual_reduction / predicted_reduction;
-			if (rho > eta1)
-			{
-				acceptable_candidates.push_back(real_name);
-			}
-		}
-	}
-
-	if (!acceptable_candidates.empty())
-	{
-		ParameterEnsemble filtered_dv(&pest_scenario, &rand_gen);
-		ObservationEnsemble filtered_oe(&pest_scenario, &rand_gen);
-
-		filtered_dv.reserve(acceptable_candidates, dv_names);
-		filtered_oe.reserve(acceptable_candidates, cand_obs_ensemble.get_var_names());
-
-		filtered_dv.set_eigen(Eigen::MatrixXd::Zero(acceptable_candidates.size(), dv_names.size()));
-		filtered_oe.set_eigen(Eigen::MatrixXd::Zero(acceptable_candidates.size(), cand_obs_ensemble.get_var_names().size()));
-
-		map<string, double> filtered_sf_map;
-
-		for (const auto& name : acceptable_candidates)
-		{
-			filtered_dv.update_real_ip(name, cand_ensemble.get_real_vector(name));
-			filtered_oe.update_real_ip(name, cand_obs_ensemble.get_real_vector(name));
-			filtered_sf_map[name] = real_sf_map[name];
-		}
-
-		bool success = pick_candidate_and_update_current(filtered_dv, filtered_oe, filtered_sf_map);
-
-		if (success)
-		{
-			double scale = filtered_sf_map[best_name];
-
-			// If very successful step
-			if (scale > eta2)
-			{
-				trust_radius = min(trust_radius_max, gamma2 * trust_radius);
-			}
-
-			stringstream ss;
-			ss << "accepted trust region step with scale=" << scale
-				<< ", new radius=" << trust_radius;
-			message(1, ss.str());
-
-			return true;
-		}
-	}
-
-	trust_radius = max(trust_radius_min, gamma1 * trust_radius);
+	trust_radius = max(trust_radius_min, 0.5 * trust_radius);
+	stringstream ss;
+	ss << "rejected all ensemble trust region steps, best rho=" << best_rho
+		<< ", new radius=" << trust_radius;
+	message(1, ss.str());
 	return false;
+
+
+	//vector<string> acceptable_candidates;
+	//for (size_t i = 0; i < cand_ensemble.get_real_names().size(); i++)
+	//{
+	//	string real_name = cand_ensemble.get_real_names()[i];
+	//	double scale = real_sf_map[real_name];
+
+	//	Parameters cand_dv_values = current_dv_values;
+	//	Eigen::VectorXd par_vec = cand_ensemble.get_real_vector(real_name);
+	//	cand_dv_values.update_without_clear(dv_names, par_vec);
+
+	//	Observations cand_obs = current_obs;
+	//	Eigen::VectorXd obs_vec = cand_obs_ensemble.get_real_vector(real_name);
+	//	cand_obs.update(cand_obs_ensemble.get_var_names(), obs_vec);
+
+	//	double actual_reduction = compute_actual_reduction(cand_dv_values, cand_obs); //Numerator of Eq 4.4, pp. 68 Nocedal and Wright
+	//	double predicted_reduction = compute_predicted_reduction(scale * step, grad); //Denominator of Eq 4.4, pp. 68 Nocedal and Wright
+
+	//	if (abs(predicted_reduction) > 1e-10)
+	//	{
+	//		double rho = actual_reduction / predicted_reduction;
+	//		if (rho > eta1)
+	//		{
+	//			acceptable_candidates.push_back(real_name);
+	//		}
+	//	}
+	//}
+
+	//if (!acceptable_candidates.empty())
+	//{
+	//	ParameterEnsemble filtered_dv(&pest_scenario, &rand_gen);
+	//	ObservationEnsemble filtered_oe(&pest_scenario, &rand_gen);
+
+	//	filtered_dv.reserve(acceptable_candidates, dv_names);
+	//	filtered_oe.reserve(acceptable_candidates, cand_obs_ensemble.get_var_names());
+
+	//	filtered_dv.set_eigen(Eigen::MatrixXd::Zero(acceptable_candidates.size(), dv_names.size()));
+	//	filtered_oe.set_eigen(Eigen::MatrixXd::Zero(acceptable_candidates.size(), cand_obs_ensemble.get_var_names().size()));
+
+	//	map<string, double> filtered_sf_map;
+
+	//	for (const auto& name : acceptable_candidates)
+	//	{
+	//		filtered_dv.update_real_ip(name, cand_ensemble.get_real_vector(name));
+	//		filtered_oe.update_real_ip(name, cand_obs_ensemble.get_real_vector(name));
+	//		filtered_sf_map[name] = real_sf_map[name];
+	//	}
+
+	//	bool success = pick_candidate_and_update_current(filtered_dv, filtered_oe, filtered_sf_map);
+
+	//	if (success)
+	//	{
+	//		double scale = filtered_sf_map[best_name];
+
+	//		// If very successful step
+	//		if (scale > eta2)
+	//		{
+	//			trust_radius = min(trust_radius_max, gamma2 * trust_radius);
+	//		}
+
+	//		stringstream ss;
+	//		ss << "accepted trust region step with scale=" << scale
+	//			<< ", new radius=" << trust_radius;
+	//		message(1, ss.str());
+
+	//		return true;
+	//	}
+	//}
+
+	//trust_radius = max(trust_radius_min, gamma1 * trust_radius);
+	//return false;
 }
 
 double SeqQuadProgram::compute_actual_reduction(Parameters& trial_dv_values, Observations& trial_obs)
@@ -2396,7 +2541,7 @@ double SeqQuadProgram::compute_actual_reduction(Parameters& trial_dv_values, Obs
 double SeqQuadProgram::compute_predicted_reduction(const Eigen::VectorXd& step,
 	const Eigen::VectorXd& grad)
 {
-	// Compute predicted reduction using quadratic model
+	// Compute predicted reduction using quadratic model Eq 4.2, p. 68 Nocedal and Wright
 	double linear_term = -grad.dot(step);
 	double quadratic_term = -0.5 * step.dot(hessian.get_matrix() * step);
 	return linear_term + quadratic_term;
@@ -2407,10 +2552,44 @@ bool SeqQuadProgram::line_search(Eigen::VectorXd& search_d, const Parameters& _c
 	double initial_obj = get_obj_value(current_ctl_dv_values, current_obs);
 	double initial_slope = grad.dot(search_d);
 
-	//sanity check
-	if (initial_slope >= 0) {
-		message(1, "Warning: search direction is not a descent direction");
+	//check if we're at a stationary point
+	const double grad_tol = 1e-6;  //can be made a class member
+	if (grad.norm() < grad_tol) {
+		message(1, "Possible stationary point detected - gradient norm below tolerance");
 		return false;
+	}
+
+	//handle non-descent direction
+	if (initial_slope >= 0) 
+	{
+		message(1, "Warning: search direction is not a descent direction");
+
+		// First try: check if Hessian needs reset
+		if (iter > 1) 
+		{  // Not first iteration
+			message(1, "Resetting Hessian to identity");
+			Eigen::SparseMatrix<double> h(dv_names.size(), dv_names.size());
+			h.setIdentity();
+			hessian = Covariance(dv_names, h);
+
+			// Recompute search direction with reset Hessian
+			pair<Eigen::VectorXd, Eigen::VectorXd> x = calc_search_direction_vector(_current_dv_values, grad);
+			search_d = x.first;
+			initial_slope = grad.dot(search_d);
+
+			if (initial_slope >= 0) 
+			{
+				// If still not descent, fall back to steepest descent
+				search_d = -grad;
+				initial_slope = grad.dot(search_d);
+			}
+		}
+		else 
+		{
+			// First iteration - just use steepest descent
+			search_d = -grad;
+			initial_slope = grad.dot(search_d);
+		}
 	}
 
 
@@ -2803,9 +2982,6 @@ pair<Eigen::VectorXd, Eigen::VectorXd> SeqQuadProgram::calc_search_direction_vec
 		search_d = (*hessian.e_ptr()).triangularView<Eigen::Lower>().solve(grad_vector); //search_d = *hessian.e_ptr().inverse * grad_vector;
 		cout << endl << "hessian" << endl << hessian << endl;
 	}
-
-	message(1, "sd:", search_d.transpose());  // tmp
-
 	return pair<Eigen::VectorXd, Eigen::VectorXd> (search_d, lm);  // lm will be empty if non-constrained solve
 }
 
@@ -2885,8 +3061,31 @@ bool SeqQuadProgram::solve_new()
 		search_d = x.first;
 		lm = x.second;
 
+		message(1, "sd:", search_d.transpose());  // tmp
+		message(1, "lm:", lm); //tmp
+
 		if (cnames.size() > 0)
 		{
+			//Algorithm 16.3 in Nocedal and Wright, pp. 472-473
+			if (iter > 1)
+			{
+				pair<Mat, bool> constraint_mat = get_constraint_mat(&lm);
+				if (constraint_mat.second)
+				{
+					message(1, "optimal solution found - all Lagrange multipliers non-negative");
+					converged = true;
+					return true;
+				}
+
+				if (constraint_mat.first.get_row_names() != cnames)
+				{
+					current_constraint_mat = constraint_mat.first;
+					cnames = constraint_mat.first.get_row_names();
+					message(1, "constraints dropped due to negative multipliers:", cnames);
+					continue;
+				}
+			}
+
 			bool search_d_approx_zero = false;
 			double tol = 0.001; //todo: move this to a ++arg
 			for (int i = 0; i < search_d.size(); i++)
@@ -2898,27 +3097,61 @@ bool SeqQuadProgram::solve_new()
 				}
 			}
 
-			if (search_d_approx_zero) //Algorithm 16.3 in Nocedal and Wright, pp. 472-473
+			if (search_d_approx_zero) 
 			{
-				pair<Mat, bool> constraint_mat = get_constraint_mat(&lm);
-				if (constraint_mat.second)
-				{
-					message(1, "optimal solution found - all Lagrange multipliers non-negative");
-					converged = true;
-					return true;  // Converged to optimal solution
-				}
-				current_constraint_mat = constraint_mat.first;
-				cnames = constraint_mat.first.get_row_names();
-				message(1, "cnames after dropping attempting:", cnames);
-				continue;
+				message(1, "search direction approximately zero - no further progress possible with current working set");
+				return false;
+
+				//pair<Mat, bool> constraint_mat = get_constraint_mat(&lm);
+				//if (constraint_mat.second)
+				//{
+				//	message(1, "optimal solution found - all Lagrange multipliers non-negative");
+				//	converged = true;
+				//	return true;  // Converged to optimal solution
+				//}
+				//current_constraint_mat = constraint_mat.first;
+				//cnames = constraint_mat.first.get_row_names();
+				//message(1, "cnames after dropping attempting:", cnames);
+				//continue;
 			}
 		}
 
 		//maybe this could be a ++arg to choose either
-		//what if we switch, trust region early on, then line search for refinements?
-		successful = trust_region_step(current_ctl_dv_values, search_d); 
-		//successful = line_search(search_d, _current_num_dv_values, grad);
-		if (!successful)
+		//what if we switch, trust region early on, then line search for refinements, or vice versa?
+		//successful = trust_region_step(current_ctl_dv_values, search_d); 
+		successful = line_search(search_d, _current_num_dv_values, grad);
+		if (successful)
+		{
+			//check for blocking constraint
+			//if there is blocking constraint, add one of the blocking constraint to cnames working set
+
+			map<string, double> violations = constraints.get_unsatified_obs_constraints(current_obs, filter.get_viol_tol());
+
+			if (!violations.empty())
+			{
+				// Find most blocking constraint (largest violation)
+				string blocking_constraint;
+				double max_violation = -1.0;
+				for (const auto& v : violations)
+				{
+					if (v.second > max_violation)
+					{
+						max_violation = v.second;
+						blocking_constraint = v.first;
+					}
+				}
+
+				//add blocking constraint to working set if not already present
+				if (find(cnames.begin(), cnames.end(), blocking_constraint) == cnames.end())
+				{
+					message(1, "adding blocking constraint to working set:", blocking_constraint);
+					cnames.push_back(blocking_constraint);
+					pair<Mat, bool> new_constraint_mat = get_constraint_mat();
+					current_constraint_mat = new_constraint_mat.first;
+				}
+			}
+		}
+		else
 		{
 			n_consec_failures++;
 			line_search_attempts++;
