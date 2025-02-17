@@ -1,12 +1,23 @@
-# This CMake file is part of PEST++
-
-add_executable(pestpp-sqp pestpp-sqp.cpp)
-
-target_compile_options(pestpp-sqp PRIVATE ${PESTPP_CXX_WARN_FLAGS})
-
-target_link_libraries(pestpp-sqp
-  rm_serial
-  rm_yamr
+add_library(gpr
+    libs/gpr/gpr.cpp
+    libs/gpr/gpr_optimizer.cpp
+    libs/gpr/covariance.cpp
+    libs/gpr/parameters.cpp
 )
 
-install(TARGETS pestpp-sqp RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR})
+target_link_libraries(gpr
+    pestpp_common
+    Eigen3::Eigen
+)
+
+
+add_executable(pestpp-gpr
+    programs/pestpp-gpr.cpp
+)
+
+target_link_libraries(pestpp-gpr
+    gpr
+    pestpp_common
+    yamr
+    ${EXTRA_LIBS}
+)
