@@ -1,0 +1,44 @@
+pcf
+* control data 
+restart estimation
+ 10 	 5   1   0   2
+ 1   1  single point
+ 10  2  .3  .01  8 
+ 10  10  .001
+ .1
+ 10   .01  3  3	.01  3 
+ 1   1   1 
+* parameter groups
+decvar	absolute  1.00  0.0		switch  	1 	parabolic
+* parameter data
+x1   	none    relative  	1	-10	10	decvar	1   0   1
+x2		none    relative  	1	-10	10	decvar	1   0   1
+x3		none    relative  	1	-10	10	decvar	1   0   1
+x4		none    relative  	1	-10	10	decvar	1   0   1
+x5		none    relative  	1	-10	10	decvar	1   0   1
+x6		none    relative  	1	-10	10	decvar	1   0   1
+x7  	none    relative  	1	-10	10	decvar	1   0   1
+x8		none    relative  	1	-10	10	decvar	1   0   1
+x9		none    relative  	1	-10	10	decvar	1   0   1
+x10		none    relative  	1	-10	10	decvar	1   0   1
+* Observation groups
+l_obj
+obs
+* Observation data
+func		0		1	l_obj
+func_sd		0		1	obs
+func_var	0		1	obs
+func_var_sd 0		1	obs
+ei		-0.00001	1	obs
+* model command line
+python forward_run.py
+* model input/output
+dv_tpl.dat dv.dat
+output.ins output.dat
+++opt_dec_var_groups(decvar)
+++mou_objectives(func)
+++panther_agent_freeze_on_fail(True)
+++mou_save_population_every(1)
+++mou_generator(pso)
+++mou_pso_alpha(2)
+++mou_dv_population_file(starter.dv_pop.csv)
