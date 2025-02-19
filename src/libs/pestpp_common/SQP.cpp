@@ -1130,7 +1130,7 @@ void SeqQuadProgram::run_jacobian(Parameters& _current_ctl_dv_vals, Observations
 	queue_chance_runs();
 	message(2, "starting finite difference gradient pertubation runs");
 	jco.make_runs(*run_mgr_ptr);
-	
+
 	success = jco.process_runs(par_trans,pgi,*run_mgr_ptr,pi,false,false);
 	if (!success)
 	{
@@ -1442,6 +1442,39 @@ void SeqQuadProgram::save_mat(string prefix, Eigen::MatrixXd &mat)
 	{
 		message(1, "error saving matrix", ss.str());
 	}
+}
+
+bool SeqQuadProgram::try_modify_hessian() {
+	// Get current Hessian matrix
+	Eigen::MatrixXd H = *hessian.e_ptr();
+
+	// Compute eigendecomposition
+	Eigen::SelfAdjointEigenSolver<Eigen::MatrixXd> eigensolver(H);
+	if (eigensolver.info() != Eigen::Success) {
+		return false;
+	}
+
+	// Get eigenvalues and eigenvectors
+	Eigen::VectorXd eigenvalues = eigensolver.eigenvalues();
+	Eigen::MatrixXd eigenvectors = eigensolver.eigenvectors();
+
+	// Check if modification is needed
+	double min_eig = eigenvalues.minCoeff();
+	const double min_allowed_eig = 1e-3;  // Minimum allowed eigenvalue
+
+	if (min_eig >= min_allowed_eig) {
+		return true; // No modification needed
+	}
+
+	//Algorithm 3.3, p. 51 Nocedal and Wright
+	double tau = 2 * abs(min_eig) + min_allowed_eig;
+	Eigen::MatrixXd modified_H = H + tau * Eigen::MatrixXd::Identity(H.rows(), H.cols()); 
+
+	// Update the Hessian
+	hessian = Covariance(dv_names, modified_H.sparseView());
+
+	message(1, "Modified Hessian to ensure positive definiteness. tau = ", tau);
+	return true;
 }
 
 bool SeqQuadProgram::update_hessian_and_grad_vector()
@@ -2017,87 +2050,69 @@ pair<Eigen::VectorXd, Eigen::VectorXd> SeqQuadProgram::_kkt_null_space(Eigen::Ma
 {
 
 	Eigen::VectorXd search_d, lm;
-	
-	
-	// check: A full rank
-	// check: reduced hessian ZTGZ is non pos def
-
-	// compute orthog bases of A
-	// prob put the beblow in a standalone function too
-	// ------
-	bool use_qr = false;  // unsure if needed with randomized SVD option
-	// check A has more rows than cols // this should have been caught before this point
-	//if (use_qr)
-	//{
-	//	throw_sqp_error("QR decomposition for orthog basis matrix computation not implemented");
-	//}
-	//else
-	//{
-	// rSVD
+	message(1, "starting KKT null space solve...");
 	Eigen::VectorXd x;
 	Eigen::MatrixXd V, U, S_, s;
 	SVD_REDSVD rsvd;
-	//SVD_EIGEN rsvd;
 	message(1, "using randomized SVD to compute basis matrices of constraint JCO for null space KKT solve", constraint_jco);
-	//rsvd.set_performance_log(performance_log);
-	//rsvd.solve_ip(constraint_jco, s, U, V, pest_scenario.get_svd_info().eigthresh, pest_scenario.get_svd_info().maxsing);
 	Eigen::BDCSVD<Eigen::MatrixXd> svd_A(constraint_jco, Eigen::DecompositionOptions::ComputeFullU | 
-														Eigen::DecompositionOptions::ComputeFullV); //we need the full V to get the null space basis for A
+														Eigen::DecompositionOptions::ComputeFullV);
 	s = svd_A.singularValues();
-	U = svd_A.matrixU();
+	U = svd_A.matrixU(); 
 	V = svd_A.matrixV(); 
-	cout << endl << "s" << endl << s << endl << "U" << endl << U << endl << "V" << endl << V << endl;
-	message(1, "singular values of A matrix", s);  // tmp
-	Eigen::MatrixXd Y(V.rows(), s.size());
-	Eigen::MatrixXd Z(V.rows(), V.cols() > s.size() ? V.cols() - s.size() : 0); //can there be no null space?
-	for (int i = 0; i < V.cols(); i++)
+
+	double rank_tol = pest_scenario.get_svd_info().eigthresh;
+	int rank = (s.array() > rank_tol).count();
+
+	message(2, "constraint matrix singular values:", s);
+	if (rank < constraint_jco.rows())
 	{
-		if (i < s.size())
-			Y.col(i) = V.col(i);
-		else
-			Z.col(i-s.size()) = V.col(i);
+		stringstream ss;
+		ss << "Constraint matrix does not have full row rank. Rank = " << rank << ", Rows = " << constraint_jco.rows();
+		throw_sqp_error(ss.str());
 	}
-	message(1, "V", V);  // tmp
-	message(1, "Y", Y);  // tmp
-	message(1, "Z", Z);  // tmp
+
+	Eigen::MatrixXd Y = V.leftCols(rank);
+	Eigen::MatrixXd Z;
+	if (V.cols() > rank)
+	{
+		Z = V.rightCols(V.cols() - rank);
+	}
+	else
+	{
+		message(1, "No null space exists - problem is fully constrained");
+		Z = Eigen::MatrixXd::Zero(V.rows(), 0);
+	}
 
 	// solve p_range_space
 	Eigen::VectorXd p_y, rhs;
-	Eigen::MatrixXd coeff;
-	coeff = constraint_jco * Y; //AY Eq. 16.18 Nocedal and Wright, pp. 457
-	message(1, "coeff matrix for p_range_space component", coeff);  // tmp
-	rhs = (-1. * constraint_diff);
-	message(1, "rhs", rhs);
-	cout << "starting SVD..." << endl;
-	rsvd.solve_ip(coeff, s, U, V, pest_scenario.get_svd_info().eigthresh, pest_scenario.get_svd_info().maxsing);
-	cout << "...done..." << endl;
-	S_ = s.asDiagonal().inverse();
-	cout << "s:" << S_.rows() << "," << S_.cols() << ", U:" << U.rows() << "," << U.cols() << ", V:" << V.rows() << "," << V.cols() << endl;
-	cout << endl << endl;
-
-	coeff = V * S_ * U.transpose();
-
-	message(1, "coeff inv", coeff);
-	p_y = coeff * rhs; //from Eq 18.19a pp. 538 Nocedal and Wright
+	Eigen::MatrixXd coeff = constraint_jco * Y; //AY Eq. 16.18 Nocedal and Wright, pp. 457
+	Eigen::BDCSVD<Eigen::MatrixXd> AY(coeff, Eigen::ComputeThinU | Eigen::ComputeThinV);
+	p_y = AY.solve(-constraint_diff); //from Eq 18.19a pp. 538 Nocedal and Wright
 	message(1, "p_y", p_y);  // tmp
+
 	// todo assert here for p_y != 0 if sum_viol == 0 (this is the component that rectifies constraint viol)
 
 	// solve p_null_space
-	bool simplified_null_space_approach = false; // see Nocedal and Wright (2006) pg 538-9
-	message(1, "hess", G);
-	Eigen::MatrixXd red_hess = Z.transpose() * G * Z; 
-	message(1, "red hess", red_hess);
-	bool cholesky = false;
+	bool simplified_null_space_approach = false; //TODO: add as ++arg; too much to be an arg?
 	Eigen::VectorXd p_z;
-	//try following, else ZTGZ is not pos-def
-	//if LBFGS
+
+	message(1, "hess", G);
 	if (Z.size() > 0)
 	{
-		// check use of grads or curved grads below (want second order)?
+		Eigen::MatrixXd red_hess = Z.transpose() * G * Z; 
+		message(1, "red hess", red_hess);
+
+		//check if positive definite
+		Eigen::LDLT<Eigen::MatrixXd> ldlt(red_hess);
+		if (ldlt.info() != Eigen::Success || !ldlt.isPositive())
+			throw_sqp_error("Reduced Hessian Z^T G Z is not positive definite");
+
+		bool cholesky = false; //TODO: add as ++arg; too much to be an arg?
 		if (simplified_null_space_approach)
 		{
 			message(1, "using simplified approach in KKT null space solve...");
-			rhs = -1. * Z.transpose() * curved_grad;
+			rhs = - Z.transpose() * curved_grad;
 			// simplify by removing cross term (or ``partial hessian'') matrix (zTgy), which is approp when approximating hessian (zTgz) (as p_y goes to zero faster than p_z)
 			if (cholesky)
 			{
@@ -2105,7 +2120,7 @@ pair<Eigen::VectorXd, Eigen::VectorXd> SeqQuadProgram::_kkt_null_space(Eigen::Ma
 			}
 			else
 			{
-				p_z = red_hess.inverse() * rhs; //From Eq 18.23 pp. 539 Nocedal and Wright
+				p_z = ldlt.solve(rhs); //From Eq 18.23 pp. 539 Nocedal and Wright
 				message(1, "p_z", p_z);  // tmp
 			}
 		}
@@ -2119,23 +2134,18 @@ pair<Eigen::VectorXd, Eigen::VectorXd> SeqQuadProgram::_kkt_null_space(Eigen::Ma
 			rhs = (-1. * ZtGY * p_y) - (Z.transpose() * curved_grad); //Eq 18.19b pp. 538 Nocedal and Wright
 			if (cholesky)
 			{
-				
-				//throw_sqp_error("cholesky decomp for null space KKT solve not implemented");  // todo JDub I noticed there is an built in cholesky decomposition? 
-				//l = cholesky(red_hess);
-				//rhs2 = solve: l, rhs;
-				//p_z = solve: l.transpose(), rhs2;
-			    //jwhite: I was tinkering with adding cholesky as a cov matrix method but it old as!
-				//jwhite: I just hacked this in - not tested!
-				Eigen::SimplicialLLT<Eigen::SparseMatrix<double>> solver;
-				Eigen::VectorXd rhs2 = solver.compute(red_hess.sparseView()).solve(rhs);
-				p_z = solver.solve(rhs2);
-				
+				//TODO: need to test this
+				Eigen::LLT<Eigen::MatrixXd> llt(red_hess);
+				if (llt.info() != Eigen::Success)
+				{
+					throw_sqp_error("Cholesky decomposition failed - matrix not positive definite");
+				}
+				p_z = llt.solve(rhs);
 			}
 			else
 			{
-				p_z = red_hess.inverse() * rhs; //From Eq 18.19b pp. 538 Nocedal and Wright
+				p_z = ldlt.solve(rhs); //From Eq 18.19b pp. 538 Nocedal and Wright
 				message(1, "p_z", p_z);  // tmp
-
 			}
 		}
 	}
@@ -2143,40 +2153,36 @@ pair<Eigen::VectorXd, Eigen::VectorXd> SeqQuadProgram::_kkt_null_space(Eigen::Ma
 	{
 		throw_sqp_error("zero null space dimensionality wrt active constraints");  // tmp
 	}
-	//else not sure can be done
 
 	// combine to make total direction
 	message(1, "combining range and null space components of search direction");  // tmp
-	search_d = Y * p_y + Z * p_z; // Eq. 18.18 p. 539 Nocedal and Wright 
-    message(1, "search d ", search_d);  // tmp
-
+	if (Z.cols() > 0)
+		search_d = Y * p_y + Z * p_z; // Eq. 18.18 p. 539 Nocedal and Wright 
+	else
+		search_d = Y * p_y;
+	
 	if (search_d.size() != curved_grad.size())
 	{
 		throw_sqp_error("search direction vector computation error (in null space KKT solve method)!");
 	}
 
-	
 	// compute lagrangian multipliers
-	//if LBFGS
-	message(1, "computing lagrangian multipliers...");  // tmp
 	if (simplified_null_space_approach)
 	{
-		// simplify by dropping dependency of lm on hess (considered appropr given p converges to zero whereas grad does not..; Nocedal and Wright pg. 539)
-		// throw_sqp_error("reduced hessian in KKT null space solve not implemented");
-		// todo
-		// lm = solve: constraint_jco * constraint_jco.transpose(), constraint_jco * curved_grad
+		Eigen::BDCSVD<Eigen::MatrixXd> svd_AAT(constraint_jco* constraint_jco.transpose(),Eigen::ComputeThinU | Eigen::ComputeThinV);
+		lm = svd_AAT.solve(constraint_jco * curved_grad);
 	}
 	else
 	{
 		// Nocedal and Wright pg. 457 and 538
 		rhs = Y.transpose() * (curved_grad + G * search_d); 
 		coeff = (constraint_jco * Y).transpose();
-		lm = coeff.inverse() * rhs;
-		message(1, "lm", lm);  // tmp
-
+		Eigen::BDCSVD<Eigen::MatrixXd> AY(coeff,Eigen::ComputeThinU | Eigen::ComputeThinV);
+		lm = AY.solve(rhs);
 	}
-	//else not sure can be done
 
+	message(1, "search d ", search_d);  // tmp
+	message(1, "lm", lm);  // tmp
 
 	return pair<Eigen::VectorXd, Eigen::VectorXd>(search_d, lm);
 }
@@ -2560,35 +2566,38 @@ bool SeqQuadProgram::line_search(Eigen::VectorXd& search_d, const Parameters& _c
 	}
 
 	//handle non-descent direction
-	if (initial_slope >= 0) 
+	if (initial_slope >= 0.1) 
 	{
 		message(1, "Warning: search direction is not a descent direction");
+		// First try: Modify Hessian to make it positive definite
+		// This could use Modified Cholesky factorization (Section 3.4)
+		// or add multiple of identity (Section 6.3)
+		bool modified_success = try_modify_hessian();
 
-		// First try: check if Hessian needs reset
-		if (iter > 1) 
-		{  // Not first iteration
-			message(1, "Resetting Hessian to identity");
+		if (modified_success) {
+			// Recompute search direction with modified Hessian
+			pair<Eigen::VectorXd, Eigen::VectorXd> x = calc_search_direction_vector(_current_dv_values, grad);
+			search_d = x.first;
+			initial_slope = grad.dot(search_d);
+		}
+
+		// If modification fails or still gives non-descent direction
+		if (!modified_success || initial_slope >= 0) {
+			message(1, "Resetting Hessian to identity as last resort");
 			Eigen::SparseMatrix<double> h(dv_names.size(), dv_names.size());
 			h.setIdentity();
 			hessian = Covariance(dv_names, h);
 
-			// Recompute search direction with reset Hessian
+			// Try with reset Hessian
 			pair<Eigen::VectorXd, Eigen::VectorXd> x = calc_search_direction_vector(_current_dv_values, grad);
 			search_d = x.first;
 			initial_slope = grad.dot(search_d);
 
-			if (initial_slope >= 0) 
-			{
-				// If still not descent, fall back to steepest descent
+			// If still not descent, use steepest descent
+			if (initial_slope >= 0) {
 				search_d = -grad;
 				initial_slope = grad.dot(search_d);
 			}
-		}
-		else 
-		{
-			// First iteration - just use steepest descent
-			search_d = -grad;
-			initial_slope = grad.dot(search_d);
 		}
 	}
 
@@ -2876,14 +2885,12 @@ pair<Eigen::VectorXd, Eigen::VectorXd> SeqQuadProgram::calc_search_direction_vec
 		b = p.first;
 		constraint_diff = p.second;
 
-		if (use_ensemble_grad)
-		{
-			for (int i = 0;i < cnames.size();i++) {
-				if (constraint_sense[cnames[i]] == "less_than")
-				{
+		for (int i = 0;i < cnames.size();i++) {
+			if (constraint_sense[cnames[i]] == "less_than")
+			{
+				if (use_ensemble_grad)
 					constraint_jco.row(i) *= -1;
-					constraint_diff[i] *= -1;
-				}
+				constraint_diff[i] *= -1;
 			}
 		}
 		

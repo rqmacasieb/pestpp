@@ -203,7 +203,7 @@ private:
 	void prep_4_fd_grad();
 
 	bool update_hessian_and_grad_vector();
-
+	bool try_modify_hessian();
 	bool solve_new();
 
 	bool seek_feasible();
