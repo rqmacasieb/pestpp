@@ -36,6 +36,7 @@
     <ClInclude Include="EnsembleMethodUtils.h" />
     <ClInclude Include="EnsembleSmoother.h" />
     <ClInclude Include="FileManager.h" />
+    <ClInclude Include="gpr.h" />
     <ClInclude Include="Jacobian.h" />
     <ClInclude Include="Jacobian_1to1.h" />
     <ClInclude Include="linear_analysis.h" />
@@ -74,6 +75,7 @@
     <ClCompile Include="EnsembleMethodUtils.cpp" />
     <ClCompile Include="EnsembleSmoother.cpp" />
     <ClCompile Include="FileManager.cpp" />
+    <ClCompile Include="gpr.cpp" />
     <ClCompile Include="Jacobian.cpp" />
     <ClCompile Include="Jacobian_1to1.cpp" />
     <ClCompile Include="linear_analysis.cpp" />
