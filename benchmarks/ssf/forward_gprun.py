@@ -5,8 +5,8 @@ import os
 import laGPy as gpr
 from scipy.stats import norm
 
-temp_dir = "template_inner"
-outer_dirs = sorted(glob.glob("outer_*"), key=lambda x: int(os.path.basename(x).split("_")[1]))
+temp_dir = "."
+# outer_dirs = sorted(glob.glob("outer_*"), key=lambda x: int(os.path.basename(x).split("_")[1]))
 
 def emulate(pvals = None):
     if pvals is None:
@@ -38,8 +38,8 @@ def emulate(pvals = None):
 
     with open('output.dat','w') as f:
         f.write('obsnme,obsval\n')
-        f.write('func_sd,'+str(sim["func_sd"])+'\n')
         f.write('func,'+str(sim["func"])+'\n')
+        f.write('func_sd,'+str(sim["func_sd"])+'\n')
         f.write('func_var,'+str(sim["func_var"])+'\n')
         f.write('func_var_sd,'+str(sim["func_var_sd"])+'\n')
         f.write('ei,'+str(sim["ei"])+'\n')

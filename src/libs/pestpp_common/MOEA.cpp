@@ -897,7 +897,6 @@ map<string, double> ParetoObjectives::get_cuboid_crowding_distance(vector<string
 		{
 			sortedset::iterator it = next(start, 1);
 			crowd_distance_map[it->first] = crowd_distance_map[it->first] + ((last->second - start->second) / obj_range);
-
 		}
 		else if (crowd_sorted.size() > 3)
 		{
@@ -913,6 +912,19 @@ map<string, double> ParetoObjectives::get_cuboid_crowding_distance(vector<string
 				iprev = prev(it, 1);
 				inext = next(it, 1);
 				crowd_distance_map[it->first] = crowd_distance_map[it->first] + ((inext->second - iprev->second) / obj_range);
+			}
+		}
+
+		if (bbgo)
+		{
+			double cv;
+			for (auto cd : crowd_distance_map)
+			{
+				if (cd.second == CROWDING_EXTREME)
+					continue;
+				cv = pow(_member_struct[cd.first][*obs_obj_names_ptr->begin() + "_VAR"], 0.5) / _member_struct[cd.first][*obs_obj_names_ptr->begin()];
+				if (cv > 1)
+					crowd_distance_map[cd.first] = crowd_distance_map[cd.first] / exp(pow(_member_struct[cd.first][*obs_obj_names_ptr->begin() + "_VAR"], 0.5));
 			}
 		}
 	}
@@ -2581,6 +2593,8 @@ void MOEA::initialize()
 		envtype = MouEnvType::NSGA;
 		prob_pareto = false;
 		objectives.set_prob_pareto(prob_pareto);
+		bbgo = false;
+		objectives.set_bbgo(bbgo);
 		message(1, "using 'nsga2' env selector");
 	}
 	else if (env == "NSGA_PPD")
@@ -2589,7 +2603,18 @@ void MOEA::initialize()
 		prob_pareto = true;
 		objectives.set_ppd_beta();
 		objectives.set_prob_pareto(prob_pareto);
+		bbgo = false;
+		objectives.set_bbgo(bbgo);
 		message(1, "using 'nsga2_ppd' env selector");
+	}
+	else if (env == "NSGA_BBGO")
+	{
+		envtype = MouEnvType::NSGA;
+		bbgo = true;
+		objectives.set_bbgo(bbgo);
+		prob_pareto = false;
+		objectives.set_prob_pareto(prob_pareto);
+		message(1, "using 'nsga2_bbgo' env selector");
 	}
 	else if (env == "SPEA")
 	{
@@ -2809,7 +2834,7 @@ void MOEA::initialize()
 					}
 					obs_obj_names.push_back(obj_name);
 				}
-				if (prob_pareto) keep_obs_sd.push_back(obj_name + "_SD");
+				if (prob_pareto || bbgo) keep_obs_sd.push_back(obj_name + "_SD");
 			}
 			//else if (oset.find(obj_name+"_sd") != oset.end()) //find the corresponding sd observations
 			//{

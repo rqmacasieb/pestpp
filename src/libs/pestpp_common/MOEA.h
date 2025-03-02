@@ -42,6 +42,7 @@ public:
 	map<string, map<string, double>> get_members(ObservationEnsemble& op, ParameterEnsemble& dp) { return get_member_struct(op, dp); };
 	void set_ppd_beta() { ppd_beta = pest_scenario.get_pestpp_options().get_mou_ppd_beta(); }
 	void set_prob_pareto(bool ppd) { prob_pareto = ppd; }
+	void set_bbgo(bool bgo) { bbgo = bgo; }
 	void set_hypervolume_partitions(map<string, map<string, double>> _hv_parts);
 	void get_ehvi(ObservationEnsemble& op, ParameterEnsemble& dp);
 	void update_ppd_criteria(ObservationEnsemble& op, ParameterEnsemble& dp);
@@ -149,7 +150,7 @@ private:
 	double dominance_probability(map<string, double>& first, map<string, double>& second);
 	double dominance_prob_adhoc(map<string, double>& first, map<string, double>& second);
 	double nondominance_probability(map<string, double>& first, map<string, double>& second);
-	bool prob_pareto, ppd_sort;
+	bool prob_pareto, ppd_sort, bbgo;
 	double ppd_beta;
 	vector<double> ppd_range;
 
@@ -202,6 +203,7 @@ private:
 	map<string, map<string, double>> previous_obj_summary, previous_dv_summary;
 	bool risk_obj;
 	bool prob_pareto = false; //probabilistic pareto dominance
+	bool bbgo = false;
 	bool ppd_sort;
 	int restart_iter_offset;
 	int save_every;

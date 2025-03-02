@@ -27,18 +27,21 @@ obs
 * Observation data
 func		0		1	l_obj
 func_sd		0		1	obs
-func_var	0		1	obs
+func_var	0		1	g_obj
 func_var_sd 0		1	obs
 ei		-0.00001	1	obs
 * model command line
-python forward_run.py
+python forward_gprun.py
 * model input/output
 dv_tpl.dat dv.dat
 output.ins output.dat
 ++opt_dec_var_groups(decvar)
-++mou_objectives(func)
+++mou_objectives(func, func_var)
 ++panther_agent_freeze_on_fail(True)
 ++mou_save_population_every(1)
-++mou_generator(pso)
+++mou_generator(pso)                                                                                               
+++mou_env_selector(nsga_bbgo)
 ++mou_pso_alpha(2)
-++mou_dv_population_file(starter.dv_pop.csv)
+++mou_population_size(20)
+++mou_dv_population_file(initial.dv_pop.csv)
+++mou_obs_population_restart_file(initial.obs_pop.csv)
