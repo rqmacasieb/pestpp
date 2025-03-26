@@ -112,7 +112,7 @@ private:
     int MAX_CONSEC_INFEAS_IES = 3;
     int MAX_CONSEC_PHIINC = 100000;
     double SF_DEC_FAC = 0.5;
-    double SF_INC_FAC = 1.05;
+    double SF_INC_FAC = 1.1;
     double BASE_SCALE_FACTOR = 1.0;
     double PAR_SIGMA_DEC_FAC = 0.9;
     double PAR_SIGMA_INC_FAC = 1.1;
@@ -215,7 +215,8 @@ private:
 
 	double compute_actual_reduction(Parameters& trial_dv_values, Observations& trial_obs);
 	double compute_predicted_reduction(const Eigen::VectorXd& step, const Eigen::VectorXd& grad);
-	bool trust_region_step(Parameters& current_dv_values, Eigen::VectorXd& step);
+	bool trust_region_step(Parameters& current_dv_values, Eigen::VectorXd& step, Eigen::VectorXd grad);
+	Eigen::VectorXd solve_trust_region_subproblem_dogleg(const Eigen::MatrixXd& B, const Eigen::VectorXd& g, double radius);
 	Eigen::VectorXd solve_trust_region_subproblem(const Eigen::MatrixXd& B, const Eigen::VectorXd& g, double radius);
 	Eigen::VectorXd compute_boundary_solution(const Eigen::VectorXd& p,	const Eigen::VectorXd& d, double radius);
 
@@ -265,6 +266,7 @@ private:
 
 	void sanity_checks();
 	bool isfullrank(const Eigen::MatrixXd& mat);
+	bool is_constraint_active(string& cname, Observations& current_obs);
 
 	void add_current_as_bases(ParameterEnsemble& _dv, ObservationEnsemble& _oe);
 

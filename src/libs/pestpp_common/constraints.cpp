@@ -1465,7 +1465,7 @@ pair<Eigen::VectorXd, Eigen::VectorXd> Constraints::get_obs_resid_constraint_vec
 		if (sim.find(cname) != sim.end())
 		{
 			rhs[i] = obs[cname];
-			resid[i] = obs[cname] - sim[cname];
+			resid[i] = sim[cname] - obs[cname];
 		}
 		else if (constraints_pi.find(cname) != constraints_pi.end())
 		{

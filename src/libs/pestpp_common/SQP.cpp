@@ -1630,11 +1630,25 @@ bool SeqQuadProgram::isfullrank(const Eigen::MatrixXd& mat)
 		return false;
 }
 
+bool SeqQuadProgram::is_constraint_active(string& cname, Observations& current_obs)
+{
+	double tol = filter.get_viol_tol();
+
+	//get constraint value at current point
+	pair<Eigen::VectorXd, Eigen::VectorXd> p = constraints.get_obs_resid_constraint_vectors(current_ctl_dv_values, current_obs, vector<string>{cname});
+	double constraint_value = p.second[0];
+
+	if (constraint_sense[cname] == "less_than")
+		constraint_value *= -1;
+	
+	return abs(constraint_value) <= tol;
+}
+
 void SeqQuadProgram::iterate_2_solution()
 {
 	stringstream ss;
 	ofstream &frec = file_manager.rec_ofstream();
-	
+
 	bool accept;
 	n_consec_infeas = 0;
 	for (int i = 0; i < pest_scenario.get_control_info().noptmax; i++)
@@ -2243,12 +2257,13 @@ pair<Mat, bool> SeqQuadProgram::get_constraint_mat(const Eigen::VectorXd* lm)
 
 Eigen::VectorXd SeqQuadProgram::solve_trust_region_subproblem(const Eigen::MatrixXd& B,	const Eigen::VectorXd& g, double radius)
 {
-	//Steihaug-Toint CG method algorithm 7.2, p. 171 Nocedal and Wright
+	//Steihaug-Point CG method algorithm 7.2, p. 171 Nocedal and Wright
 	int n = g.size();
 	Eigen::VectorXd p = Eigen::VectorXd::Zero(n);
 	Eigen::VectorXd r = g;  // r = g + Bp = g + 0 initially
 	Eigen::VectorXd d = -r;
 
+	cout << endl << B << endl;
 	double g_norm = g.norm();
 	double tol = min(0.1, sqrt(g_norm)) * g_norm;
 
@@ -2301,240 +2316,179 @@ Eigen::VectorXd SeqQuadProgram::compute_boundary_solution(const Eigen::VectorXd&
 	return p + tau * d;
 }
 
-bool SeqQuadProgram::trust_region_step(Parameters& current_dv_values, Eigen::VectorXd& step)
+bool SeqQuadProgram::trust_region_step(Parameters& current_dv_values, Eigen::VectorXd& step, Eigen::VectorXd grad)
 {
 	prev_ctl_dv_values = current_ctl_dv_values; //saving a copy for BFGS later
 
-	//Algorithm 4.1, pp. 68-69 Nocedal and Wright
-	double current_obj = get_obj_value(current_dv_values, current_obs);
-	Eigen::VectorXd grad = current_grad_vector.get_data_eigen_vec(dv_names);
+	// Algorithm 4.1, pp. 68-69 Nocedal and Wright
+	double current_obj = get_obj_value(current_ctl_dv_values, current_obs);
+	
+	// Solve the trust region subproblem to get step
+	Eigen::VectorXd p = solve_trust_region_subproblem_dogleg(hessian.get_matrix(), grad, trust_radius);
+	double step_norm = p.norm();
 
-	vector<Eigen::VectorXd> p_ensemble;
-	vector<string> trial_names;
+	// Create trial point
+	Parameters trial_dv_values = current_ctl_dv_values;
+	Eigen::VectorXd trial_vec = current_dv_values.get_data_eigen_vec(dv_names);
+	trial_vec += p;
+	trial_dv_values.update_without_clear(dv_names, trial_vec);
 
-	Eigen::VectorXd p_base = solve_trust_region_subproblem(hessian.get_matrix(), grad, trust_radius);
-	p_ensemble.push_back(p_base);
-	trial_names.push_back("trial_base");
-
-	int n_trials = 5; //add as ++args?
-	for (int i = 1; i < n_trials; i++) {
-		// Perturb the base solution while maintaining trust region constraint
-		double scale = 0.5 + (double)i / n_trials; // Varies from 0.7 to 1.3
-		Eigen::VectorXd p_trial = scale * p_base;
-		if (p_trial.norm() > trust_radius) {
-			p_trial *= trust_radius / p_trial.norm();
-		}
-		p_ensemble.push_back(p_trial);
-		trial_names.push_back("trial_" + std::to_string(i));
-	}
-
+	// Enforce bounds on trial point
 	ParameterEnsemble trial_pe(&pest_scenario, &rand_gen);
-	trial_pe.reserve(trial_names, dv_names);
+	trial_pe.reserve({ "trial" }, dv_names);
+	trial_pe.update_real_ip("trial", trial_vec);
+	trial_pe.enforce_bounds(performance_log, false);
 
-	// Add all trial points to ensemble
-	for (size_t i = 0; i < p_ensemble.size(); i++) {
-		Eigen::VectorXd trial_vec = current_dv_values.get_data_eigen_vec(dv_names);
-		trial_vec += p_ensemble[i];
-		trial_pe.update_real_ip(trial_names[i], trial_vec);
-	}
+	// Get bounded trial vector
+	trial_vec = trial_pe.get_real_vector("trial");
+	trial_dv_values.update_without_clear(dv_names, trial_vec);
 
-	//vector<string> real_names;
-	//vector<double> scale_vals;
-	//scale_vals.clear();
-	//for (auto& sf : pest_scenario.get_pestpp_options().get_sqp_scale_facs())
-	//{
-	//	scale_vals.push_back(sf * BASE_SCALE_FACTOR);
-	//}
+	// Recalculate actual step after bounds enforcement
+	p = trial_vec - current_dv_values.get_data_eigen_vec(dv_names);
+	step_norm = p.norm();
 
-	//ParameterEnsemble cand_ensemble(&pest_scenario, &rand_gen);
-	//cand_ensemble.set_trans_status(ParameterEnsemble::transStatus::NUM);
-
-	//if ((use_ensemble_grad) && (SOLVE_EACH_REAL))
-	//{
-	//	for (auto sv : scale_vals)
-	//	{
-	//		for (auto& real_name : dv.get_real_names())
-	//		{
-	//			stringstream ss;
-	//			ss << "cand_" << real_name << "_sv:" << left << setw(8) << setprecision(3) << sv;
-	//			real_names.push_back(ss.str());
-	//		}
-	//	}
-	//}
-	//else {
-	//	for (auto sv : scale_vals) {
-	//		stringstream ss;
-	//		ss << "cand_sv:" << left << setw(8) << setprecision(3) << sv;
-	//		real_names.push_back(ss.str());
-	//	}
-	//}
-
-	//cand_ensemble.reserve(real_names, dv_names);
-	//map<string, double> real_sf_map;
-	//vector<double> used_scale_vals;
-	//int ii = 0;
-
-	//for (size_t i = 0; i < scale_vals.size(); i++)
-	//{
-	//	double scale_val = scale_vals[i];
-	//	if ((use_ensemble_grad) && (SOLVE_EACH_REAL))
-	//	{
-	//		Parameters num_candidate = current_dv_values;
-	//		Eigen::VectorXd scale_step = step * scale_val;
-
-	//		for (auto& real_name : dv.get_real_names())
-	//		{
-	//			Eigen::VectorXd cvals = num_candidate.get_data_eigen_vec(dv_names);
-	//			cvals.array() += scale_step.array();
-	//			cand_ensemble.update_real_ip(real_names[ii], cvals);
-	//			real_sf_map[real_names[ii]] = scale_val;
-	//			used_scale_vals.push_back(scale_val);
-	//			ii++;
-	//		}
-	//	}
-	//	else
-	//	{
-	//		Parameters num_candidate = current_dv_values;
-	//		Eigen::VectorXd scale_step = step * scale_val;
-
-	//		if (scale_step.squaredNorm() < 1.0e-10)
-	//			message(1, "very short step for scale value", scale_val);
-
-	//		Eigen::VectorXd cvals = num_candidate.get_data_eigen_vec(dv_names);
-	//		cvals.array() += scale_step.array();
-	//		cand_ensemble.update_real_ip(real_names[i], cvals);
-	//		used_scale_vals.push_back(scale_val);
-	//		real_sf_map[real_names[i]] = scale_val;
-	//	}
-	//}
-	//cand_ensemble.enforce_bounds(performance_log, false);
-
+	// Run the model for the trial point
 	ObservationEnsemble trial_oe = run_candidate_ensemble(trial_pe);
 
-	double best_rho = -1.0;
-	int best_idx = -1;
-
-	for (size_t i = 0; i < trial_names.size(); i++) {
-		Observations trial_obs = pest_scenario.get_ctl_observations();
-		if (trial_oe.shape().first > 0) {
-			Eigen::VectorXd obs_vec = trial_oe.get_real_vector(trial_names[i]);
-			trial_obs.update(trial_oe.get_var_names(), obs_vec);
-
-			Parameters trial_dv_values = current_dv_values;
-			trial_dv_values.update_without_clear(dv_names,
-				trial_pe.get_real_vector(trial_names[i]));
-
-			double actual_reduction = compute_actual_reduction(trial_dv_values, trial_obs);
-			double predicted_reduction = compute_predicted_reduction(p_ensemble[i], grad);
-
-			if (abs(predicted_reduction) > 1e-10) {
-				double rho = actual_reduction / predicted_reduction;
-				if (rho > best_rho) {
-					best_rho = rho;
-					best_idx = i;
-				}
-			}
-		}
+	// If model run failed, reject step and reduce trust region
+	if (trial_oe.shape().first == 0) {
+		trust_radius = max(trust_radius_min, 0.5 * trust_radius);
+		stringstream ss;
+		ss << "model run failed for trust region step, reducing radius to " << trust_radius;
+		message(1, ss.str());
+		return false;
 	}
 
-	// Update trust region and accept/reject based on best point
-	if (best_idx >= 0 && best_rho > eta1) {
-		// Accept best step
-		Eigen::VectorXd best_obs_vec = trial_oe.get_real_vector(trial_names[best_idx]);
-		current_obs.update(trial_oe.get_var_names(), best_obs_vec);
-		current_ctl_dv_values.update_without_clear(dv_names,
-			trial_pe.get_real_vector(trial_names[best_idx]));
+	// Get trial observations
+	Observations trial_obs = pest_scenario.get_ctl_observations();
+	Eigen::VectorXd obs_vec = trial_oe.get_real_vector("trial");
+	trial_obs.update(trial_oe.get_var_names(), obs_vec);
 
-		// Update trust region radius
-		if (best_rho > 0.75 && p_ensemble[best_idx].norm() >= 0.95 * trust_radius) {
+	// Calculate actual and predicted reduction
+	double actual_reduction = compute_actual_reduction(trial_dv_values, trial_obs);
+	double predicted_reduction = compute_predicted_reduction(p, grad);
+
+	// Define trust region parameters
+	const double eta1 = 0.25;  // Threshold for accepting step
+	const double eta2 = 0.75;  // Threshold for very successful step
+
+	// Calculate ratio of actual to predicted reduction
+	double rho = 0.0;
+	if (abs(predicted_reduction) > 1e-10) {
+		rho = actual_reduction / predicted_reduction;
+	}
+
+	// Update trust region radius and accept/reject step based on ratio
+	if (rho < eta1) {
+		// Unsuccessful step - reduce trust region
+		trust_radius = max(trust_radius_min, 0.25 * trust_radius);
+		stringstream ss;
+		ss << "rejected trust region step, rho=" << rho
+			<< ", new radius=" << trust_radius;
+		message(1, ss.str());
+		return false;
+	}
+	else {
+		// Accept step
+		current_obs = trial_obs;
+		current_ctl_dv_values = trial_dv_values;
+
+		// Update trust region radius based on step quality
+		if (rho > eta2 && step_norm > 0.8 * trust_radius) {
+			// Very successful step and we're near boundary - increase radius
 			trust_radius = min(2.0 * trust_radius, trust_radius_max);
+			stringstream ss;
+			ss << "very successful trust region step with rho=" << rho
+				<< ", increasing radius to " << trust_radius;
+			message(1, ss.str());
+		}
+		else {
+			// Moderately successful step - keep same radius
+			stringstream ss;
+			ss << "accepted trust region step with rho=" << rho
+				<< ", keeping radius=" << trust_radius;
+			message(1, ss.str());
 		}
 
-		stringstream ss;
-		ss << "accepted ensemble trust region step " << best_idx
-			<< " with rho=" << best_rho << ", new radius=" << trust_radius;
-		message(1, ss.str());
+		// Update objective history for non-monotone criteria
+		double new_obj = get_obj_value(current_ctl_dv_values, current_obs);
+		previous_obj_values.push_back(new_obj);
+		if (previous_obj_values.size() > memory_length) {
+			previous_obj_values.erase(previous_obj_values.begin());
+		}
+
 		return true;
 	}
+}
 
-	trust_radius = max(trust_radius_min, 0.5 * trust_radius);
-	stringstream ss;
-	ss << "rejected all ensemble trust region steps, best rho=" << best_rho
-		<< ", new radius=" << trust_radius;
-	message(1, ss.str());
-	return false;
+Eigen::VectorXd SeqQuadProgram::solve_trust_region_subproblem_dogleg(const Eigen::MatrixXd& B, const Eigen::VectorXd& g, double radius)
+{
+	// Dogleg method for trust region subproblem (Algorithm 4.3 in Nocedal & Wright)
+	int n = g.size();
 
+	// Step 1: Compute the Cauchy point (steepest descent direction)
+	double gBg = g.transpose() * B * g;
+	double alpha;
 
-	//vector<string> acceptable_candidates;
-	//for (size_t i = 0; i < cand_ensemble.get_real_names().size(); i++)
-	//{
-	//	string real_name = cand_ensemble.get_real_names()[i];
-	//	double scale = real_sf_map[real_name];
+	if (gBg <= 0) {
+		// If Hessian is not positive definite, use a simple scaling
+		alpha = radius / g.norm();
+	}
+	else {
+		alpha = g.squaredNorm() / gBg;
 
-	//	Parameters cand_dv_values = current_dv_values;
-	//	Eigen::VectorXd par_vec = cand_ensemble.get_real_vector(real_name);
-	//	cand_dv_values.update_without_clear(dv_names, par_vec);
+		// Limit step to trust region boundary if needed
+		Eigen::VectorXd p_sd = -alpha * g;
+		if (p_sd.norm() > radius) {
+			alpha = radius / g.norm();
+		}
+	}
 
-	//	Observations cand_obs = current_obs;
-	//	Eigen::VectorXd obs_vec = cand_obs_ensemble.get_real_vector(real_name);
-	//	cand_obs.update(cand_obs_ensemble.get_var_names(), obs_vec);
+	Eigen::VectorXd p_cauchy = -alpha * g;
 
-	//	double actual_reduction = compute_actual_reduction(cand_dv_values, cand_obs); //Numerator of Eq 4.4, pp. 68 Nocedal and Wright
-	//	double predicted_reduction = compute_predicted_reduction(scale * step, grad); //Denominator of Eq 4.4, pp. 68 Nocedal and Wright
+	// If Cauchy point is at the boundary, return it
+	if (p_cauchy.norm() >= radius) {
+		return p_cauchy;
+	}
 
-	//	if (abs(predicted_reduction) > 1e-10)
-	//	{
-	//		double rho = actual_reduction / predicted_reduction;
-	//		if (rho > eta1)
-	//		{
-	//			acceptable_candidates.push_back(real_name);
-	//		}
-	//	}
-	//}
+	// Step 2: Compute the Newton point (full step)
+	Eigen::VectorXd p_newton;
 
-	//if (!acceptable_candidates.empty())
-	//{
-	//	ParameterEnsemble filtered_dv(&pest_scenario, &rand_gen);
-	//	ObservationEnsemble filtered_oe(&pest_scenario, &rand_gen);
+	// Use LDLT decomposition for stability
+	Eigen::LDLT<Eigen::MatrixXd> ldlt(B);
+	if (ldlt.info() == Eigen::Success) {
+		p_newton = -ldlt.solve(g);
+	}
+	else {
+		// If decomposition fails, use a regularized version
+		double lambda = 1e-6;
+		Eigen::MatrixXd B_reg = B + lambda * Eigen::MatrixXd::Identity(n, n);
+		Eigen::LDLT<Eigen::MatrixXd> ldlt_reg(B_reg);
+		p_newton = -ldlt_reg.solve(g);
+	}
 
-	//	filtered_dv.reserve(acceptable_candidates, dv_names);
-	//	filtered_oe.reserve(acceptable_candidates, cand_obs_ensemble.get_var_names());
+	// If Newton point is within trust region, return it
+	if (p_newton.norm() <= radius) {
+		return p_newton;
+	}
 
-	//	filtered_dv.set_eigen(Eigen::MatrixXd::Zero(acceptable_candidates.size(), dv_names.size()));
-	//	filtered_oe.set_eigen(Eigen::MatrixXd::Zero(acceptable_candidates.size(), cand_obs_ensemble.get_var_names().size()));
+	// Step 3: Compute the dogleg path intersection with trust region boundary
+	// Find tau where ||p_cauchy + tau * (p_newton - p_cauchy)|| = radius
+	Eigen::VectorXd d = p_newton - p_cauchy;
 
-	//	map<string, double> filtered_sf_map;
+	// Solve quadratic equation: ||p_cauchy + tau*d||^2 = radius^2
+	double a = d.squaredNorm();
+	double b = 2 * p_cauchy.dot(d);
+	double c = p_cauchy.squaredNorm() - radius * radius;
 
-	//	for (const auto& name : acceptable_candidates)
-	//	{
-	//		filtered_dv.update_real_ip(name, cand_ensemble.get_real_vector(name));
-	//		filtered_oe.update_real_ip(name, cand_obs_ensemble.get_real_vector(name));
-	//		filtered_sf_map[name] = real_sf_map[name];
-	//	}
+	// Quadratic formula: tau = (-b + sqrt(b^2 - 4ac)) / (2a)
+	double discriminant = b * b - 4 * a * c;
+	double tau = (-b + sqrt(discriminant)) / (2 * a);
 
-	//	bool success = pick_candidate_and_update_current(filtered_dv, filtered_oe, filtered_sf_map);
+	// Compute the dogleg point
+	Eigen::VectorXd p_dogleg = p_cauchy + tau * d;
 
-	//	if (success)
-	//	{
-	//		double scale = filtered_sf_map[best_name];
-
-	//		// If very successful step
-	//		if (scale > eta2)
-	//		{
-	//			trust_radius = min(trust_radius_max, gamma2 * trust_radius);
-	//		}
-
-	//		stringstream ss;
-	//		ss << "accepted trust region step with scale=" << scale
-	//			<< ", new radius=" << trust_radius;
-	//		message(1, ss.str());
-
-	//		return true;
-	//	}
-	//}
-
-	//trust_radius = max(trust_radius_min, gamma1 * trust_radius);
-	//return false;
+	return p_dogleg;
 }
 
 double SeqQuadProgram::compute_actual_reduction(Parameters& trial_dv_values, Observations& trial_obs)
@@ -2855,34 +2809,16 @@ double SeqQuadProgram::get_reference_obj()
 
 pair<Eigen::VectorXd, Eigen::VectorXd> SeqQuadProgram::calc_search_direction_vector(const Parameters& _current_dv_values, Eigen::VectorXd& grad_vector)
 {
-
 	Eigen::VectorXd search_d, lm;
 	pair<Eigen::VectorXd, Eigen::VectorXd> x;
 
 	if (cnames.size() > 0)  // solve constrained QP subproblem
 	{
-		// solve (E)QP sub-problem via active set method for search direction
-
-		// todo put in _solve_eqp() func - self.search_d, self.lagrang_mults = self._solve_eqp(qp_solve_method=self.qp_solve_method)
-
-		// Direct QP (KKT system) solve method herein; assumes convexity (pos-def-ness) and that A has full row rank.
-		// Direct method here is just for demon purposes - will require the other methods offered here given that the KKT system will be indefinite.
-		// Refer to (16.5, 18.9) of Nocedal and Wright (2006)
-
-		// collate the pieces
-
-		// constraint jco
-		
-		//todo: something better than just echoing working set to screen and rec...
 		message(0, "current working set:", cnames);
 
-		// constraint diff (h = Ax - b)
-		// todo only for constraints in WS only
-		Eigen::VectorXd Ax, b;
 		Eigen::VectorXd constraint_diff(cnames.size());
 		cout << endl << current_obs << endl;
 		pair<Eigen::VectorXd, Eigen::VectorXd> p = constraints.get_obs_resid_constraint_vectors(current_ctl_dv_values, current_obs, cnames);
-		b = p.first;
 		constraint_diff = p.second;
 
 		for (int i = 0;i < cnames.size();i++) {
@@ -2893,24 +2829,20 @@ pair<Eigen::VectorXd, Eigen::VectorXd> SeqQuadProgram::calc_search_direction_vec
 				constraint_diff[i] *= -1;
 			}
 		}
-		
-		message(1, "A:", constraint_jco);  // tmp
 
-		if (!isfullrank(constraint_jco)) {
-			message(0, "WARNING: constraint_jco is not full rank. Removing linear dependence by QR decomposition.");
-			Eigen::HouseholderQR<Eigen::MatrixXd> qr(constraint_jco);
-			Eigen::MatrixXd Q = qr.householderQ();
-			Eigen::MatrixXd R = qr.matrixQR().triangularView<Eigen::Upper>();
+		if (!constraint_jco.rows() == 0 && !isfullrank(constraint_jco)) {
+			message(0, "WARNING: constraint_jco is not full rank. Using complete orthogonal decomposition.");
 
-			double tol = 1e-10;
-			int rank = 0;
-			for (int i = 0; i < R.cols(); ++i) {
-				if (R(i, i) > tol) {
-					rank++;
-				}
-			}
+			Eigen::CompleteOrthogonalDecomposition<Eigen::MatrixXd> cod(constraint_jco);
+			double threshold = cod.threshold();
+			int effective_rank = cod.rank();
 
-			constraint_jco = Q.leftCols(rank);
+			Eigen::MatrixXd U = cod.matrixQ();
+			Eigen::MatrixXd V = cod.matrixZ();
+			Eigen::MatrixXd T = cod.pseudoInverse();
+
+			//keep only the linearly independent constraints
+			constraint_jco = U.leftCols(effective_rank);
 		}
 
 		message(1, "constraint diff:", constraint_diff);  // tmp
@@ -2922,23 +2854,7 @@ pair<Eigen::VectorXd, Eigen::VectorXd> SeqQuadProgram::calc_search_direction_vec
 			cout << "constraint diff vector: " << constraint_diff.array() << endl;
 			message(0,"WARNING: not on constraint but working set not empty, continuing...");
 		}
-
-		// some transforms for solve
-		//Covariance cov = oe.get_empirical_cov_matrices(&file_manager).second;
-		//double obj_cvar; //this is always just one value?
-		//try {
-		//	obj_cvar = cov.get(obj_func_str, obj_func_str);
-		//}
-		//catch (const runtime_error& e) {
-		//	throw_sqp_error("Error getting objective function covariance: " + string(e.what()));
-		//}
-
-		//cout << endl << cov << endl;
-		//Eigen::MatrixXd G = grad_vector * pow(obj_cvar, -1) * grad_vector.transpose(); // or //Eigen::SparseMatrix<double> G;?
-		////will hessian ever be singular?  If not, then just use inv method...
-		cout << endl << "hessian" << endl << hessian << endl;
 		Eigen::MatrixXd G = *hessian.e_ptr();  // initialize the hessian as identity matrix (Dhedari et al 2012)
-
 		Eigen::VectorXd c;
 		//c = grad_vector + G * _current_dv_values.get_data_eigen_vec(dv_names);  // TODO: check not just grad (see both) and check sign too...
 		////c is the rhs of Eq 18.20, p. 538 in Nocedal and Wright
@@ -2950,43 +2866,25 @@ pair<Eigen::VectorXd, Eigen::VectorXd> SeqQuadProgram::calc_search_direction_vec
 			x = _kkt_null_space(G, constraint_jco, constraint_diff, grad_vector, cnames);
 			search_d = x.first;
 			lm = x.second;
-			message(1, "sd:", search_d);  // tmp
-			message(1, "lm:", lm);  // tmp
 		}
 		else if (eqp_solve_method == "direct")
 		{
 			x = _kkt_direct(G, constraint_jco, constraint_diff, c, cnames);
 			search_d = x.first;
 			lm = x.second;
-			message(1, "sd:", search_d);  // tmp
-			message(1, "lm:", lm);  // tmp
-
 		}
 		else // if "schur", "cg", ...
 		{
 			throw_sqp_error("eqp_solve_method not implemented");
 		}
-
-		// put the following in constraints.reduce_working_set(bool& unsuccessful) func
-		// call here constraints.reduce_working_set(false);
-		//----------
-		// see alg (16.3) of Nocedal and Wright (2006)
-
 		lambda = lm;
 		message(1, "current working set:", cnames);  // tmp
-		message(1, "lagrangian multipliers:", lm);  // tmp
-
-		// check whether to `stop and drop` a single constraint from working set due to p ~= 0 or convergence in p (or unsuccessful iteration)
-		// note sign of search_d doesn't matter here
-		bool converged = false;  // todo approx step convergence test here? e.g. current search_d is within 5% of last itn and WS is same as last itn
-		//bool unsuccessful = false;  // todo JDub pass unsuccessful arg to constraints.reduce_working_set() if accept is false 
-		// can also check convergence with orthogonality of p_y / p_z > 1.0 if using null_space KKT solve method.. later
-
 	}
 	else  // solve unconstrained QP subproblem
 	{
 		message(1, "constraint working set is empty, problem is currently unconstrained...");
-		search_d = (*hessian.e_ptr()).triangularView<Eigen::Lower>().solve(grad_vector); //search_d = *hessian.e_ptr().inverse * grad_vector;
+		Eigen::MatrixXd H = *hessian.e_ptr();
+		search_d = -H.ldlt().solve(grad_vector); //Eq 7.9, Nocedal and Wright p. 169
 		cout << endl << "hessian" << endl << hessian << endl;
 	}
 	return pair<Eigen::VectorXd, Eigen::VectorXd> (search_d, lm);  // lm will be empty if non-constrained solve
@@ -3049,6 +2947,7 @@ bool SeqQuadProgram::solve_new()
 		_current_num_dv_values.update(dv_names, mean_vec);
 	}
 
+	
 	pair<Mat, bool> constraint_mat = get_constraint_mat();
 	current_constraint_mat = constraint_mat.first;
 	cnames = constraint_mat.first.get_row_names();
@@ -3062,7 +2961,6 @@ bool SeqQuadProgram::solve_new()
 	int line_search_attempts = 0;
 	while (!successful && line_search_attempts < max_line_search_attempts)
 	{
-		
 		constraint_jco = constraint_mat.first.e_ptr()->toDense();
 		pair<Eigen::VectorXd, Eigen::VectorXd> x = calc_search_direction_vector(_current_num_dv_values, grad);
 		search_d = x.first;
@@ -3074,52 +2972,31 @@ bool SeqQuadProgram::solve_new()
 		if (cnames.size() > 0)
 		{
 			//Algorithm 16.3 in Nocedal and Wright, pp. 472-473
-			if (iter > 1)
+			bool search_d_approx_zero = false;
+			double tol = 1e-6;  // should be a carefully chosen tolerance
+			if (search_d.norm() < tol) {
+				search_d_approx_zero = true;
+			}
+
+			if (search_d_approx_zero)
 			{
+				// Only now do we check Lagrange multipliers
 				pair<Mat, bool> constraint_mat = get_constraint_mat(&lm);
-				if (constraint_mat.second)
-				{
+
+				// If all multipliers non-negative, we're at optimal solution
+				if (constraint_mat.second) {
 					message(1, "optimal solution found - all Lagrange multipliers non-negative");
 					converged = true;
 					return true;
 				}
 
-				if (constraint_mat.first.get_row_names() != cnames)
-				{
+				// Otherwise, drop constraint with most negative multiplier
+				if (constraint_mat.first.get_row_names() != cnames) {
 					current_constraint_mat = constraint_mat.first;
 					cnames = constraint_mat.first.get_row_names();
 					message(1, "constraints dropped due to negative multipliers:", cnames);
-					continue;
+					continue;  // try again with new working set
 				}
-			}
-
-			bool search_d_approx_zero = false;
-			double tol = 0.001; //todo: move this to a ++arg
-			for (int i = 0; i < search_d.size(); i++)
-			{
-				if (abs(search_d[i]) < tol)
-				{
-					search_d_approx_zero = true;
-					break;
-				}
-			}
-
-			if (search_d_approx_zero) 
-			{
-				message(1, "search direction approximately zero - no further progress possible with current working set");
-				return false;
-
-				//pair<Mat, bool> constraint_mat = get_constraint_mat(&lm);
-				//if (constraint_mat.second)
-				//{
-				//	message(1, "optimal solution found - all Lagrange multipliers non-negative");
-				//	converged = true;
-				//	return true;  // Converged to optimal solution
-				//}
-				//current_constraint_mat = constraint_mat.first;
-				//cnames = constraint_mat.first.get_row_names();
-				//message(1, "cnames after dropping attempting:", cnames);
-				//continue;
 			}
 		}
 
@@ -3157,6 +3034,35 @@ bool SeqQuadProgram::solve_new()
 					current_constraint_mat = new_constraint_mat.first;
 				}
 			}
+			//else
+			//{
+			//	// Check if any constraints in working set became inactive
+			//	// A constraint is inactive if it's not at its bound within some tolerance
+			//	vector<string> inactive_constraints;
+			//	for (auto cname : cnames)
+			//	{
+			//		if (!is_constraint_active(cname, current_obs))
+			//		{
+			//			inactive_constraints.push_back(cname);
+			//		}
+			//	}
+
+			//	// Drop inactive constraints from working set
+			//	if (!inactive_constraints.empty())
+			//	{
+			//		for (auto cname : inactive_constraints)
+			//		{
+			//			auto it = find(cnames.begin(), cnames.end(), cname);
+			//			if (it != cnames.end())
+			//			{
+			//				message(1, "dropping inactive constraint from working set:", cname);
+			//				cnames.erase(it);
+			//			}
+			//		}
+			//		pair<Mat, bool> new_constraint_mat = get_constraint_mat();
+			//		current_constraint_mat = new_constraint_mat.first;
+			//	}
+			//}
 		}
 		else
 		{
@@ -3169,12 +3075,19 @@ bool SeqQuadProgram::solve_new()
 				h.setIdentity();
 				hessian = Covariance(dv_names, h);
 				n_consec_failures = 0;
+				BASE_SCALE_FACTOR = 1.0;
 			}
 
 			if (line_search_attempts >= max_line_search_attempts)
 			{
-				message(1, "Line search struggling - seek feasible");
-				break;
+				while(!successful)
+				{
+					successful = trust_region_step(current_ctl_dv_values, search_d, grad);
+					int debug = 1;
+					/*			message(1, "Line search struggling - seek feasible");
+								break;*/
+				}
+				trust_radius = 1.0;
 			}
 		}
 
