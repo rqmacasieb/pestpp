@@ -1031,7 +1031,7 @@ map<string, double> ParetoObjectives::get_cluster_crowding_fitness(vector<string
 
 		for (auto m : members)
 		{
-			if (_member_struct[m][obj_map.first + "_SD"] < min_sd[obj_map.first])
+			if (_member_struct[m][obj_map.first + "_SD"] < min_sd[obj_map.first] - FLOAT_EPSILON)
 				_member_struct[m][obj_map.first + "_SD_syn"] = min_sd[obj_map.first];
 			else
 				_member_struct[m][obj_map.first + "_SD_syn"] = _member_struct[m][obj_map.first + "_SD"];
@@ -1514,10 +1514,10 @@ double ParetoObjectives::dominance_prob_adhoc(map<string, double>& first, map<st
 	map<string, double> f = first, s = second;
 	for (auto obj_name : *obj_names_ptr)
 	{
-		if (f[obj_name + "_SD"] < min_sd[obj_name])
+		if (f[obj_name + "_SD"] < min_sd[obj_name] - FLOAT_EPSILON)
 			f[obj_name + "_SD"] = min_sd[obj_name];
 
-		if (s[obj_name + "_SD"] < min_sd[obj_name])
+		if (s[obj_name + "_SD"] < min_sd[obj_name] - FLOAT_EPSILON)
 			s[obj_name + "_SD"] = min_sd[obj_name];
 	}
 
@@ -1531,10 +1531,10 @@ double ParetoObjectives::nondominance_probability(map<string, double>& first, ma
 	map<string, double> f = first, s = second;
 	for (auto obj_name : *obj_names_ptr)
 	{
-		if (f[obj_name + "_SD"] < min_sd[obj_name])
+		if (f[obj_name + "_SD"] < min_sd[obj_name] - FLOAT_EPSILON)
 			f[obj_name + "_SD"] = min_sd[obj_name];
 
-		if (s[obj_name + "_SD"] < min_sd[obj_name])
+		if (s[obj_name + "_SD"] < min_sd[obj_name] - FLOAT_EPSILON)
 			s[obj_name + "_SD"] = min_sd[obj_name];
 	}
 
@@ -1550,7 +1550,7 @@ bool ParetoObjectives::first_equals_second(map<string, double>& first, map<strin
 {
 	for (auto f : first)
 	{
-		if (f.second != second[f.first])
+		if (abs(f.second - second[f.first]) >= FLOAT_EPSILON)
 			return false;
 	}
 	return true;
@@ -1563,7 +1563,7 @@ bool ParetoObjectives::first_dominates_second(map<string, double>& first, map<st
 	{
 		double pd = dominance_probability(first, second);
 
-		if (pd < ppd_beta) {
+		if (pd < ppd_beta - FLOAT_EPSILON) {
 			return false;
 		}
 		else
@@ -1573,7 +1573,7 @@ bool ParetoObjectives::first_dominates_second(map<string, double>& first, map<st
 	{
 		for (auto f : first)
 		{
-			if (f.second > second[f.first])
+			if (f.second > second[f.first] + FLOAT_EPSILON)
 				return false;
 		}
 		return true;
@@ -1782,7 +1782,7 @@ double ParetoObjectives::get_ehvi(string& member, map<string, map<string, double
 
 	ehvi = t1 + t2;
 
-	if (ehvi < 0) //Sometimes the value is only a little bit negative. Perhaps, due to the approximation of std normal. This happened only few times, though, but when it does, temporarily set the value to 0. Will revisit this later.
+	if (ehvi < -FLOAT_EPSILON) //Sometimes the value is only a little bit negative. Perhaps, due to the approximation of std normal. This happened only few times, though, but when it does, temporarily set the value to 0. Will revisit this later.
 	{
 		ss.str("");
 		ss << "WARNING: EHVI of " << member << " is negative = " << ehvi << ".Setting to 0.0.";
@@ -3052,6 +3052,9 @@ void MOEA::initialize()
 		{
 			gen_types.push_back(MouGenType::PSO);
 			message(1, "using particle swarm generator");
+			inertia_info = pest_scenario.get_pestpp_options().get_mou_pso_inertia();
+			curr_omega = inertia_info[0];
+			pso_dv_bound_restoration = pest_scenario.get_pestpp_options().get_mou_pso_dv_bound_restoration();
 		}
         else if (token == "SIMPLEX")
         {
@@ -3516,19 +3519,27 @@ void MOEA::update_sim_maps(ParameterEnsemble& _dp, ObservationEnsemble& _op)
 }
 
 ParameterEnsemble MOEA::get_initial_pso_velocities(int num_members) {
-    double init_vel_scale_fac = 0.5;
-    ParameterEnsemble _pso_velocity = dp.zeros_like(num_members);
-    Parameters lb = pest_scenario.get_ctl_parameter_info().get_low_bnd(dv_names);
-    Parameters ub = pest_scenario.get_ctl_parameter_info().get_up_bnd(dv_names);
-    _pso_velocity.get_par_transform().ctl2numeric_ip(lb);
-    _pso_velocity.get_par_transform().ctl2numeric_ip(ub);
-    Parameters dist = ub - lb;
-    for (auto& dv_name : dv_names)
-    {
-        vector<double> vals = uniform_draws(num_members, -dist[dv_name]* init_vel_scale_fac, dist[dv_name]* init_vel_scale_fac, rand_gen);
-        Eigen::VectorXd real = stlvec_2_eigenvec(vals);
-        _pso_velocity.replace_col(dv_name, real);
-    }
+	ParameterEnsemble _pso_velocity = dp.zeros_like(num_members);
+	Parameters lb = pest_scenario.get_ctl_parameter_info().get_low_bnd(dv_names);
+	Parameters ub = pest_scenario.get_ctl_parameter_info().get_up_bnd(dv_names);
+	_pso_velocity.get_par_transform().ctl2numeric_ip(lb);
+	_pso_velocity.get_par_transform().ctl2numeric_ip(ub);
+	Parameters dist = ub - lb;
+
+	pso_vmax.clear();
+	double vmax_scale_factor = pest_scenario.get_pestpp_options().get_mou_pso_vmax_factor();
+	for (auto& dv_name : dv_names) 
+		pso_vmax[dv_name] = dist[dv_name] * vmax_scale_factor;
+	
+
+	double init_vel_scale_fac = 0.5;
+	for (auto& dv_name : dv_names)
+	{
+		vector<double> vals = uniform_draws(num_members, -dist[dv_name] * init_vel_scale_fac, dist[dv_name] * init_vel_scale_fac, rand_gen);
+		Eigen::VectorXd real = stlvec_2_eigenvec(vals);
+		_pso_velocity.replace_col(dv_name, real);
+	}
+	
     return _pso_velocity;
 }
 
@@ -4294,28 +4305,68 @@ void MOEA::update_pso_pbest(ParameterEnsemble& _dp, ObservationEnsemble& _op)
 	pso_pbest_op = top;
 }
 
-ParameterEnsemble MOEA::get_updated_pso_velocty(ParameterEnsemble& _dp, vector<string>& gbest_solutions)
+ParameterEnsemble MOEA::get_updated_pso_velocity(ParameterEnsemble& _dp, vector<string>& gbest_solutions)
 {
-	double omega = pest_scenario.get_pestpp_options().get_mou_pso_omega();
-	double cog_const = pest_scenario.get_pestpp_options().get_mou_pso_cognitive_const();
-	double social_const = pest_scenario.get_pestpp_options().get_mou_pso_social_const();
+	double cog_const, social_const;
+	stringstream ss;
+	vector<double> cog_const_range = pest_scenario.get_pestpp_options().get_mou_pso_cognitive_const();
+	if (cog_const_range.size() == 1)
+		cog_const = cog_const_range[0];
+	else if (cog_const_range.size() == 2)
+	{
+		cog_const = cog_const_range[0] + (cog_const_range[1] - cog_const_range[0]) * (iter / pest_scenario.get_control_info().noptmax);
+		message(1, "computing pso velocity using cognitive const: ", cog_const);
+	}
+	else
+		throw_moea_error("invalid cognitive const range");
+
+	vector<double> social_const_range = pest_scenario.get_pestpp_options().get_mou_pso_social_const();
+	if (social_const_range.size() == 1)
+		social_const = social_const_range[0];
+	else if (social_const_range.size() == 2)
+	{
+		social_const = social_const_range[0] + (social_const_range[1] - social_const_range[0]) * (iter / pest_scenario.get_control_info().noptmax);
+		message(1, "computing pso velocity using social const: ", social_const);
+	}
+	else
+		throw_moea_error("invalid social const range");
 
 	int num_dv = _dp.shape().second;
 	vector<double> r;
-	Eigen::VectorXd rand1, rand2, cur_real, p_best, g_best, new_real, cur_vel;
+	Eigen::VectorXd rand1, rand2, cur_real, p_best, g_best, new_par_vel, cur_vel, inertia_comp, social_comp, cog_comp;
 	pso_pbest_dp.transform_ip(_dp.get_trans_status());
 	dp_archive.set_trans_status(_dp.get_trans_status());
 	Eigen::MatrixXd new_vel(_dp.shape().first, _dp.shape().second);
 	string real_name;
 	vector<string> real_names = pso_velocity.get_real_names();
 	set<string> snames(real_names.begin(), real_names.end());
-		
-		
+
+	double omega;
+	if (((iter - 1) <= inertia_info[2]) && (inertia_info[2] != 0))
+	{
+		omega = inertia_info[0] + (inertia_info[1] - inertia_info[0]) * ((iter - 1) / inertia_info[2]);
+		curr_omega = omega;
+		message(1, "computing pso velocity using inertia weight: ", omega);
+	}
+	else
+		omega = curr_omega;
+
+	Parameters lb = pest_scenario.get_ctl_parameter_info().get_low_bnd(dv_names);
+	Parameters ub = pest_scenario.get_ctl_parameter_info().get_up_bnd(dv_names);
+
 	real_names = _dp.get_real_names();
-	for (int i=0;i<_dp.shape().first;i++)
+	vector<string> dv_names = _dp.get_var_names();
+	for (int i = 0; i < _dp.shape().first; i++)
 	{
 		real_name = real_names[i];
-		//cout << "real name: " << real_name << endl;
+		if (snames.find(real_name) != snames.end())
+			cur_vel = pso_velocity.get_real_vector(real_name);
+		else
+		{
+			//cur_vel = pso_velocity.get_real_vector(current_pso_lineage_map.at(real_name));
+			cur_vel = pso_velocity_map.at(real_name);
+		}
+
 		r = uniform_draws(num_dv, 0.0, 1.0, rand_gen);
 		rand1 = stlvec_2_eigenvec(r);
 		r = uniform_draws(num_dv, 0.0, 1.0, rand_gen);
@@ -4323,16 +4374,117 @@ ParameterEnsemble MOEA::get_updated_pso_velocty(ParameterEnsemble& _dp, vector<s
 		cur_real = _dp.get_real_vector(real_name);
 		p_best = pso_pbest_dp.get_real_vector(real_name);
 		g_best = dp_archive.get_real_vector(gbest_solutions[i]);
-		if (snames.find(real_name) != snames.end())
-			cur_vel = pso_velocity.get_real_vector(real_name);
-		else {
-            //cur_vel = pso_velocity.get_real_vector(current_pso_lineage_map.at(real_name));
-            cur_vel = pso_velocity_map.at(real_name);
-        }
 
-		new_real = (omega * cur_vel.array()) + (cog_const * rand1.array() * (p_best.array() - cur_real.array()));
-		new_real = new_real.array() + (social_const * rand2.array() * (g_best.array() - cur_real.array()));
-		new_vel.row(i) = new_real;
+		inertia_comp = omega * cur_vel.array();
+		cog_comp = cog_const * rand1.array() * (p_best.array() - cur_real.array());
+		social_comp = social_const * rand2.array() * (g_best.array() - cur_real.array());
+
+		new_par_vel = inertia_comp + cog_comp + social_comp;
+
+		double new_dv, cur_dv, last_wiggle_room = 0;
+		for (int j = 0; j < dv_names.size(); j++)
+		{
+			double lb_val = lb[dv_names[j]];
+			double ub_val = ub[dv_names[j]];
+
+			double vmax = pso_vmax[dv_names[j]];
+			if (new_par_vel[j] > vmax + FLOAT_EPSILON) {
+				new_par_vel[j] = vmax;
+			}
+			else if (new_par_vel[j] < -vmax - FLOAT_EPSILON) {
+				new_par_vel[j] = -vmax;
+			}
+
+			new_dv = cur_real[j] + new_par_vel[j];
+			
+			int draws = 0;
+			while (true)
+			{
+
+				if (!((new_dv <= ub_val + FLOAT_EPSILON) && (new_dv >= lb_val - FLOAT_EPSILON)))
+				{
+					draws++;
+					cur_real[j] = new_dv;
+					if (draws > 1000)
+					{
+						ss << "problem with perturbing member: " << real_name << endl;
+						ss << "at dv: " << dv_names[j] << endl;
+						ss << setprecision(17) << fixed
+							<< "wiggle room: " << last_wiggle_room << endl
+							<< "inertia component: " << inertia_comp[j] << endl
+							<< "cognitive component: " << cog_comp[j] << endl
+							<< "social component: " << social_comp[j] << endl
+							<< "current dv: " << cur_real[j] << endl
+							<< "new dv: " << new_dv << endl
+							<< "pbest: " << p_best[j] << endl
+							<< "gbest: " << g_best[j] << endl;
+						ofstream& frec = file_manager.rec_ofstream();
+						frec << ss.str();
+						throw_moea_error("infinite loop in pso velocity calculation (see rec file for details)");
+					}
+
+					//Adam's recursive perturbation algo to seek new feasible dv
+					if (pso_dv_bound_restoration == "ITERATIVE")
+					{
+						vector<double> r1 = uniform_draws(1, 0.0, 1.0, rand_gen);
+						vector<double> r2 = uniform_draws(1, 0.0, 1.0, rand_gen);
+
+						inertia_comp[j] = omega * new_par_vel[j];
+						cog_comp[j] = cog_const * r1[0] * (p_best[j] - cur_real[j]);
+						social_comp[j] = social_const * r2[0] * (g_best[j] - cur_real[j]);
+
+						new_par_vel[j] = inertia_comp[j] + cog_comp[j] + social_comp[j];
+
+						double vmax = pso_vmax[dv_names[j]];
+						if (new_par_vel[j] > vmax + FLOAT_EPSILON) {
+							new_par_vel[j] = vmax;
+						}
+						else if (new_par_vel[j] < -vmax - FLOAT_EPSILON) {
+							new_par_vel[j] = -vmax;
+						}
+						new_dv = cur_real[j] + new_par_vel[j];
+					}
+					else if (pso_dv_bound_restoration == "DAMPED")
+					//Reygie's velocity damping algo to seek new feasible dv
+					{
+						double wiggle_room = 0;
+						if ((new_dv > ub_val + FLOAT_EPSILON))
+							wiggle_room = ub_val - cur_real[j];
+						else if ((new_dv < lb_val - FLOAT_EPSILON))
+							wiggle_room = lb_val - cur_real[j];
+						else
+							throw_moea_error("invalid dv value in pso velocity calculation");
+						last_wiggle_room = wiggle_room;
+
+						if (abs(abs(inertia_comp[j]) - abs(wiggle_room)) < FLOAT_EPSILON * max(abs(inertia_comp[j]), abs(wiggle_room)) || abs(inertia_comp[j]) + FLOAT_EPSILON >= abs(wiggle_room)) //there's no point spinning the wheel for r1 and r2
+						{
+							vector<double> r = uniform_draws(1, 0.0, 1.0, rand_gen);
+							new_par_vel[j] = wiggle_room * r[0];
+						}
+						else
+						{
+							vector<double> r = uniform_draws(1, 0.0, 1.0, rand_gen);
+
+							inertia_comp[j] = omega * cur_vel[j];
+							wiggle_room -= inertia_comp[j];
+
+							new_par_vel[j] = inertia_comp[j] + wiggle_room * r[0];
+
+						}
+						new_dv = cur_real[j] + new_par_vel[j];
+					}
+					else if (pso_dv_bound_restoration == "RESET")
+						continue;
+					else
+						throw_moea_error("invalid pso_dv_bound_restoration option. Choose between ITERATIVE, DAMPED, or RESET");
+				}
+				else
+					break;
+			}
+		}
+
+		_dp.update_real_ip(real_name, cur_real);
+		new_vel.row(i) = new_par_vel;
 	}
 	return ParameterEnsemble(&pest_scenario, &rand_gen, new_vel, _dp.get_real_names(), _dp.get_var_names());
 }
@@ -4378,7 +4530,7 @@ vector<string> MOEA::get_pso_gbest_solutions(int num_reals, ParameterEnsemble& _
 			shuffle(working.begin(), working.end(), rand_gen);
 			r = uniform_draws(nondom_solutions.size(), 0.0, 1.0, rand_gen);
 			for (int i = 0; i < r.size(); i++)
-				if (fitness[working[i]] >= r[i])
+				if (fitness[working[i]] >= r[i] - FLOAT_EPSILON)
 				{
 					candidate = working[i];
 					found = true;
@@ -4410,7 +4562,7 @@ ParameterEnsemble MOEA::generate_pso_population(int num_members, ParameterEnsemb
     }
     message(1, "generating PSO population of size", num_members);
 	vector<string> gbest_solutions = get_pso_gbest_solutions(_dp.shape().first, dp_archive, op_archive);
-	ParameterEnsemble cur_velocity = get_updated_pso_velocty(_dp, gbest_solutions);
+	ParameterEnsemble cur_velocity = get_updated_pso_velocity(_dp, gbest_solutions);
 	ParameterEnsemble new_dp(&pest_scenario, &rand_gen, _dp.get_eigen().array() + cur_velocity.get_eigen().array(), _dp.get_real_names(), _dp.get_var_names());
 
     if (temp.shape().first > 0) {

@@ -25,7 +25,7 @@ const string DE_F_NAME = "_DE_F_";
 const string CR_NAME = "_CR_";
 const string MR_NAME = "_MR_";
 const double CROWDING_EXTREME = 1.0e+30;
-
+const double FLOAT_EPSILON = 1.0e-10;
 enum MouGenType { DE, SBX, PM, PSO, SMP };
 enum MouEnvType { NSGA, SPEA, NSGA_PPD }; //added NSGA_PPD for probabilistic Pareto dominance
 enum MouMateType { RANDOM, TOURNAMENT };
@@ -206,6 +206,10 @@ private:
 	int restart_iter_offset;
 	int save_every;
 	map<int,int> population_schedule;
+	vector<double> inertia_info, cog_const_range, social_const_range;
+	double curr_omega;
+	map<string, double> pso_vmax;
+	string pso_dv_bound_restoration;
 
 	ParetoObjectives objectives;
 	Constraints constraints;
@@ -261,7 +265,7 @@ private:
 	ParameterEnsemble simplex_cceua_kn(ParameterEnsemble s, int k, int optbounds);																																		
     ParameterEnsemble generate_simplex_population(int num_members, ParameterEnsemble& _dp, ObservationEnsemble& _op);
 
-	ParameterEnsemble get_updated_pso_velocty(ParameterEnsemble& _dp, vector<string>& gbest_solutions);
+	ParameterEnsemble get_updated_pso_velocity(ParameterEnsemble& _dp, vector<string>& gbest_solutions);
 
 	vector<string> get_pso_gbest_solutions(int num_reals, ParameterEnsemble& _dp, ObservationEnsemble& _op);
 	void update_pso_pbest(ParameterEnsemble& _dp, ObservationEnsemble& _op);

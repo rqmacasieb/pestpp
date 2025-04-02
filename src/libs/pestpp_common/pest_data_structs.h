@@ -406,16 +406,22 @@ public:
 	void set_mou_save_population_every(int every) { mou_save_population_every = every; }
 	double get_mou_pso_omega() const { return mou_pso_omega; }
 	void set_mou_pso_omega(double val) { mou_pso_omega = val; }
-	double get_mou_pso_social_const() const { return mou_pso_social_const; }
-	void set_mou_pso_social_const(double val) { mou_pso_social_const = val; }
-	double get_mou_pso_cognitive_const() const { return mou_pso_cognitive_const; }
-	void set_mou_pso_cognitive_const(double val) { mou_pso_cognitive_const = val; }
+	vector<double> get_mou_pso_social_const() const { return mou_pso_social_const; }
+	void set_mou_pso_social_const(vector<double> _vals) { mou_pso_social_const = _vals; }
+	vector<double> get_mou_pso_cognitive_const() const { return mou_pso_cognitive_const; }
+	void set_mou_pso_cognitive_const(vector<double> _vals) { mou_pso_cognitive_const = _vals; }
 	double get_mou_pso_alpha() const { return mou_pso_alpha; }
 	void set_mou_pso_alpha(double val) { mou_pso_alpha = val; }
 	double get_mou_pso_rramp() const { return mou_pso_rramp; }
 	void set_mou_pso_rramp(double val) { mou_pso_rramp = val; }
 	double get_mou_pso_rfit() const { return mou_pso_rfit; }
 	void set_mou_pso_rfit(double val) { mou_pso_rfit = val; }
+	vector<double> get_mou_pso_inertia() const { return mou_pso_inertia; }
+	void set_mou_pso_inertia(vector<double> _vals) { mou_pso_inertia = _vals; }
+	double get_mou_pso_vmax_factor() const { return mou_pso_vmax_factor; }
+	void set_mou_pso_vmax_factor(double _val) { mou_pso_vmax_factor = _val; }
+	string get_mou_pso_dv_bound_restoration() const { return mou_pso_dv_bound_restoration; }
+	void set_mou_pso_dv_bound_restoration(string name) { mou_pso_dv_bound_restoration = name; }
 	int get_mou_max_nn_search() const { return mou_max_nn_search;}
 	void set_mou_max_nn_search(int val) { mou_max_nn_search = val; }
 	string get_mou_outer_repo_obs_file() const { return mou_outer_repo_obs_file; }
@@ -431,8 +437,6 @@ public:
 	double get_mou_fit_gamma() const { return mou_fit_gamma; }
 	void set_mou_fit_gamma(double val) { mou_fit_gamma = val; }
 	int get_mou_resample_every()const { return mou_resample_every; }
-	void set_mou_adaptive_ppd(bool _flag) { mou_adaptive_ppd = _flag; };
-	bool get_mou_adaptive_ppd() const { return mou_adaptive_ppd; }
 	void set_mou_resample_every(int _every) { mou_resample_every = _every; }
 	string get_mou_resample_command()const { return mou_resample_command; }
 	void set_mou_resample_command(string _rescmd) { mou_resample_command = _rescmd; }
@@ -770,15 +774,17 @@ private:
 	double mou_de_f;
 	int mou_save_population_every;
 	double mou_pso_omega;
-	double mou_pso_social_const;
-	double mou_pso_cognitive_const;
+	vector<double> mou_pso_social_const;
+	vector<double> mou_pso_cognitive_const;
 	double mou_pso_alpha;
 	double mou_pso_rramp;
 	double mou_pso_rfit;
+	string mou_pso_dv_bound_restoration;
+	vector<double> mou_pso_inertia;
+	double mou_pso_vmax_factor;
 	double mou_ppd_beta;
 	double mou_fit_gamma;
 	double mou_fit_epsilon;
-	bool mou_adaptive_ppd;
 	string mou_outer_repo_obs_file;
 	int mou_max_nn_search;
 	int mou_infill_size;
