@@ -1,13 +1,13 @@
 
  <img src="./media/image1.png" style="width:6.26806in;height:1.68194in" alt="A close up of a purple sign Description automatically generated" />
 
-# <a id='s1' />Version 5.2.12
+# <a id='s1' />Version 5.2.18
 
 <img src="./media/image2.png" style="width:6.26806in;height:3.05972in" />
 
 PEST++ Development Team
 
-June 2024
+April 2025
 
 # <a id='s2' />Acknowledgements
 
@@ -70,7 +70,7 @@ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLI
 
 # Table of Contents
 
-- [Version 5.2.12](#s1)
+- [Version 5.2.18](#s1)
 - [Acknowledgements](#s2)
 - [Preface](#s3)
 - [License](#s4)
@@ -241,7 +241,7 @@ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLI
         - [9.1.12 Use of observation noise covariance matrices](#s13-1-12)
         - [9.1.13 Detecting and resolving prior-data conflict](#s13-1-13)
         - [9.1.14 Multi-modal solution process](#s13-1-14)
-        - [9.1.15 Mean-Update Iterations](#s13-1-15)
+        - [9.1.15 Covariance Reinflation](#s13-1-15)
     - [9.2 Using PESTPP-IES](#s13-2)
         - [9.2.1 General](#s13-2-1)
         - [9.2.2 Initial Realizations](#s13-2-2)
@@ -253,6 +253,7 @@ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLI
         - [9.2.8 Reporting ](#s13-2-8)
         - [9.2.9 Termination Criteria, Objective Functions, and Upgrade Acceptance ](#s13-2-9)
         - [9.2.10 Internal Weight Adjustment ](#s13-2-10)
+        - [9.2.11 Selective Updates ](#s13-2-11)
     - [9.3 PESTPP-IES Output Files](#s13-3)
         - [9.3.1 CSV Output Files](#s13-3-1)
         - [9.3.2 Non-CSV Output Files](#s13-3-2)
@@ -3565,6 +3566,8 @@ Using this collection of background correlation coefficients and the optional *i
 
 The automatic adaptive localization process can be used in conjunction with a localization matrix. In this case, the nonzero entries in the localization matrix are used to constraint the number of parameter-observation pairs to search for statistically significant correlations. In this mode of operation, the actual value of non-zero entries in the localization are not important. The localization matrix is only used to identify plausible and possible parameter-observation correlations and the automatic adaptive localization process then calculates estimated and background correlation coefficients as described previously.
 
+It is unlikely that a user can a prior guess the optimal value of *ies_autoadaloc_sigma_dist*. However, one can use “indicator” or “dummy” parameters to help empirically estimate the optimal automatic-adaptive-localization cutoff. The idea with indicator pars is that you add these parameters to the control file, but they have no effect of the simulated results – they are just floating out there, so in theory, there estimated values should not change as a result of the PESTPP-IES solution process because their sensitivity to all observations is zero. But, because spurious correlation from using too few realizations, there will be non-zero correlations between indicator parameters and observations, so their estimates values will change. We can use this knowledge to estimate a maximum spurious correlation coefficients between parameters and observations. By carrying one or more indicator parameters, we can “see” estimates of maximum spurious correlation, that is, the maximum absolute correlation between any indicator parameter and any non-zero weighted observation. Then we can use this maximum spurious correlation as a correlation coefficient threshold when forming the automatic adaptive localizer matrix. PESTPP-IES does all this for you under the hood, all you have to do is supply the *ies_autoadaloc_indicator_pars* argument.
+
 If the *ies_verbose_level()* flag is set to greater than 1, the automatic adaptive localization process implemented by PESTPP-IES will record the resulting localization matrix in a file named *case.N.autoadaloc.mat*, where case is the filename base of the PEST control file. It will also record a CSV file containing results of the adaptive localization process as *case.N.autodaloc.csv*. Both of these are recorded at the end of each iteration; *N* is the iteration number. The automatic adaptive localization process can be computationally demanding. However, it can be multi-threaded. This option is activated using the *ies_num_threads()* control variable.
 
 ### <a id='s13-1-12' />9.1.12 Use of observation noise covariance matrices
@@ -3609,25 +3612,29 @@ Closely related to the multimodal solution process is the use of a “weights”
 
 Figure 9.2 – A demonstration of the multi-modal solution process using a weight ensemble on the ZDT1 benchmark problem. The standard solution process using single weight vector drives the posterior towards a single point, while the multi-modal upgrade process uses unique weights on each of the two objectives (observations in the control file) such that each realization targets a different point on the trade-off between the two objectives.
 
-### <a id='s13-1-15' />9.1.15 Mean-Update Iterations
+### <a id='s13-1-15' />9.1.15 Covariance Reinflation
 
 In highly nonlinear problems, the gradient between parameters and simulated equivalents to observations can change (drastically) between iterations of PESTPP-IES. This can drive the need for several iterations in order to fully assimilate data. However, during each iteration, due to the solution equations, both the mean and (co)variance of the parameter ensemble can change, with the latter usually decreasing substantially each iteration, meaning that across multiple iterations, the variance of the parameter ensemble reduces, sometime dramatically, this is especially true in highly nonlinear problems where changing gradients can condition different parameters (and/or parameter combinations) each iteration, and in cases where the prior simulated ensemble has a consistent bias compared to observed counterparts. Spurious correlations exacerbate this problem.
 
-To combat the variance reduction that occurs across multiple iterations, it might be desirable in some settings to “reset” the variance of the current parameter ensemble to the prior state; this can also be labelled “reinflation. Mechanically, this is done by subtracting the mean from the prior ensemble (forming the so-called deviations) and then adding the mean from the current parameter ensemble, thereby translating the prior ensemble across parameter space but (more or less) preserving the variance of the prior ensemble.
+To combat the variance reduction that occurs across multiple iterations, it might be desirable in some settings to “reset” the variance of the current parameter ensemble to the prior state; this can also be labelled “covariance reinflation”. Mechanically, this is done by subtracting the mean from the prior ensemble (forming the so-called deviations or “anomalies”) and then adding the mean from the current parameter ensemble, thereby translating the prior ensemble across parameter space but (more or less) preserving the variance of the prior ensemble.
 
-This option is implemented in PESTPP-IES via the *ies_n_iter_mean* option. As the name implies, the argument is the number of iterations to undertake before resetting the variance to the prior ensemble state. Some other behavioural characteristics of using mean-update iterations:
+This option is implemented in PESTPP-IES via the *ies_n_iter_reinflate* option. As the name implies, the argument is the number of iterations to undertake before resetting the variance to the prior ensemble state. Note this argument can be a single integer or a sequence of integers like 2,5,9, in which case PESTPP-IES will reinflate the ensemble after the 2<sup>nd</sup> , 7<sup>th</sup>, and 16<sup>th</sup> iterations. Some other behavioural characteristics of using parameter covariance reinflation:
 
-- The phi reduction each iteration may not satisfy the requirements for a “successful” iteration. However, PESTPP-IES will continue iterating anyway and will also undertake partial upgrades of realizations that do show phi improvement; essentially PESTPP-IES will use all of it regular tricks to seek a good fit for iterations less than *ies_n_iter_mean*.
+- The phi reduction each iteration may not satisfy the requirements for a “successful” iteration. However, PESTPP-IES will continue iterating anyway and will also undertake partial upgrades of realizations that do show phi improvement; essentially PESTPP-IES will use all of it regular tricks to seek a good fit when using the *ies_n_iter_reinflate* option.
 
-- The iteration count in PESTPP-IES will be incremented during the reinflation. This is so the results of the reinflation can be tracked in the output files.
+- The iteration count in PESTPP-IES will be incremented during the reinflation. This is so the results of the reinflation can be tracked in the output files. So users may see an iteration number that is greater than NOPTMAX. But fear not, PESTPP-IES will do exactly NOPTMAX solution iterations.
 
 - Bound enforcement can be a problem when translating the prior realizations to a new mean vector, especially if the mean of the parameter ensemble is very diffuse. User beware.
 
-Figure 9.3 shows how the mean-update iterations can prevent variance collapse for a very simple and contrived example problem. Notice how the realization trajectories collapse after one iteration.
+- There is a related option name *ies_reinflate_factor*, that can be a single floating point number or can be a sequence of floating point numbers ranging from greater than 0.0 to less than or equal to 1.0. The function of *ies_reinflate_factor* is dampen the variability in the prior parameter ensemble anomalies so that the reinflation isn’t to full prior parameter ensemble variance, but instead some scaled down version of that variance.
+
+- During a reinflation cycle, all realizations that have either failed or have been removed for poor performance will be brought back into the current parameter ensemble. If restarting, supplying the previous prior parameter ensemble along with the restart parameter ensemble will enable PESTPP-IES to bring all the prior realizations lost during the previous analysis back into the current ensemble.
+
+Figure 9.3 shows how the reinflation cycles can mitigate variance collapse for a very simple and contrived example problem. Notice how the realization trajectories collapse after one iteration.
 
 <img src="./media/image6.emf" style="width:6.28022in;height:3.83791in" />
 
-Figure 9.3 – A contrived example showing how standard and mean iterations compare. Standard iterations (A/D) quickly collapse, (B/E) using a reinflation with 1 polish iteration yields a high parameter posterior variance, especially for hydraulic conductivity. (C/F) A reinflation at iteration 4 followed by several additional iterations yields nearly the same posterior as standard iterations for this simple mildly nonlinear problem.
+Figure 9.3 – A contrived example showing how standard and reinflation iterations compare. Standard iterations (A/D) quickly collapse, (B/E) using a reinflation with 1 polish iteration yields a high parameter posterior variance, especially for hydraulic conductivity. (C/F) A reinflation at iteration 4 followed by several additional iterations yields nearly the same posterior as standard iterations for this simple mildly nonlinear problem.
 
 ## <a id='s13-2' />9.2 Using PESTPP-IES
 
@@ -3820,6 +3827,14 @@ And save this file and pass the name of the file as *ies_phi_factor_file*. With 
 When using a weight ensemble and the multi-modal solution process, users may also wish to control the internal weight adjustment process at the realization level. This is support by the *ies_phi_factors_by_real* flag. If set to “true”, PESTPP-IES will expect the format the of *ies_phi_factors* file to change such that it is a table of values, where the row labels are the realization names (which must be coincident with the realization names in the obs+noise ensemble if supplied through the *ies_observation_ensemble* option), and the column labels should the same form of observation group “tags” discussed above.
 
 If users want to have more fine-grained control of the weight adjustment, option are available in both pyEMU and the PEST utilities.
+
+### <a id='s13-2-11' />9.2.11 Selective Updates 
+
+In highly nonlinear settings, some realizations may show an increase in phi across iterations, while the majority of realizations shows decreases – see Figure 9.4 for an example. This indicates that, because of nonlinearity, the optimal parameter ensemble update that is effective at reducing phi for the ensemble as a whole is not ideal for all realizations. To combat this problem, PESTPP-IES will, by default (as of version 5.2.13), only update realizations that meet the phi reduction criteria. This is identical to the partial upgrade process that is triggered automatically of the mean phi of the entire ensemble does not meet the phi reduction criteria. This behaviour is controlled with the *ies_update_by_reals* option, which is false by default.
+
+<img src="./media/image7.png" style="width:6.26806in;height:3.20347in" alt="A graph of a graph Description automatically generated with medium confidence" />
+
+Figure 9.4 – The ensemble upgrade from iteration 2 to iteration 3 shows that some realizations have an increase in phi values, while most realizations show a decrease in phi.
 
 ## <a id='s13-3' />9.3 PESTPP-IES Output Files
 
@@ -4150,9 +4165,29 @@ Note also that the number of control variables may change with time. Refer to th
 <td>A flag to use internal weight balancing for each realization. This option should be used in conjunction with the multi-modal solution process.</td>
 </tr>
 <tr class="odd">
-<td><em>ies_n_iter_mean</em></td>
-<td>int</td>
-<td>The number of mean-shift iterations to use. Default is 0-</td>
+<td><em>ies_n_iter_reinflate</em></td>
+<td>Int or sequence of ints</td>
+<td>The number of between covariance re-inflation. Default is 0, which is indicates not re-inflate parameter covariance. This argument can also be a sequence of integers, indicating the number of iterations between each reinflation cycle</td>
+</tr>
+<tr class="even">
+<td><em>Ies_reinflate_factor</em></td>
+<td>Float or sequence of floats</td>
+<td>A scaling factor between 0 and 1 to reduce the variance of the prior parameter ensemble anomalies before translating them to the current parameter ensemble mean vector.</td>
+</tr>
+<tr class="odd">
+<td><em>ies_update_by_reals</em></td>
+<td>bool</td>
+<td>Flag to indicate whether or not to update each realization according to its phi reduction. Default is False.</td>
+</tr>
+<tr class="even">
+<td><em>Ies_autoadaloc_indicator_pars</em></td>
+<td>Text</td>
+<td>The name of 1 or more parameters to treat as indicator parameters in the automatic adaptive localization process to help define the level of spurious correlation.</td>
+</tr>
+<tr class="odd">
+<td><em>save_dense</em></td>
+<td>bool</td>
+<td>Flag to save ensembles in a “dense” binary format, which in constrast to the sparse binary format of jcb/jco. Ensemble files will be given a “.bin” extension. These files can be read by PESTPP-IES (for restarting) and by pyEMU. This option only applies of <em>save_</em>binary is True. Default is False</td>
 </tr>
 </tbody>
 </table>
@@ -4722,7 +4757,7 @@ In this way, the string-based cycle values allow users to apply sophisticated ru
 
 Although PESTPP-DA is a tool designed for flexible sequential and batch data assimilation, the generalized nature of the cycle concept, in concert with the observation and weight cycle tables, also provides a range of other functionality. In this way, the cycle concept can be thought of as an outer iteration process. For example, users can undertake the advanced “direct predictive hypothesis testing” analysis (e.g., Moore et al., 2010) with PESTPP-DA by constructing a generic weight cycle table where each cycle includes increasing weight on a control file observation quantity that represents a simulated outcome of interest. For example, assume a model has been constructed to simulate surface-water/groundwater exchange (SGE) along an important river reach. Further assume that the simulated SGE along this reach is included in the control file as an observation. To test the hypothesis that the SGE for this reach could be zero, users should set the observation value quantity in the control file to 0.0 and set the weight to 1.0 (this weight will not be used but simply activates this quantity in the PESTPP-DA cycle process). Now users can construct a weight cycle table. Let’s use 10 cycles. For the historic observations that are being assimilated, the entries for all cycles in the weight cycle table for these observations should be identical to the weights in the control file. The entries for the SGE “observation” in the weight cycle table should slow increase from 0.0 in the first cycle to a value large enough to dominate the objective function in the last cycle. Conceptually, during each PESTPP-DA “cycle”, a (iterative) ensemble smoother formulation will be used to minimize the objective function, but as cycles progress, the desire to force the SGE towards zero increasingly features in the objective function. In this way, the compatibility between the fitting the historic observations and the ability to make SGE be zero is directly tested. If the ability to fit the past observations is maintained while also making the simulated SGE zero, then one cannot reject the hypothesis that the SGE could be zero on the basis of compatibility with historic observations. This technique is very similar to “pareto mode” in PEST(\_HP), except here, we can take advantage of the computational efficiency of the iterative ensemble solver in PESTPP-DA. Figure 12.XXX depicts the results of such an analysis
 
-<img src="./media/image7.png" style="width:6.26806in;height:6.29514in" alt="Chart, scatter chart Description automatically generated" />
+<img src="./media/image8.png" style="width:6.26806in;height:6.29514in" alt="Chart, scatter chart Description automatically generated" />
 
 Figure 12.XXX. Results of a direct predictive hypothesis testing analysis where the relation between fitting historic observations and a desire to make surface-water/groundwater exchange (SGE) zero is evaluated. The ensemble-based pareto trade-off between these two quantities shows that simulating an SGE of zero is not compatible with the historic observations.
 
