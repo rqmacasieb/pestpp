@@ -233,6 +233,9 @@ def tie_by_group_test():
 
 
     pst.write(os.path.join(t_d,"pest_tied.pst"))
+    m_d = os.path.join(model_d,"master_tie_by_group_sen")
+    if os.path.exists(m_d):
+        shutil.rmtree(m_d)
     pyemu.os_utils.start_workers(t_d, exe_path.replace("-ies","-sen"), "pest_tied.pst", 5, master_dir=m_d,
                            worker_root=model_d,port=port)
     df = pd.read_csv(os.path.join(m_d,"pest_tied.sen.par.csv"),index_col=0)
@@ -248,6 +251,9 @@ def tie_by_group_test():
         assert too_high.shape[0] == 0, "sen,{0},{1}".format(real,too_high)
     
     #pst.write(os.path.join(t_d,"pest_tied.pst"))
+    m_d = os.path.join(model_d,"master_tie_by_group_glm")
+    if os.path.exists(m_d):
+        shutil.rmtree(m_d)
     pyemu.os_utils.start_workers(t_d, exe_path.replace("-ies","-glm"), "pest_tied.pst", 5, master_dir=m_d,
                            worker_root=model_d,port=port)
     jco = pyemu.Jco.from_binary(os.path.join(m_d,"pest_tied.jcb"))
@@ -260,6 +266,9 @@ def tie_by_group_test():
     assert too_high.shape[0] == 0, too_high
 
     
+    m_d = os.path.join(model_d,"master_tie_by_group_ies")
+    if os.path.exists(m_d):
+        shutil.rmtree(m_d)
     pst.control_data.noptmax = 1
     pst.write(os.path.join(t_d, "pest_tied.pst"))
 
@@ -306,6 +315,9 @@ def tie_by_group_test():
         assert too_high.shape[0] == 0, "ies,{0},{1}".format(real,too_high)
     
     df.to_csv(os.path.join(t_d,"sweep_in.csv"))
+    m_d = os.path.join(model_d,"master_tie_by_group_swp")
+    if os.path.exists(m_d):
+        shutil.rmtree(m_d)
     pyemu.os_utils.start_workers(t_d, exe_path.replace("-ies","-swp"), "pest_tied.pst", 5, master_dir=m_d,
                            worker_root=model_d,port=port)
     pst.control_data.noptmax = 3
@@ -578,7 +590,8 @@ def sen_basic_test():
 
     with open(os.path.join(t_d,"forward_run.py"),'w') as f:
         f.write("import pandas as pd\n")
-        f.write("df = pd.read_csv('in.dat',index_col=0,delim_whitespace=True,names=['name','value'])\n")
+        f.write(r"df = pd.read_csv('in.dat',index_col=0,sep='\s+',names=['name','value'])")
+        f.write("\n")
         f.write("df.loc['p1+p2','value'] = df.loc['p1','value'] + df.loc['p2','value']\n")
         f.write("df.loc['p1*p2','value'] = df.loc['p1','value'] * df.loc['p2','value']\n")
         f.write("df.loc['p1^p2','value'] = df.loc['p1','value'] * df.loc['p2','value']\n")
@@ -643,6 +656,8 @@ def sen_basic_test():
     d_sti = (sti_vals.loc[pst.obs_names, :] - sti_verf_vals.loc[pst.obs_names, :]).apply(np.abs)
     print(d_sti.max())
     assert d_sti.max().max() < .001
+
+    
 
 
 def salib_verf():
@@ -1049,14 +1064,16 @@ def mf6_v5_sen_test():
 
     t_d = os.path.join(model_d,"template")
     m_d = os.path.join(model_d,"master_sen")
-    #if os.path.exists(m_d):
-    #    shutil.rmtree(m_d)
+    if os.path.exists(m_d):
+       shutil.rmtree(m_d)
     pst = pyemu.Pst(os.path.join(t_d,"freyberg6_run_sen.pst"))
+    pst.pestpp_options["gsa_morris_p"] = 4
+    pst.pestpp_options["gsa_morris_r"] = 4
     pst.pestpp_options["panther_transfer_on_finish"] = ["freyberg6_freyberg.cbc","freyberg6.lst","ies_prior.jcb"]
     pst.write(os.path.join(t_d,"freyberg6_run_sen_trn.pst"))
     m_d = os.path.join(model_d,"master_sen")
     pyemu.os_utils.start_workers(t_d, exe_path.replace("-ies","-sen"), "freyberg6_run_sen_trn.pst",
-                                 num_workers=15, worker_root=model_d,
+                                 num_workers=50, worker_root=model_d,
                                  port=4004,verbose=True,master_dir=m_d)
 
     pst = pyemu.Pst(os.path.join(m_d,"freyberg6_run_sen_trn.pst"))
@@ -1131,6 +1148,7 @@ def cmdline_test():
     t_d = os.path.join(model_d,"template")
     pst_name = "freyberg6_run_glm.pst"
     pst = pyemu.Pst(os.path.join(t_d,"freyberg6_run_glm.pst"))
+    pst.pestpp_options = {}
     pst.pestpp_options["debug_parse_only"] = True
     pst_name = "CmdLine_test.pst" #camel case on purpose for linux testing
     pst.write(os.path.join(t_d,pst_name))
@@ -1433,6 +1451,29 @@ def build_and_draw_prior(t_d="ends",num_reals=500):
     pe.to_binary(os.path.join(t_d,"prior.jcb"))
 
 
+def obs_link_test():
+    model_d = "temp_tests"
+    base_d = os.path.join(model_d, "zdt1_template")
+    new_d = os.path.join(model_d, "zdt1_test_template")
+    if os.path.exists(new_d):
+        shutil.rmtree(new_d)
+    shutil.copytree(base_d, new_d)
+
+    pst = pyemu.Pst(os.path.join(new_d,"zdt1.pst"))
+    pst.add_observations(os.path.join(new_d,"obj_link.dat.ins"),os.path.join(new_d,"obj_link.dat"),pst_path=".")
+    obs = pst.observation_data
+    obs.loc[:,"link_to"] = np.nan
+    obs.loc["link_obj_1","link_to"] = "obj_1"
+    obs.loc["link_obj_2","link_to"] = "obj_2"
+
+    pst.control_data.noptmax = 0
+    pst.write(os.path.join(new_d,"zdt1.pst"),version=2)
+
+    pyemu.os_utils.run("{0} zdt1.pst".format(exe_path.replace("-ies","-mou")),cwd=new_d)
+
+    pst.control_data.noptmax = 30
+    pst.write(os.path.join(new_d,"zdt1.pst"),version=2)
+
 def run():
     model_d = "mf6_freyberg"
     t_d = os.path.join(model_d,"template")
@@ -1485,19 +1526,332 @@ def sweep_bin_test():
 #def fail_test():
 #    raise Exception("fail please")
 
-def invest():
-    pst = pyemu.Pst(os.path.join("PESTPPTest","PestPilotPointTest.pst"))
+
+def tenpar_collapse_invest():
+    model_d = "ies_10par_xsec"
+    pyemu.Ensemble.reseed()
+    base_d = os.path.join(model_d, "template")
+    new_d = os.path.join(model_d, "test_template")
+    if os.path.exists(new_d):
+        shutil.rmtree(new_d)
+    shutil.copytree(base_d, new_d)
+    print(platform.platform().lower())
+    pst = pyemu.Pst(os.path.join(new_d, "pest.pst"))
+    print(pst.model_command)
+    
+    obs = pst.observation_data
+    obs.loc[:,"weight"] = 0.0
+
+    nzoname = obs.obsnme.str.startswith("h01").index[3]
+    obs.loc[nzoname,"weight"] = 10.0
+    
+    obs.loc[nzoname,"standard_deviation"] = 0.1
+
+    pst.parameter_data.loc[:,"partrans"] = "log"
+    pst.pestpp_options["ies_multimodal_alpha"] = 0.99
+
+    # set noptmax
+    num_reals = [10,30,50,100,400,1000]
+    pst.control_data.noptmax = 10
+    # for num_real in num_reals:
+
+    #     # wipe all pestpp options
+    #     pst.pestpp_options = {}
+    #     pst.pestpp_options["ies_num_reals"] = num_real
+    #     pst.write(os.path.join(new_d, "pest.pst"),version=2)
+               
+    #     m_d = os.path.join(model_d,"master_ies_base_{0}reals".format(pst.pestpp_options["ies_num_reals"]))
+    #     if os.path.exists(m_d):
+    #         shutil.rmtree(m_d)
+    #     num_workers = 50
+    #     if num_real > 500:
+    #         num_workers = 200
+    #     pyemu.os_utils.start_workers(new_d, exe_path, "pest.pst", num_workers, master_dir=m_d,
+    #                            worker_root=model_d,port=port,verbose=True)
+
+    # pst.pestpp_options = {}
+    # pst.pestpp_options["ies_num_reals"] = 100000
+    # pst.control_data.noptmax = -1
+    # pst.write(os.path.join(new_d, "pest.pst"))
+           
+    # m_d = os.path.join(model_d,"master_ies_base_{0}reals".format(pst.pestpp_options["ies_num_reals"]))
+    # if os.path.exists(m_d):
+    #     shutil.rmtree(m_d)
+    # pyemu.os_utils.start_workers(new_d, exe_path, "pest.pst", 200, master_dir=m_d,
+    #                        worker_root=model_d,port=port,verbose=True)
+
+
+    #pst.observation_data.loc[nzoname,"obsval"] += 8
+    pst.observation_data.loc[nzoname,"weight"] = 100.0
+    pst.observation_data.loc[nzoname,"obsval"] -= 1.5
+
+    # for num_real in num_reals:
+
+    #     # wipe all pestpp options
+    #     pst.pestpp_options = {}
+    #     pst.pestpp_options["ies_num_reals"] = num_real
+    #     pst.write(os.path.join(new_d, "pest.pst"),version=2)
+               
+    #     m_d = os.path.join(model_d,"master_ies_corrupt_{0}reals".format(pst.pestpp_options["ies_num_reals"]))
+    #     if os.path.exists(m_d):
+    #         shutil.rmtree(m_d)
+    #     num_workers = 50
+    #     if num_real > 500:
+    #         num_workers = 200
+    #     pyemu.os_utils.start_workers(new_d, exe_path, "pest.pst", num_workers, master_dir=m_d,
+    #                            worker_root=model_d,port=port,verbose=True)
+
+    pst.pestpp_options = {}
+    pst.pestpp_options["ies_num_reals"] = 100000
+    pst.control_data.noptmax = -1
+    pst.write(os.path.join(new_d, "pest.pst"),version=2)
+           
+    m_d = os.path.join(model_d,"master_ies_corrupt_{0}reals".format(pst.pestpp_options["ies_num_reals"]))
+    if os.path.exists(m_d):
+        shutil.rmtree(m_d)
+    pyemu.os_utils.start_workers(new_d, exe_path, "pest.pst", 200, master_dir=m_d,
+                           worker_root=model_d,port=port,verbose=True)
+
+def plot_collapse_invest():
+    b_d = "ies_10par_xsec"
+    m_ds = [os.path.join(b_d,d) for d in os.listdir(b_d) if os.path.isdir(os.path.join(b_d,d)) and d.startswith("master") and d.endswith("reals")]
+
+    pes, oes, phidfs = {},{},{}
+    names = []
+    name_dict = {}
+    min_phi = 1e300
+    for m_d in m_ds:
+        phidf = pd.read_csv(os.path.join(m_d,"pest.phi.actual.csv"))
+        if "corrupt" in m_d:
+            min_phi = min(min_phi,phidf.iloc[:,6:].values.min())
+        pst = pyemu.Pst(os.path.join(m_d,"pest.pst"))
+        p,o = [],[]
+        for i in [0,phidf.iteration.max()]:
+            oe = pd.read_csv(os.path.join(m_d,"pest.{0}.obs.csv".format(i)),index_col=0)
+            oe.index = oe.index.map(str)
+            pe = pd.read_csv(os.path.join(m_d,"pest.{0}.par.csv".format(i)),index_col=0)
+            pe.index = pe.index.map(str)
+            o.append(oe)
+            p.append(pe)
+        #if phidf.iteration.max() == 0:
+            #realphis = phidf.iloc[0,6:]
+            #realkeep = realphis.loc[realphis < pst.nnz_obs * 1.1]
+            #print(realkeep.shape)
+            #print(o[0].index)
+            #print(p[0].index)
+            
+        #    p.append(p[0])#.loc[realkeep.index,:].copy())
+
+        #    o.append(o[0])#.loc[realkeep.index,:].copy())
+            
+        if phidf.iteration.max() == 0:
+            nreals = oe.shape[0]
+            name = "{0}, {1} realizations".format(m_d.split("_")[-2],nreals)
+        else:
+
+            name = "{0}, {1} realizations".format(m_d.split("_")[-2],m_d.split("_")[-1].replace("reals",""))
+            nreals = int(m_d.split("_")[-1].replace("reals",""))
+        if nreals not in name_dict:
+            name_dict[nreals] = []
+        name_dict[nreals].append(name)
+        names.append(name)
+        pes[name] = p
+        oes[name] = o
+        phidfs[name] = phidf
+    
+    #print(min_phi)
+    reals = list(name_dict.keys())
+    reals.sort()
+
+    # now filter
+    #thresh = min_phi * 5
+    thresh = 10
+    corrupt_thresh = min_phi * 1.1
+    names = []
+    for nreals in reals:
+        m_ds = name_dict[nreals]
+        m_ds.sort()
+        for m_d in m_ds:
+            p = pes[m_d]
+            o = oes[m_d]
+            phidf = phidfs[m_d]
+            #print(m_d,len(p))
+            assert len(p) == 2
+            assert len(o) == 2
+            ppost = p[-1]
+            opost = o[-1]
+            phipost = phidf.iloc[-1,:].copy()
+            phipost = phipost.iloc[6:]
+            #print(phipost)
+            if "corrupt" in m_d:
+                phipost = phipost.loc[phipost<=corrupt_thresh]
+            else:    
+                phipost = phipost.loc[phipost<=thresh]
+            print(m_d,phipost.shape)
+            pes[m_d][-1] = ppost.loc[phipost.index.values,:].copy()
+            oes[m_d][-1] = opost.loc[phipost.index.values,:].copy()
+            names.append(m_d)   
+                 
+
+    import matplotlib.pyplot as plt
+    from matplotlib.backends.backend_pdf import PdfPages
+    
+    with PdfPages("collapse_compare_2ax.pdf") as pdf:
+        for par in pst.adj_par_names:
+            fig,axes = plt.subplots(2,1,figsize=(8.5,8.5))
+            mn,mx = 1e30,-1e30
+            for im_d,m_d in enumerate(names):
+                ax = axes[0]
+                if "corrupt" in m_d:
+                    ax = axes[1]
+
+                p = pes[m_d]
+                o = oes[m_d]
+                #print(m_d,len(p))
+                color = plt.cm.jet(np.linspace(0, 1, len(names))) 
+                pp = p[-1]
+                if "stage" not in par:
+                    pp.loc[:,par] = np.log10(pp.loc[:,par].values)
+                    pp.loc[:,par].plot(ax=ax,kind="hist",color=color[im_d],alpha=0.5,label=m_d,density=True)
+                mn = min(mn,ax.get_xlim()[0])
+                mx = max(mn,ax.get_xlim()[1])
+            axes[0].set_title("pure",loc="left")
+            axes[1].set_title("corrupt",loc="left")
+            
+            for ax in axes:
+                ax.set_xlim(mn,mx)
+                ax.set_yticks([])
+                ax.grid()
+                ax.legend(loc="upper left")
+
+            plt.tight_layout()
+            pdf.savefig()
+            plt.close(fig)
+             
+
+    with PdfPages("collapse_compare.pdf") as pdf:
+        for par in pst.adj_par_names:
+            fig,axes = plt.subplots(len(names),1,figsize=(8.5,8.5))
+            mn,mx = 1e30,-1e30
+            for m_d,ax in zip(names,axes):
+                p = pes[m_d]
+                o = oes[m_d]
+                #print(m_d,len(p))
+
+                colors = ["0.5","b"]
+                labels = ["prior","posterior"]
+                for pp,oo,c,l in zip(p,o,colors,labels):
+                    if "stage" not in par:
+                        pp.loc[:,par] = np.log10(pp.loc[:,par].values)
+                    pp.loc[:,par].plot(ax=ax,kind="hist",color=c,alpha=0.5,label=l,density=True)
+                ax.set_title("{0}, {1} {2} posterior realizations".format(par,m_d,pp.shape[0]),loc="left")
+                ax.set_yticks([])
+                mn = min(mn,ax.get_xlim()[0])
+                mx = max(mn,ax.get_xlim()[1])
+                print(m_d)
+            
+            for ax in axes:
+                ax.set_xlim(mn,mx)
+            plt.tight_layout()
+            pdf.savefig()
+            plt.close(fig)
+             
+        for obs in pst.obs_names:
+            fig,axes = plt.subplots(len(names),1,figsize=(8.5,8.5))
+            mn,mx = 1e30,-1e30
+            for m_d,ax in zip(names,axes):
+                p = pes[m_d]
+                o = oes[m_d]
+                colors = ["0.5","b"]
+                labels = ["prior","posterior"]
+                for pp,oo,c,l in zip(p,o,colors,labels):
+                    oo.loc[:,obs].plot(kind="hist",color=c,alpha=0.5,label=l,ax=ax,density=True)
+                ax.set_title("{0}, {1}, {2} posterior realizations".format(obs,m_d,oo.shape[0]),loc="left")
+                mn = min(mn,ax.get_xlim()[0])
+                mx = max(mn,ax.get_xlim()[1])
+            for ax in axes:
+                ax.set_xlim(mn,mx)
+                
+            plt.tight_layout()
+            pdf.savefig()
+            plt.close(fig)
+
+
+
+            
+    print(m_ds)
+
+
+def tenpar_uniform_invest():
+    model_d = "ies_10par_xsec"
+    pyemu.Ensemble.reseed()
+    base_d = os.path.join(model_d, "template")
+    new_d = os.path.join(model_d, "test_template_geo")
+    if os.path.exists(new_d):
+        shutil.rmtree(new_d)
+    shutil.copytree(base_d, new_d)
+    print(platform.platform().lower())
+    pst = pyemu.Pst(os.path.join(new_d, "pest.pst"))
+    print(pst.model_command)
+    obs = pst.observation_data
+    obs.loc[:,"weight"] = 0.0
+    obs.loc["h01_03","weight"] = 1.0
+    par = pst.parameter_data
+    par.loc[:,"partrans"] = "log"
+    par.loc["stage","partrans"] = "fixed"
+    v = pyemu.geostats.ExpVario(contribution=1.0,a=10)
+    gs = pyemu.geostats.GeoStruct(variograms=v)
+    x = np.cumsum(np.ones(10))
+    y = np.ones(10)
+    print(pst.adj_par_names)
+    cov = gs.covariance_matrix(x,y,names = pst.adj_par_names).to_dataframe()
+    cov.loc["stage",:] = 0.0
+    cov.loc[:,"stage"] = 0.0
+    
+    cov.loc["stage","stage"] = 0.1
+    #import matplotlib.pyplot as plt
+    #plt.imshow(cov.values)
+    #plt.show()
+    par.loc["stage","partrans"] = "none"
+
+    pe = pyemu.ParameterEnsemble.from_gaussian_draw(pst=pst,cov=pyemu.Cov.from_dataframe(cov),num_reals=20)
+    pe.enforce()
+    pe.to_csv(os.path.join(new_d,"geoprior.csv"))
+    pst.pestpp_options["ies_par_en"] = "geoprior.csv"
+    pst.control_data.noptmax = 10
+    pst.write(os.path.join(new_d,"pest.pst"))
+    pyemu.os_utils.run("pestpp-ies pest.pst",cwd=new_d)
+
+    for i,val in enumerate(np.linspace(1,5,pe.shape[0])):
+        print(val)
+        pe.iloc[i,:5] = val
+    new_d = os.path.join(model_d, "test_template_uniform")
+    if os.path.exists(new_d):
+        shutil.rmtree(new_d)
+    shutil.copytree(base_d, new_d)
+    pe.to_csv(os.path.join(new_d,"uniprior.csv"))
+    pst.pestpp_options["ies_par_en"] = "uniprior.csv"
+    pst.control_data.noptmax = 10
+    pst.write(os.path.join(new_d,"pest.pst"))
+    pyemu.os_utils.run("pestpp-ies pest.pst",cwd=new_d)
+
 
 
 
 
 if __name__ == "__main__":
-    invest()
+
+    # mf6_v5_sen_test()
+    #tie_by_group_test()
+    #tenpar_uniform_invest()
+    #tenpar_collapse_invest()
+    #plot_collapse_invest()
+
     #run()
-    #mf6_v5_ies_test()
+    # mf6_v5_ies_test()
     #prep_ends()
     #sweep_bin_test()
-    #mf6_v5_sen_test()
+    # mf6_v5_sen_test()
     #ext_stdcol_test()
     #shutil.copy2(os.path.join("..","exe","windows","x64","Debug","pestpp-glm.exe"),os.path.join("..","bin","win","pestpp-glm.exe"))
     #shutil.copy2(os.path.join("..", "exe", "windows", "x64", "Debug", "pestpp-ies.exe"),
@@ -1531,8 +1885,8 @@ if __name__ == "__main__":
     # da_mf6_freyberg_smoother_test()
     # da_mf6_freyberg_test_1()
 
-    #da_prep_4_mf6_freyberg_seq_tbl()
-    #da_mf6_freyberg_test_2()
+    # da_prep_4_mf6_freyberg_seq_tbl()
+    # da_mf6_freyberg_test_2()
     #shutil.copy2(os.path.join("..","exe","windows","x64","Debug","pestpp-ies.exe"),os.path.join("..","bin","win","pestpp-ies.exe"))
     #tplins1_test()
     
@@ -1542,11 +1896,15 @@ if __name__ == "__main__":
 
     #shutil.copy2(os.path.join("..","exe","windows","x64","Debug","pestpp-opt.exe"),os.path.join("..","bin","win","pestpp-opt.exe"))
     #mf6_v5_opt_stack_test()
-    #mf6_v5_glm_test()
-    #mf6_v5_ies_test()
+    # mf6_v5_glm_test()
+    # mf6_v5_ies_test()
     #cmdline_test()
     #basic_sqp_test()
     #mf6_v5_ies_test()
     #fr_timeout_test()
     #fr_fail_test()
     #tplins1_test()
+
+    mf6_v5_glm_test()
+    mf6_v5_ies_test()
+    mf6_v5_sen_test()
