@@ -738,6 +738,7 @@ void SeqQuadProgram::initialize()
 
 	act_obs_names = pest_scenario.get_ctl_ordered_nz_obs_names();
 	act_par_names = pest_scenario.get_ctl_ordered_adj_par_names();
+	diagonal_scaling = Eigen::VectorXd::Ones(dv_names.size());
 
 	stringstream ss;
 	//set some defaults
@@ -1609,13 +1610,47 @@ bool SeqQuadProgram::update_hessian_and_grad_vector()
 
 	// Ensure symmetry (can be lost due to numerical errors)
 	H_new = 0.5 * (H_new + H_new.transpose());
-
+	Eigen::MatrixXd H_scaled = H_new;
+	for (int i = 0; i < dv_names.size(); i++) {
+		H_scaled(i, i) *= diagonal_scaling(i);
+	}
 	// Update the hessian
-	hessian = Covariance(dv_names, H_new.sparseView());
+	hessian = Covariance(dv_names, H_scaled.sparseView());
 
 	message(2, "BFGS Hessian update complete");
 
 	return true;
+}
+
+void SeqQuadProgram::update_scaling(const Eigen::VectorXd& step, const Eigen::VectorXd& grad) {
+	// Only update periodically
+	if (iter % scaling_update_frequency != 0) return;
+
+	// Calculate step sizes relative to gradient components
+	Eigen::VectorXd rel_step = (step.array().abs() / (grad.array().abs() + 1e-10)).matrix();
+
+	// Normalize to have reasonable values
+	double avg_step = rel_step.mean();
+	if (avg_step > 1e-10) {
+		rel_step /= avg_step;
+	}
+
+	// Update scaling: smaller steps ? increase scaling, larger steps ? decrease scaling
+	for (int i = 0; i < dv_names.size(); i++) {
+		if (rel_step(i) < 0.5) {
+			// Step too small, reduce scaling to encourage larger steps
+			diagonal_scaling(i) *= (1.0 - adaptation_rate);
+		}
+		else if (rel_step(i) > 2.0) {
+			// Step too large, increase scaling to make steps smaller
+			diagonal_scaling(i) *= (1.0 + adaptation_rate);
+		}
+
+		// Bound the scaling factors
+		diagonal_scaling(i) = std::max(0.1, std::min(diagonal_scaling(i), 1000.0));
+	}
+
+	message(2, "Updated adaptive Hessian scaling");
 }
 
 bool SeqQuadProgram::isfullrank(const Eigen::MatrixXd& mat)
@@ -1705,9 +1740,6 @@ void SeqQuadProgram::iterate_2_solution()
 
 		//todo: report constraint stats
 		//a la constraints.mou_report();
-
-
-
 	}
 }
 
@@ -2030,6 +2062,7 @@ Parameters SeqQuadProgram::calc_gradient_vector(const Parameters& _current_dv_va
 	}
 	Parameters pgrad = _current_dv_values;
 	pgrad.update_without_clear(dv_names, grad);
+	cout << endl << "grad vector: " << endl << grad << endl;
 	return pgrad;
 }
 
@@ -2318,17 +2351,17 @@ Eigen::VectorXd SeqQuadProgram::compute_boundary_solution(const Eigen::VectorXd&
 
 bool SeqQuadProgram::trust_region_step(Parameters& current_dv_values, Eigen::VectorXd& step, Eigen::VectorXd grad)
 {
-	prev_ctl_dv_values = current_ctl_dv_values; //saving a copy for BFGS later
+	prev_ctl_dv_values = trial_ctl_dv_values; //saving a copy for BFGS later
 
 	// Algorithm 4.1, pp. 68-69 Nocedal and Wright
-	double current_obj = get_obj_value(current_ctl_dv_values, current_obs);
+	double current_obj = get_obj_value(trial_ctl_dv_values, trial_obs);
 	
 	// Solve the trust region subproblem to get step
 	Eigen::VectorXd p = solve_trust_region_subproblem_dogleg(hessian.get_matrix(), grad, trust_radius);
 	double step_norm = p.norm();
 
 	// Create trial point
-	Parameters trial_dv_values = current_ctl_dv_values;
+	Parameters trial_dv_values = trial_ctl_dv_values;
 	Eigen::VectorXd trial_vec = current_dv_values.get_data_eigen_vec(dv_names);
 	trial_vec += p;
 	trial_dv_values.update_without_clear(dv_names, trial_vec);
@@ -2360,9 +2393,11 @@ bool SeqQuadProgram::trust_region_step(Parameters& current_dv_values, Eigen::Vec
 	}
 
 	// Get trial observations
-	Observations trial_obs = pest_scenario.get_ctl_observations();
+	trial_obs = pest_scenario.get_ctl_observations();
 	Eigen::VectorXd obs_vec = trial_oe.get_real_vector("trial");
 	trial_obs.update(trial_oe.get_var_names(), obs_vec);
+
+	cout << "trial_dv: " << trial_pe.get_eigen() << endl;
 
 	// Calculate actual and predicted reduction
 	double actual_reduction = compute_actual_reduction(trial_dv_values, trial_obs);
@@ -2386,7 +2421,15 @@ bool SeqQuadProgram::trust_region_step(Parameters& current_dv_values, Eigen::Vec
 		ss << "rejected trust region step, rho=" << rho
 			<< ", new radius=" << trust_radius;
 		message(1, ss.str());
-		return false;
+		
+		trial_ctl_dv_values = trial_dv_values;
+		Parameters new_grad = calc_gradient_vector(trial_ctl_dv_values);
+		current_grad_vector = new_grad;
+		make_gradient_runs(trial_ctl_dv_values, trial_obs);
+		if (trust_radius == trust_radius_min)
+			return true;
+		else
+			return false;
 	}
 	else {
 		// Accept step
@@ -2435,7 +2478,7 @@ Eigen::VectorXd SeqQuadProgram::solve_trust_region_subproblem_dogleg(const Eigen
 		alpha = radius / g.norm();
 	}
 	else {
-		alpha = g.squaredNorm() / gBg;
+		alpha = pow(g.norm(), 3) / (radius * gBg);
 
 		// Limit step to trust region boundary if needed
 		Eigen::VectorXd p_sd = -alpha * g;
@@ -2884,8 +2927,9 @@ pair<Eigen::VectorXd, Eigen::VectorXd> SeqQuadProgram::calc_search_direction_vec
 	{
 		message(1, "constraint working set is empty, problem is currently unconstrained...");
 		Eigen::MatrixXd H = *hessian.e_ptr();
-		search_d = -H.ldlt().solve(grad_vector); //Eq 7.9, Nocedal and Wright p. 169
+		search_d = H.ldlt().solve(-grad_vector); //Eq 7.9, Nocedal and Wright p. 169
 		cout << endl << "hessian" << endl << hessian << endl;
+		cout << endl << "grad_vector" << endl << grad_vector << endl;
 	}
 	return pair<Eigen::VectorXd, Eigen::VectorXd> (search_d, lm);  // lm will be empty if non-constrained solve
 }
@@ -3034,6 +3078,7 @@ bool SeqQuadProgram::solve_new()
 					current_constraint_mat = new_constraint_mat.first;
 				}
 			}
+			update_scaling(search_d, grad);
 			//else
 			//{
 			//	// Check if any constraints in working set became inactive
@@ -3073,22 +3118,59 @@ bool SeqQuadProgram::solve_new()
 			{
 				Eigen::SparseMatrix<double> h(dv_names.size(), dv_names.size());
 				h.setIdentity();
+
+				for (int i = 0; i < dv_names.size(); i++) {
+					// Scale based on relative magnitude of gradient component
+					double scale_factor = 1.0 + 5.0 * (abs(grad[i]) / grad.norm());
+					// Optional: Limit maximum scaling to avoid extreme values
+					scale_factor = min(scale_factor, 10.0);
+					h.coeffRef(i, i) = scale_factor;
+				}
+
 				hessian = Covariance(dv_names, h);
 				n_consec_failures = 0;
 				BASE_SCALE_FACTOR = 1.0;
 			}
 
-			if (line_search_attempts >= max_line_search_attempts)
-			{
-				while(!successful)
+			if (line_search_attempts >= max_line_search_attempts) {
+				// Instead of just using identity matrix
+				// Or Option 2: Dynamic scaling based on gradient components
+				trial_ctl_dv_values = current_ctl_dv_values;
+				trial_obs = current_obs;
+				while (!successful)
 				{
-					successful = trust_region_step(current_ctl_dv_values, search_d, grad);
-					int debug = 1;
-					/*			message(1, "Line search struggling - seek feasible");
-								break;*/
+					grad = current_grad_vector.get_data_eigen_vec(dv_names);
+					cout << endl << "grad: " << grad.transpose() << endl;
+					double max_grad = grad.cwiseAbs().maxCoeff();
+					Eigen::VectorXd dynamic_scales = (max_grad / (grad.cwiseAbs().array() + 1e-10)).matrix();
+					search_d = -grad.cwiseProduct(dynamic_scales);
+					Eigen::SparseMatrix<double> h(dv_names.size(), dv_names.size());
+					h.setIdentity();
+
+					// Apply per-dimension scaling based on gradient components
+					for (int i = 0; i < dv_names.size(); i++) {
+						// Scale based on relative magnitude of gradient component
+						double scale_factor = 1.0 + 5.0 * (abs(grad[i]) / grad.norm());
+						// Optional: Limit maximum scaling to avoid extreme values
+						scale_factor = min(scale_factor, 10.0);
+						h.coeffRef(i, i) = scale_factor;
+					}
+
+					hessian = Covariance(dv_names, h);
+					cout << endl << "hessian" << endl << hessian << endl;
+					// Continue with trust region step
+					successful = trust_region_step(trial_ctl_dv_values, search_d, grad);
 				}
-				trust_radius = 1.0;
 			}
+
+
+			//static Eigen::VectorXd momentum = Eigen::VectorXd::Zero(grad.size());
+			//
+			//if (!successful) {
+			//	// Use momentum from previous iterations
+			//	momentum = 0.9 * momentum - 0.1 * grad;
+			//	successful = trust_region_step(current_ctl_dv_values, momentum, grad);
+			//}
 		}
 
 	}

@@ -146,6 +146,10 @@ private:
 	const double c2 = 0.9;     // curvature condition parameter
 	const double min_scale = 1e-8;
 
+	Eigen::VectorXd diagonal_scaling;
+	double adaptation_rate = 0.3;  // How quickly to adapt scaling (0-1)
+	int scaling_update_frequency = 2;  // Update scaling every N iterations
+
 	set<string> pp_args;
 
 	int iter;
@@ -165,8 +169,8 @@ private:
 	string best_name;
 	//vector<int> subset_idxs;
 
-	Parameters current_ctl_dv_values, prev_ctl_dv_values;
-	Observations current_obs;
+	Parameters current_ctl_dv_values, prev_ctl_dv_values, trial_ctl_dv_values;
+	Observations current_obs, trial_obs;
 
 	Parameters current_grad_vector, prev_grad_vector;
 	map<int, Parameters> grad_vector_map;
@@ -203,6 +207,7 @@ private:
 	void prep_4_fd_grad();
 
 	bool update_hessian_and_grad_vector();
+	void update_scaling(const Eigen::VectorXd& step, const Eigen::VectorXd& grad);
 	bool try_modify_hessian();
 	bool solve_new();
 
