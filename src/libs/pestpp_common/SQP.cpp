@@ -1,4 +1,4 @@
-#include <random>
+﻿#include <random>
 #include <map>
 #include <iomanip>
 #include <mutex>
@@ -738,7 +738,6 @@ void SeqQuadProgram::initialize()
 
 	act_obs_names = pest_scenario.get_ctl_ordered_nz_obs_names();
 	act_par_names = pest_scenario.get_ctl_ordered_adj_par_names();
-	diagonal_scaling = Eigen::VectorXd::Ones(dv_names.size());
 
 	stringstream ss;
 	//set some defaults
@@ -825,6 +824,7 @@ void SeqQuadProgram::initialize()
 		dv_names = act_par_names;
 	}
 
+	diagonal_scaling = Eigen::VectorXd::Ones(dv_names.size());
 	constraints.initialize(dv_names, numeric_limits<double>::max());
 	constraints.initial_report();
     initialize_objfunc();
@@ -1478,68 +1478,79 @@ bool SeqQuadProgram::try_modify_hessian() {
 	return true;
 }
 
-bool SeqQuadProgram::update_hessian_and_grad_vector()
+bool SeqQuadProgram::hessian_update_sr1(Eigen::VectorXd s_k, Eigen::VectorXd y_k, Covariance old_hessian)
 {
-	Parameters new_grad = calc_gradient_vector(current_ctl_dv_values);
-	if (!pest_scenario.get_pestpp_options().get_sqp_update_hessian())
-	{
-		message(2, "hessian_update is false...");
+	message(1, "starting SR1 hessian update for iteration ", iter);
 
-		current_grad_vector = new_grad;
+	const double eps = 1e-10;
+	const double max_condition = 1e8;
+	const double sr1_threshold = 1e-8; // Threshold for denominator in SR1 update
+
+	// Check if step or gradient difference is too small
+	if (s_k.norm() < eps || y_k.norm() < eps)
+	{
+		message(1, "skipping SR1 update - step or gradient difference too small");
 		return false;
 	}
 
-	if (n_consec_failures >= max_consec_failures)
-	{
-		message(2, "filter rejected too many times, resetting hessian to identity matrix");
+	// Get current Hessian matrix
+	Eigen::MatrixXd H = *old_hessian.e_ptr();
 
+	// Calculate SR1 update components
+	// Eq. 6.24 in Nocedal and Wright, p. 144
+	Eigen::VectorXd Hs = H * s_k;
+	Eigen::VectorXd y_minus_Hs = y_k - Hs;
+	double denominator = y_minus_Hs.dot(s_k);
+
+	// Check if SR1 update is numerically safe
+	if (std::abs(denominator) < sr1_threshold * y_minus_Hs.norm() * s_k.norm())
+	{
+		message(1, "skipping SR1 update - denominator too small for numerical stability");
 		return false;
 	}
 
-	//fancy shit here...
-	message(1, "starting hessian update for iteration ", iter);
-	
-	Covariance old_hessian = hessian;
+	// Apply SR1 update formula: H_{k+1} = H_k + (y_k - H_k*s_k)(y_k - H_k*s_k)^T / ((y_k - H_k*s_k)^T * s_k)
+	// Eq. 6.24 in Nocedal and Wright, p. 144
+	Eigen::MatrixXd H_new = H + (y_minus_Hs * y_minus_Hs.transpose()) / denominator;
 
+	// Check condition number for stability
+	Eigen::SelfAdjointEigenSolver<Eigen::MatrixXd> eigensolver(H_new);
+
+	// SR1 can produce indefinite matrices, which is actually okay for SQP
+	// But we should check if the condition number is reasonable
+	Eigen::VectorXd eigenvalues = eigensolver.eigenvalues();
+	double max_eig = eigenvalues.cwiseAbs().maxCoeff();
+	double min_eig = eigenvalues.cwiseAbs().minCoeff();
+
+	if (min_eig < eps)
+	{
+		message(1, "warning: very small eigenvalues detected in SR1 update");
+		// We can add a small regularization to avoid numerical issues
+		double reg = eps - min_eig;
+		H_new += reg * Eigen::MatrixXd::Identity(H_new.rows(), H_new.cols());
+	}
+
+	double cond = max_eig / min_eig;
+	if (cond > max_condition)
+	{
+		message(1, "warning: condition number too large in SR1 update: ", cond);
+		// Apply more aggressive regularization or scaling
+		H_new = 0.5 * (H_new + H); // Dampen the update
+	}
+
+	// Update the hessian
+	hessian = Covariance(dv_names, H_new.sparseView());
+
+	message(2, "SR1 Hessian update complete");
+	return true;
+
+}
+
+bool SeqQuadProgram::hessian_update_bfgs(Eigen::VectorXd s_k, Eigen::VectorXd y_k, Covariance old_hessian)
+{
+	message(1, "starting BFGS hessian update for iteration ", iter);
 	// quasi-Newton Hessian updating via BFGS
-	// only if combination of conditions satisfies (some of which are user-specified)
-
-	Eigen::VectorXd prev_grad = grad_vector_map[iter-1].get_data_eigen_vec(dv_names);
-	cout << endl << "old_grad" << prev_grad << endl;
-
-	current_grad_vector = new_grad;
-	Eigen::VectorXd curr_grad = grad_vector_map[iter].get_data_eigen_vec(dv_names);
-	cout << endl << "new_grad" << new_grad << endl;
-	
-	//compute gradient difference (y_k) and step (s_k): Eq. 18.13 Nocedal and Wright, p. 536; Eq. 15.25 Andrei, p. 529 
-	Eigen::VectorXd y_k = curr_grad - prev_grad; 
-	Eigen::VectorXd s_k = current_ctl_dv_values.get_data_eigen_vec(dv_names) - prev_ctl_dv_values.get_data_eigen_vec(dv_names);
-
-	//check if there's an active constraint for the current dv then compute constraint jco and update y_k
-	vector<string> prev_cnames, curr_cnames;
-	prev_constraint_mat = current_constraint_mat;
-	prev_cnames = prev_constraint_mat.get_row_names();
-	current_constraint_mat = get_constraint_mat().first;
-	curr_cnames = current_constraint_mat.get_row_names();
-	
-	if (!curr_cnames.empty() && !prev_cnames.empty()) //if no active constraint previously, curr should also be empty right?
-	{
-		Eigen::MatrixXd current_jco = current_constraint_mat.e_ptr()->toDense();
-		Eigen::MatrixXd previous_jco = prev_constraint_mat.e_ptr()->toDense();
-	
-		// Adjust signs for inequality constraints
-		for (int i = 0; i < curr_cnames.size(); i++) {
-			if (constraint_sense[curr_cnames[i]] == "less_than") {
-				current_jco.row(i) *= -1;
-				previous_jco.row(i) *= -1;
-			}
-		}
-		y_k -= (current_jco.transpose() - previous_jco.transpose())* lambda; 
-	}
-	else
-	{
-		message(2, "no active constraints, using objective gradient difference only");
-	}
+	// TODO: check if there are conditions to satisfy (some of which are user-specified)
 
 	const double eps = 1e-10;
 	const double max_condition = 1e8;
@@ -1547,7 +1558,7 @@ bool SeqQuadProgram::update_hessian_and_grad_vector()
 
 	if (s_k.norm() < eps || y_k.norm() < eps)
 	{
-		message(1, "skipping BFGS update - step or gradient difference too small"); 
+		message(1, "skipping BFGS update - step or gradient difference too small");
 		return false;
 	}
 
@@ -1563,7 +1574,7 @@ bool SeqQuadProgram::update_hessian_and_grad_vector()
 		double theta = 1.0;
 		if (s_dot_y < damping_factor * s_dot_Hs)
 			theta = (1.0 - damping_factor) * s_dot_Hs / (s_dot_Hs - s_dot_y); //lhs of Eq. 18.15 in Nocedal and Wright, p. 537
-		
+
 		// Modify y_k with damping
 		y_k = theta * y_k + (1.0 - theta) * Hs; //r_k before Eq. 18.15 in Nocedal and Wright, p. 537
 		s_dot_y = y_k.dot(s_k);  // Recalculate with damped y_k
@@ -1608,18 +1619,72 @@ bool SeqQuadProgram::update_hessian_and_grad_vector()
 		}
 	}
 
-	// Ensure symmetry (can be lost due to numerical errors)
-	H_new = 0.5 * (H_new + H_new.transpose());
-	Eigen::MatrixXd H_scaled = H_new;
-	for (int i = 0; i < dv_names.size(); i++) {
-		H_scaled(i, i) *= diagonal_scaling(i);
-	}
 	// Update the hessian
-	hessian = Covariance(dv_names, H_scaled.sparseView());
+	hessian = Covariance(dv_names, H_new.sparseView());
 
 	message(2, "BFGS Hessian update complete");
-
 	return true;
+}
+
+bool SeqQuadProgram::update_hessian_and_grad_vector()
+{
+	Parameters new_grad = calc_gradient_vector(current_ctl_dv_values);
+	if (!pest_scenario.get_pestpp_options().get_sqp_update_hessian())
+	{
+		message(2, "hessian_update is false...");
+
+		current_grad_vector = new_grad;
+		return false;
+	}
+
+	if (n_consec_failures >= max_consec_failures)
+	{
+		message(2, "filter rejected too many times, resetting hessian to identity matrix");
+
+		return false;
+	}
+	
+	Covariance old_hessian = hessian;
+
+	Eigen::VectorXd prev_grad = grad_vector_map[iter-1].get_data_eigen_vec(dv_names);
+	cout << endl << "old_grad" << prev_grad << endl;
+
+	current_grad_vector = new_grad;
+	Eigen::VectorXd curr_grad = grad_vector_map[iter].get_data_eigen_vec(dv_names);
+	cout << endl << "new_grad" << new_grad << endl;
+	
+	//compute gradient difference (y_k) and step (s_k): Eq. 18.13 Nocedal and Wright, p. 536; Eq. 15.25 Andrei, p. 529 
+	Eigen::VectorXd y_k = curr_grad - prev_grad; 
+	Eigen::VectorXd s_k = current_ctl_dv_values.get_data_eigen_vec(dv_names) - prev_ctl_dv_values.get_data_eigen_vec(dv_names);
+
+	//check if there's an active constraint for the current dv then compute constraint jco and update y_k
+	vector<string> prev_cnames, curr_cnames;
+	prev_constraint_mat = current_constraint_mat;
+	prev_cnames = prev_constraint_mat.get_row_names();
+	current_constraint_mat = get_constraint_mat().first;
+	curr_cnames = current_constraint_mat.get_row_names();
+	
+	if (!curr_cnames.empty() && !prev_cnames.empty()) //if no active constraint previously, curr should also be empty right?
+	{
+		Eigen::MatrixXd current_jco = current_constraint_mat.e_ptr()->toDense();
+		Eigen::MatrixXd previous_jco = prev_constraint_mat.e_ptr()->toDense();
+	
+		// Adjust signs for inequality constraints
+		for (int i = 0; i < curr_cnames.size(); i++) {
+			if (constraint_sense[curr_cnames[i]] == "less_than") {
+				current_jco.row(i) *= -1;
+				previous_jco.row(i) *= -1;
+			}
+		}
+		y_k -= (current_jco.transpose() - previous_jco.transpose())* lambda; 
+	}
+	else
+	{
+		message(2, "no active constraints, using objective gradient difference only");
+	}
+
+	//return hessian_update_bfgs(s_k, y_k, old_hessian);
+	return hessian_update_sr1(s_k, y_k, old_hessian);
 }
 
 void SeqQuadProgram::update_scaling(const Eigen::VectorXd& step, const Eigen::VectorXd& grad) {
@@ -1635,7 +1700,7 @@ void SeqQuadProgram::update_scaling(const Eigen::VectorXd& step, const Eigen::Ve
 		rel_step /= avg_step;
 	}
 
-	// Update scaling: smaller steps ? increase scaling, larger steps ? decrease scaling
+	// Update scaling: smaller steps → increase scaling, larger steps → decrease scaling
 	for (int i = 0; i < dv_names.size(); i++) {
 		if (rel_step(i) < 0.5) {
 			// Step too small, reduce scaling to encourage larger steps
@@ -2426,6 +2491,8 @@ bool SeqQuadProgram::trust_region_step(Parameters& current_dv_values, Eigen::Vec
 		Parameters new_grad = calc_gradient_vector(trial_ctl_dv_values);
 		current_grad_vector = new_grad;
 		make_gradient_runs(trial_ctl_dv_values, trial_obs);
+		update_hessian_and_grad_vector();
+
 		if (trust_radius == trust_radius_min)
 			return true;
 		else
@@ -3078,7 +3145,6 @@ bool SeqQuadProgram::solve_new()
 					current_constraint_mat = new_constraint_mat.first;
 				}
 			}
-			update_scaling(search_d, grad);
 			//else
 			//{
 			//	// Check if any constraints in working set became inactive
@@ -3118,13 +3184,9 @@ bool SeqQuadProgram::solve_new()
 			{
 				Eigen::SparseMatrix<double> h(dv_names.size(), dv_names.size());
 				h.setIdentity();
-
+				update_scaling(search_d, grad);
 				for (int i = 0; i < dv_names.size(); i++) {
-					// Scale based on relative magnitude of gradient component
-					double scale_factor = 1.0 + 5.0 * (abs(grad[i]) / grad.norm());
-					// Optional: Limit maximum scaling to avoid extreme values
-					scale_factor = min(scale_factor, 10.0);
-					h.coeffRef(i, i) = scale_factor;
+					h.coeffRef(i, i) *= diagonal_scaling(i);
 				}
 
 				hessian = Covariance(dv_names, h);

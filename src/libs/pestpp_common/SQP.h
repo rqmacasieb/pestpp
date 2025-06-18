@@ -148,7 +148,7 @@ private:
 
 	Eigen::VectorXd diagonal_scaling;
 	double adaptation_rate = 0.3;  // How quickly to adapt scaling (0-1)
-	int scaling_update_frequency = 2;  // Update scaling every N iterations
+	int scaling_update_frequency = 1;  // Update scaling every N iterations
 
 	set<string> pp_args;
 
@@ -209,6 +209,8 @@ private:
 	bool update_hessian_and_grad_vector();
 	void update_scaling(const Eigen::VectorXd& step, const Eigen::VectorXd& grad);
 	bool try_modify_hessian();
+	bool hessian_update_bfgs(Eigen::VectorXd s_k, Eigen::VectorXd y_k, Covariance old_hessian);
+	bool hessian_update_sr1(Eigen::VectorXd s_k, Eigen::VectorXd y_k, Covariance old_hessian);
 	bool solve_new();
 
 	bool seek_feasible();
