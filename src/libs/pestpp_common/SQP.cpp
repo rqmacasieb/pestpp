@@ -1683,8 +1683,8 @@ bool SeqQuadProgram::update_hessian_and_grad_vector()
 		message(2, "no active constraints, using objective gradient difference only");
 	}
 
-	//return hessian_update_bfgs(s_k, y_k, old_hessian);
-	return hessian_update_sr1(s_k, y_k, old_hessian);
+	return hessian_update_bfgs(s_k, y_k, old_hessian);
+	//return hessian_update_sr1(s_k, y_k, old_hessian);
 }
 
 void SeqQuadProgram::update_scaling(const Eigen::VectorXd& step, const Eigen::VectorXd& grad) {
@@ -2299,46 +2299,131 @@ pair<Eigen::VectorXd, Eigen::VectorXd> SeqQuadProgram::_kkt_null_space(Eigen::Ma
 	return pair<Eigen::VectorXd, Eigen::VectorXd>(search_d, lm);
 }
 
-
 pair<Eigen::VectorXd, Eigen::VectorXd> SeqQuadProgram::_kkt_direct(Eigen::MatrixXd& G, Eigen::MatrixXd& constraint_jco, Eigen::VectorXd& constraint_diff, Eigen::VectorXd& curved_grad, vector<string>& cnames)
 {
-	
-	//check A full rank
+	// 1. Check if we can use a more efficient approach for special cases
+	if (cnames.empty()) {
+		// No constraints - just solve the unconstrained problem
+		Eigen::VectorXd search_d = G.ldlt().solve(-curved_grad);
+		return pair<Eigen::VectorXd, Eigen::VectorXd>(search_d, Eigen::VectorXd());
+	}
 
-	// forming system to be solved - this is filth but it works..
-	Eigen::MatrixXd coeff_u(dv_names.size(), dv_names.size() + cnames.size());  // todo only in WS
-	coeff_u << G, constraint_jco.transpose();
-	Eigen::MatrixXd coeff_l(cnames.size(), dv_names.size() + cnames.size());  // todo only in WS
-	coeff_l << constraint_jco, Eigen::MatrixXd::Zero(cnames.size(), cnames.size());
-	Eigen::MatrixXd coeff(dv_names.size() + cnames.size(), dv_names.size() + cnames.size());  // todo only in WS
-	coeff << coeff_u, coeff_l;
-	message(1, "coeff", coeff);  // tmp
+	// 2. Form the KKT matrix with proper regularization
+	int n = dv_names.size();
+	int m = cnames.size();
 
-	Eigen::VectorXd rhs(curved_grad.size() + constraint_diff.size());
-	rhs << curved_grad, constraint_diff;  // << vec1, vec2;
-	message(1, "rhs", rhs);  // tmp
+	// Apply regularization to G if needed to ensure positive definiteness
+	Eigen::SelfAdjointEigenSolver<Eigen::MatrixXd> eigensolver(G);
+	double min_eig = eigensolver.eigenvalues().minCoeff();
+	const double min_allowed_eig = 1e-6;
 
-	Eigen::VectorXd x;
-	Eigen::MatrixXd V, U, S_, s;
-	SVD_REDSVD rsvd;
-	//SVD_EIGEN rsvd;
-	rsvd.set_performance_log(performance_log);
+	Eigen::MatrixXd G_reg = G;
+	if (min_eig < min_allowed_eig) {
+		double delta = min_allowed_eig - min_eig + 1e-6;
+		G_reg += delta * Eigen::MatrixXd::Identity(n, n);
+		message(1, "Applied regularization to Hessian, delta = ", delta);
+	}
 
-	rsvd.solve_ip(coeff, s, U, V, pest_scenario.get_svd_info().eigthresh, pest_scenario.get_svd_info().maxsing);
-	S_ = s.asDiagonal();
-	message(1, "singular values of KKT matrix", S_);  // tmp
+	// Form the KKT matrix with proper scaling
+	// Following Nocedal & Wright Eq. 16.62
+	double constraint_scaling = 1.0;
+	if (G_reg.norm() > 1e-8) {
+		constraint_scaling = std::sqrt(G_reg.norm());
+	}
 
-	// an old friend!
-	x = V * S_.inverse() * U.transpose() * rhs;
-	message(1, "solution vector of steps and lagrange mults", x);  // tmp
+	Eigen::MatrixXd scaled_constraint_jco = constraint_scaling * constraint_jco;
 
-	Eigen::VectorXd search_d, lm;
-	search_d = x.head(dv_names.size());  // add rigor here or at least asserts to ensure operating on correct elements
-	lm = x.tail(x.size() - dv_names.size());  // add rigor here or at least asserts to ensure operating on correct elements
+	Eigen::MatrixXd kkt_matrix(n + m, n + m);
+	kkt_matrix.topLeftCorner(n, n) = G_reg;
+	kkt_matrix.topRightCorner(n, m) = scaled_constraint_jco.transpose();
+	kkt_matrix.bottomLeftCorner(m, n) = scaled_constraint_jco;
+	kkt_matrix.bottomRightCorner(m, m) = Eigen::MatrixXd::Zero(m, m);
 
-	
-	return pair<Eigen::VectorXd, Eigen::VectorXd> (search_d, lm);
+	// 3. Form the right-hand side
+	// Following Nocedal & Wright Eq. 16.4
+	Eigen::VectorXd rhs(n + m);
+	rhs.head(n) = -curved_grad;
+	rhs.tail(m) = -constraint_diff * constraint_scaling;
+
+	// 4. Solve the KKT system using an appropriate method
+	// For stability, use LDLT factorization with pivoting
+	Eigen::LDLT<Eigen::MatrixXd> ldlt(kkt_matrix);
+
+	// Check if factorization succeeded
+	if (ldlt.info() != Eigen::Success) {
+		message(1, "LDLT factorization failed, falling back to SVD");
+
+		// Use Eigen's built-in SVD instead of custom SVD_REDSVD
+		Eigen::BDCSVD<Eigen::MatrixXd> svd(kkt_matrix, Eigen::ComputeThinU | Eigen::ComputeThinV);
+
+		// Solve the system using SVD
+		Eigen::VectorXd x = svd.solve(rhs);
+
+		Eigen::VectorXd search_d = x.head(n);
+		Eigen::VectorXd lm = x.tail(m) / constraint_scaling; // Rescale back
+
+		return pair<Eigen::VectorXd, Eigen::VectorXd>(search_d, lm);
+	}
+
+	// Solve using LDLT
+	Eigen::VectorXd x = ldlt.solve(rhs);
+
+	// 5. Extract the solution components
+	Eigen::VectorXd search_d = x.head(n);
+	Eigen::VectorXd lm = x.tail(m) / constraint_scaling; // Rescale back
+
+	// 6. Verify the solution
+	double kkt_error = (kkt_matrix * x - rhs).norm() / (1.0 + rhs.norm());
+	if (kkt_error > 1e-6) {
+		message(1, "Warning: KKT system solution has high residual: ", kkt_error);
+	}
+
+	message(1, "KKT system solved with residual: ", kkt_error);
+	message(2, "search_d: ", search_d.transpose());
+	message(2, "lagrange multipliers: ", lm.transpose());
+
+	return pair<Eigen::VectorXd, Eigen::VectorXd>(search_d, lm);
 }
+//
+//pair<Eigen::VectorXd, Eigen::VectorXd> SeqQuadProgram::_kkt_direct(Eigen::MatrixXd& G, Eigen::MatrixXd& constraint_jco, Eigen::VectorXd& constraint_diff, Eigen::VectorXd& curved_grad, vector<string>& cnames)
+//{
+//	
+//	//check A full rank
+//
+//	// forming system to be solved - this is filth but it works..
+//	Eigen::MatrixXd coeff_u(dv_names.size(), dv_names.size() + cnames.size());  // todo only in WS
+//	coeff_u << G, constraint_jco.transpose();
+//	Eigen::MatrixXd coeff_l(cnames.size(), dv_names.size() + cnames.size());  // todo only in WS
+//	coeff_l << constraint_jco, Eigen::MatrixXd::Zero(cnames.size(), cnames.size());
+//	Eigen::MatrixXd coeff(dv_names.size() + cnames.size(), dv_names.size() + cnames.size());  // todo only in WS
+//	coeff << coeff_u, coeff_l;
+//	message(1, "coeff", coeff);  // tmp
+//
+//	Eigen::VectorXd rhs(curved_grad.size() + constraint_diff.size());
+//	rhs << curved_grad, constraint_diff;  // << vec1, vec2;
+//	message(1, "rhs", rhs);  // tmp
+//
+//	Eigen::VectorXd x;
+//	Eigen::MatrixXd V, U, S_, s;
+//	SVD_REDSVD rsvd;
+//	//SVD_EIGEN rsvd;
+//	rsvd.set_performance_log(performance_log);
+//
+//	rsvd.solve_ip(coeff, s, U, V, pest_scenario.get_svd_info().eigthresh, pest_scenario.get_svd_info().maxsing);
+//	S_ = s.asDiagonal();
+//	message(1, "singular values of KKT matrix", S_);  // tmp
+//
+//	// an old friend!
+//	x = V * S_.inverse() * U.transpose() * rhs;
+//	message(1, "solution vector of steps and lagrange mults", x);  // tmp
+//
+//	Eigen::VectorXd search_d, lm;
+//	search_d = x.head(dv_names.size());  // add rigor here or at least asserts to ensure operating on correct elements
+//	lm = x.tail(x.size() - dv_names.size());  // add rigor here or at least asserts to ensure operating on correct elements
+//
+//	
+//	return pair<Eigen::VectorXd, Eigen::VectorXd> (search_d, lm);
+//}
 
 pair<Mat, bool> SeqQuadProgram::get_constraint_mat(const Eigen::VectorXd* lm)
 {
@@ -2491,7 +2576,7 @@ bool SeqQuadProgram::trust_region_step(Parameters& current_dv_values, Eigen::Vec
 		Parameters new_grad = calc_gradient_vector(trial_ctl_dv_values);
 		current_grad_vector = new_grad;
 		make_gradient_runs(trial_ctl_dv_values, trial_obs);
-		update_hessian_and_grad_vector();
+		//update_hessian_and_grad_vector();
 
 		if (trust_radius == trust_radius_min)
 			return true;
@@ -2995,6 +3080,11 @@ pair<Eigen::VectorXd, Eigen::VectorXd> SeqQuadProgram::calc_search_direction_vec
 		message(1, "constraint working set is empty, problem is currently unconstrained...");
 		Eigen::MatrixXd H = *hessian.e_ptr();
 		search_d = H.ldlt().solve(-grad_vector); //Eq 7.9, Nocedal and Wright p. 169
+		double dir_dot_grad = search_d.dot(grad_vector);
+		if (dir_dot_grad > 0) {
+			message(1, "Search direction not a descent direction, using steepest descent");
+			search_d = -grad_vector;
+		}
 		cout << endl << "hessian" << endl << hessian << endl;
 		cout << endl << "grad_vector" << endl << grad_vector << endl;
 	}
@@ -3067,7 +3157,7 @@ bool SeqQuadProgram::solve_new()
 	Eigen::VectorXd search_d, lm;
 	Eigen::VectorXd grad = current_grad_vector.get_data_eigen_vec(dv_names);
 	bool successful = false;
-
+	Covariance old_hessian = hessian;
 
 	int line_search_attempts = 0;
 	while (!successful && line_search_attempts < max_line_search_attempts)
@@ -3115,6 +3205,14 @@ bool SeqQuadProgram::solve_new()
 		//what if we switch, trust region early on, then line search for refinements, or vice versa?
 		//successful = trust_region_step(current_ctl_dv_values, search_d); 
 		successful = line_search(search_d, _current_num_dv_values, grad);
+		//if (!successful)
+		//{
+		//	message(1, "line search failed, trying with trust region step");
+		//	trial_ctl_dv_values = current_ctl_dv_values;
+		//	trial_obs = current_obs;
+		//	successful = trust_region_step(trial_ctl_dv_values, search_d, grad);
+		//}
+
 		if (successful)
 		{
 			//check for blocking constraint
@@ -3143,6 +3241,9 @@ bool SeqQuadProgram::solve_new()
 					cnames.push_back(blocking_constraint);
 					pair<Mat, bool> new_constraint_mat = get_constraint_mat();
 					current_constraint_mat = new_constraint_mat.first;
+					constraint_mat = new_constraint_mat;
+					successful = false;
+					continue;
 				}
 			}
 			//else
@@ -3179,9 +3280,11 @@ bool SeqQuadProgram::solve_new()
 		{
 			n_consec_failures++;
 			line_search_attempts++;
+			
 			//reset hessian matrix to identity per Liu and Reynolds
-			if (n_consec_failures >= max_consec_failures)
-			{
+			//maybe we just need to reset to identity matrix right away and the BASE_SCALE_FACTOR to 1.0
+			//if (n_consec_failures >= max_consec_failures)
+			//{
 				Eigen::SparseMatrix<double> h(dv_names.size(), dv_names.size());
 				h.setIdentity();
 				update_scaling(search_d, grad);
@@ -3192,51 +3295,41 @@ bool SeqQuadProgram::solve_new()
 				hessian = Covariance(dv_names, h);
 				n_consec_failures = 0;
 				BASE_SCALE_FACTOR = 1.0;
-			}
+			//}
 
-			if (line_search_attempts >= max_line_search_attempts) {
-				// Instead of just using identity matrix
-				// Or Option 2: Dynamic scaling based on gradient components
-				trial_ctl_dv_values = current_ctl_dv_values;
-				trial_obs = current_obs;
-				while (!successful)
-				{
-					grad = current_grad_vector.get_data_eigen_vec(dv_names);
-					cout << endl << "grad: " << grad.transpose() << endl;
-					double max_grad = grad.cwiseAbs().maxCoeff();
-					Eigen::VectorXd dynamic_scales = (max_grad / (grad.cwiseAbs().array() + 1e-10)).matrix();
-					search_d = -grad.cwiseProduct(dynamic_scales);
-					Eigen::SparseMatrix<double> h(dv_names.size(), dv_names.size());
-					h.setIdentity();
+				if (n_consec_failures >= max_consec_failures)
+					break;
+			//if (line_search_attempts >= max_line_search_attempts) {
+			//	message(1, "Line search failed, switching to trust region method");
 
-					// Apply per-dimension scaling based on gradient components
-					for (int i = 0; i < dv_names.size(); i++) {
-						// Scale based on relative magnitude of gradient component
-						double scale_factor = 1.0 + 5.0 * (abs(grad[i]) / grad.norm());
-						// Optional: Limit maximum scaling to avoid extreme values
-						scale_factor = min(scale_factor, 10.0);
-						h.coeffRef(i, i) = scale_factor;
-					}
+			//	// Reset trust region radius to a conservative value
+			//	trust_radius = 1.0;
+			//	trial_ctl_dv_values = current_ctl_dv_values;
+			//	trial_obs = current_obs;
+			//	hessian = old_hessian;
 
-					hessian = Covariance(dv_names, h);
-					cout << endl << "hessian" << endl << hessian << endl;
-					// Continue with trust region step
-					successful = trust_region_step(trial_ctl_dv_values, search_d, grad);
-				}
-			}
+			//	successful = trust_region_step(current_ctl_dv_values, search_d, grad);
 
+			//	if (!successful) {
+			//		// If trust region also fails, use a more conservative approach
+			//		message(1, "Trust region also failed, using scaled steepest descent");
 
-			//static Eigen::VectorXd momentum = Eigen::VectorXd::Zero(grad.size());
-			//
-			//if (!successful) {
-			//	// Use momentum from previous iterations
-			//	momentum = 0.9 * momentum - 0.1 * grad;
-			//	successful = trust_region_step(current_ctl_dv_values, momentum, grad);
+			//		// Use scaled steepest descent direction
+			//		search_d = -grad;
+			//		double norm_factor = std::min(1.0, 0.01 / search_d.norm());
+			//		search_d *= norm_factor;
+
+			//		// Try one more time with minimal trust radius
+			//		trust_radius = 1.0;
+			//		trial_ctl_dv_values = current_ctl_dv_values;
+			//		trial_obs = current_obs;
+			//		successful = trust_region_step(current_ctl_dv_values, search_d, grad);
+			//	}
 			//}
 		}
 
 	}
-	return successful; //RQM: this is just a placeholder return value at the moment
+	return successful;
 }
 
 bool SeqQuadProgram::seek_feasible()
@@ -3470,10 +3563,10 @@ Eigen::VectorXd SeqQuadProgram::get_obj_vector(ParameterEnsemble& _dv, Observati
 
 bool SeqQuadProgram::pick_candidate_and_update_current(ParameterEnsemble& dv_candidates, ObservationEnsemble& _oe, map<string,double>& sf_map)
 {
-	//decide!
 	message(0, " current best phi:", last_best);
 	stringstream ss;
 	Eigen::VectorXd obj_vec = get_obj_vector(dv_candidates, _oe);
+	Eigen::VectorXd merit_vec = obj_vec;
 	double oext,oviol;
 	if (obj_sense == "minimize")
 		oext = numeric_limits<double>::max();
@@ -3497,7 +3590,6 @@ bool SeqQuadProgram::pick_candidate_and_update_current(ParameterEnsemble& dv_can
 	for (int i = 0; i < obj_vec.size(); i++)
 	{
 		ss.str("");
-		//ss << "scale factor " << setprecision(4) << scale_vals[i];
 		ss << "candidate: " << real_names[i] << ", scale factor: " << sf_map.at(real_names[i]);
 		tag = ss.str();
 		ss.str("");
@@ -3524,13 +3616,8 @@ bool SeqQuadProgram::pick_candidate_and_update_current(ParameterEnsemble& dv_can
             else{
                 accept_idxs.push_back(i);
             }
-            //accept_idxs.push_back(i);
-//            idx = i;
-//            oext = obj_vec[i];
-//            // now update the filter recs to remove any dominated pairs
-//            filter.update(obj_vec[i], infeas_sum, iter, alpha_vals[i]);
-//            accept = true;
         }
+		merit_vec[i] = 0.0;
 		//report the constraint info for this candidate
 		t = dv_candidates.get_real_vector(real_names[i]);
 		cand_dv_values = current_ctl_dv_values;
@@ -3548,15 +3635,56 @@ bool SeqQuadProgram::pick_candidate_and_update_current(ParameterEnsemble& dv_can
         ss.str("");
         ss << "number of scale factors passing filter:" << accept_idxs.size();
         message(1,ss.str());
-        for (auto iidx : accept_idxs)
-        {
-			if (obj_vec[iidx] < oext) //rqm: this only currently applies if problem is minimisation?
-            {
-                idx = iidx;
-                oext = obj_vec[iidx];
-                oviol = infeas_vec[iidx];
-            }
-        }
+        //this is the original formulation...commenting out for now..will use a merit function instead
+		//for (auto iidx : accept_idxs)
+  //      {
+		//	if (obj_vec[iidx] < oext)
+  //          {
+  //              idx = iidx;
+  //              oext = obj_vec[iidx];
+  //              oviol = infeas_vec[iidx];
+  //          }
+  //      }
+
+		double min_accptobj = 1E+30, max_accptobj = -1E+30;
+		double min_accptviol = 1E+30, max_accptviol = -1E+30;
+
+		for (auto iidx : accept_idxs)
+		{
+			if (obj_vec[iidx] < min_accptobj)
+				min_accptobj = obj_vec[iidx];
+			if (obj_vec[iidx] > max_accptobj)
+				max_accptobj = obj_vec[iidx];
+			if (infeas_vec[iidx] < min_accptviol)
+				min_accptviol = infeas_vec[iidx];
+			if (infeas_vec[iidx] > max_accptviol)
+				max_accptviol = infeas_vec[iidx];
+		}
+		
+		double merit_obj, merit_viol, max_merit = -1E+30;
+		for (auto iidx : accept_idxs)
+		{
+			if (max_accptviol - min_accptviol < 1e-6)
+				merit_viol = 0.0;
+			else
+				merit_viol = 1 - (infeas_vec[iidx] - min_accptviol) / (max_accptviol - min_accptviol);
+			if (max_accptobj - min_accptobj < 1e-6)
+				merit_obj = 1.0;
+			else
+				merit_obj = 1 - (obj_vec[iidx] - min_accptobj) / (max_accptobj - min_accptobj);
+			merit_vec[iidx] = merit_obj + merit_viol;
+			ss.str("");
+			ss << "candidate: " << real_names[iidx] << ", merit: " << merit_vec[iidx];
+			message(1, ss.str());
+			if (merit_vec[iidx] > max_merit)
+			{
+				max_merit = merit_vec[iidx];
+				idx = iidx;
+				oext = obj_vec[iidx];
+				oviol = infeas_vec[iidx];
+			}
+		}
+
         filter.update(oext,infeas_vec[idx],iter,sf_map.at(real_names.at(idx)));
     }
 	else
@@ -3661,7 +3789,8 @@ bool SeqQuadProgram::pick_candidate_and_update_current(ParameterEnsemble& dv_can
                 parcov.try_from(pest_scenario, file_manager);
                 cout << parcov << endl;
             }
-            BASE_SCALE_FACTOR = BASE_SCALE_FACTOR * SF_DEC_FAC;
+			BASE_SCALE_FACTOR = SF_DEC_FAC * (best_phis[best_phis.size() - 2] - best_phis[best_phis.size() - 1]) / best_phis[best_phis.size() - 2];
+            //BASE_SCALE_FACTOR = BASE_SCALE_FACTOR * SF_DEC_FAC;
             message(0, "new base scale factor", BASE_SCALE_FACTOR);
         }
 
