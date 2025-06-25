@@ -109,7 +109,7 @@ private:
 	int n_consec_infeas;
 	//todo: make these ++ args
 	int MAX_CONSEC_INFEAS = 100000;
-    int MAX_CONSEC_INFEAS_IES = 3;
+    int MAX_CONSEC_INFEAS_IES = 6;
     int MAX_CONSEC_PHIINC = 100000;
     double SF_DEC_FAC = 0.5;
     double SF_INC_FAC = 1.1;
@@ -119,6 +119,7 @@ private:
     bool SOLVE_EACH_REAL = false;
     double PHI_ACCEPT_FAC = 0.05;
     double par_sigma_max = 100;
+	double penalty_param = 10.0;  // Base penalty parameter
     //todo add warning for par_sigma_range too low
     double par_sigma_min = 10;
 	double eigthresh;
@@ -156,7 +157,7 @@ private:
 
 	double last_best;
 	double last_viol;
-	vector<double> best_phis;
+	vector<double> best_phis, best_feas_phis;
 	vector<double> best_violations;
 	double best_phi_yet;
 	double best_violation_yet;

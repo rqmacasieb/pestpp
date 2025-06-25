@@ -3567,7 +3567,7 @@ bool SeqQuadProgram::pick_candidate_and_update_current(ParameterEnsemble& dv_can
 	stringstream ss;
 	Eigen::VectorXd obj_vec = get_obj_vector(dv_candidates, _oe);
 	Eigen::VectorXd merit_vec = obj_vec;
-	double oext,oviol;
+	double oext,oviol = 0.0;
 	if (obj_sense == "minimize")
 		oext = numeric_limits<double>::max();
 	else
@@ -3660,7 +3660,7 @@ bool SeqQuadProgram::pick_candidate_and_update_current(ParameterEnsemble& dv_can
 			if (infeas_vec[iidx] > max_accptviol)
 				max_accptviol = infeas_vec[iidx];
 		}
-		
+
 		double merit_obj, merit_viol, max_merit = -1E+30;
 		for (auto iidx : accept_idxs)
 		{
@@ -3675,14 +3675,14 @@ bool SeqQuadProgram::pick_candidate_and_update_current(ParameterEnsemble& dv_can
 			merit_vec[iidx] = merit_obj + merit_viol;
 			ss.str("");
 			ss << "candidate: " << real_names[iidx] << ", merit: " << merit_vec[iidx];
-			message(1, ss.str());
+				message(1, ss.str());
 			if (merit_vec[iidx] > max_merit)
-			{
+				{
 				max_merit = merit_vec[iidx];
-				idx = iidx;
-				oext = obj_vec[iidx];
-				oviol = infeas_vec[iidx];
-			}
+					idx = iidx;
+					oext = obj_vec[iidx];
+					oviol = infeas_vec[iidx];
+				}
 		}
 
         filter.update(oext,infeas_vec[idx],iter,sf_map.at(real_names.at(idx)));
@@ -3741,13 +3741,10 @@ bool SeqQuadProgram::pick_candidate_and_update_current(ParameterEnsemble& dv_can
     ss << "best candidate (scale factor: " << setprecision(4) << sf_map.at(real_names[idx]) << ", phi: " << oext << ", infeas: " << oviol << ")";
     constraints.sqp_report(iter, cand_dv_values, cand_obs_values, true,ss.str());
     filter.report(file_manager.rec_ofstream(),iter);
-	//TODO: need more thinking here - do we accept only if filter accepts?  I think so....
-	//if (((obj_sense == "minimize") && (oext < last_best)) || ((obj_sense == "maximize") && (oext > last_best)))
 	
 	prev_ctl_dv_values = current_ctl_dv_values; //needed for BFGS later
 	if (accept)
 	{
-		//todo:update current_dv and current_obs
 		message(0, "accepting upgrade", real_names[idx]);
 		best_name = real_names[idx];
 		t = dv_candidates.get_real_vector(idx);
@@ -3766,11 +3763,8 @@ bool SeqQuadProgram::pick_candidate_and_update_current(ParameterEnsemble& dv_can
 		message(0, "new best phi and infeas:", vector<double>{last_best,last_viol});
         best_phis.push_back(oext);
         best_violations.push_back(oviol);
-
-		// todo add constraint (largest violating constraint not already in working set) to working set
-		// is this the right place to do this? after accepting a particular candidate? 
-		// also can we adapt alpha_mult based on subset? using concept of blocking constraint here?
-		// take diff between vector of strings of constraints in working set and constraints with non-zero violation (return constraint idx from filter?)
+		if (last_viol == 0)
+			best_feas_phis.push_back(oext);
 
 		//if no filter-accepted solutions and we are in violation...
 		if (infeas_vec[idx] > filter.get_viol_tol())
@@ -3789,7 +3783,11 @@ bool SeqQuadProgram::pick_candidate_and_update_current(ParameterEnsemble& dv_can
                 parcov.try_from(pest_scenario, file_manager);
                 cout << parcov << endl;
             }
-			BASE_SCALE_FACTOR = SF_DEC_FAC * (best_phis[best_phis.size() - 2] - best_phis[best_phis.size() - 1]) / best_phis[best_phis.size() - 2];
+			double new_base_scale_factor = SF_DEC_FAC * (best_phis[best_phis.size() - 2] - best_phis[best_phis.size() - 1]) / best_phis[best_phis.size() - 2];
+			if (new_base_scale_factor < 0)
+				BASE_SCALE_FACTOR = 1.0;
+			else
+				BASE_SCALE_FACTOR = new_base_scale_factor;
             //BASE_SCALE_FACTOR = BASE_SCALE_FACTOR * SF_DEC_FAC;
             message(0, "new base scale factor", BASE_SCALE_FACTOR);
         }
