@@ -109,7 +109,7 @@ private:
 	int n_consec_infeas;
 	//todo: make these ++ args
 	int MAX_CONSEC_INFEAS = 100000;
-    int MAX_CONSEC_INFEAS_IES = 6;
+    int MAX_CONSEC_INFEAS_IES = 3;
     int MAX_CONSEC_PHIINC = 100000;
     double SF_DEC_FAC = 0.5;
     double SF_INC_FAC = 1.1;

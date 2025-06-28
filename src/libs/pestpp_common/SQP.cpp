@@ -3567,7 +3567,7 @@ bool SeqQuadProgram::pick_candidate_and_update_current(ParameterEnsemble& dv_can
 	stringstream ss;
 	Eigen::VectorXd obj_vec = get_obj_vector(dv_candidates, _oe);
 	Eigen::VectorXd merit_vec = obj_vec;
-	double oext,oviol = 0.0;
+	double oext,oviol = 0.0, nviol = 0.0;
 	if (obj_sense == "minimize")
 		oext = numeric_limits<double>::max();
 	else
@@ -3577,6 +3577,7 @@ bool SeqQuadProgram::pick_candidate_and_update_current(ParameterEnsemble& dv_can
 	map<string, double> obj_map = get_obj_map(dv_candidates, _oe);
 	//todo make sure chances have been applied before now...
 	map<string, map<string, double>> violations = constraints.get_ensemble_violations_map(dv_candidates,_oe,filter.get_viol_tol(),true);
+	map<string, map<string, double>> violations_nominal = constraints.get_ensemble_violations_map(dv_candidates, _oe, 0.0, true);
 	Parameters cand_dv_values = current_ctl_dv_values;
 	Observations cand_obs_values = current_obs;
 	Eigen::VectorXd t;
@@ -3584,8 +3585,10 @@ bool SeqQuadProgram::pick_candidate_and_update_current(ParameterEnsemble& dv_can
 	ParamTransformSeq pts = pest_scenario.get_base_par_tran_seq();
 	bool filter_accept;
 	string tag;
-	vector<double> infeas_vec;
+	vector<double> infeas_vec, nviol_vec;
 	vector<int> accept_idxs;
+	double current_tol = filter.get_viol_tol();
+	int num_feas_filter_accepts = 0, num_infeas_filter_accepts = 0;
 	bool accept = false;
 	for (int i = 0; i < obj_vec.size(); i++)
 	{
@@ -3594,13 +3597,14 @@ bool SeqQuadProgram::pick_candidate_and_update_current(ParameterEnsemble& dv_can
 		tag = ss.str();
 		ss.str("");
 		ss << tag << " phi: " << obj_vec[i];
-		double infeas_sum = 0.0;
+		double infeas_sum = 0.0, infeas_sum_nom = 0.0;
 		for (auto& v : violations[real_names[i]])
-		{
 			infeas_sum += v.second;
-		}
 		ss << " infeasibilty total: " << infeas_sum << ", ";
 		infeas_vec.push_back(infeas_sum);
+		for (auto& v : violations_nominal[real_names[i]])
+			infeas_sum_nom += v.second;
+		nviol_vec.push_back(infeas_sum_nom);
 		filter_accept = filter.accept(obj_vec[i], infeas_sum,iter,sf_map.at(real_names[i]),false);
 		if (filter_accept)
 			ss << " filter accepted ";
@@ -3636,53 +3640,45 @@ bool SeqQuadProgram::pick_candidate_and_update_current(ParameterEnsemble& dv_can
         ss << "number of scale factors passing filter:" << accept_idxs.size();
         message(1,ss.str());
         //this is the original formulation...commenting out for now..will use a merit function instead
-		//for (auto iidx : accept_idxs)
-  //      {
-		//	if (obj_vec[iidx] < oext)
-  //          {
-  //              idx = iidx;
-  //              oext = obj_vec[iidx];
-  //              oviol = infeas_vec[iidx];
-  //          }
-  //      }
-
-		double min_accptobj = 1E+30, max_accptobj = -1E+30;
-		double min_accptviol = 1E+30, max_accptviol = -1E+30;
-
+		
 		for (auto iidx : accept_idxs)
-		{
-			if (obj_vec[iidx] < min_accptobj)
-				min_accptobj = obj_vec[iidx];
-			if (obj_vec[iidx] > max_accptobj)
-				max_accptobj = obj_vec[iidx];
-			if (infeas_vec[iidx] < min_accptviol)
-				min_accptviol = infeas_vec[iidx];
-			if (infeas_vec[iidx] > max_accptviol)
-				max_accptviol = infeas_vec[iidx];
-		}
-
-		double merit_obj, merit_viol, max_merit = -1E+30;
-		for (auto iidx : accept_idxs)
-		{
-			if (max_accptviol - min_accptviol < 1e-6)
-				merit_viol = 0.0;
-			else
-				merit_viol = 1 - (infeas_vec[iidx] - min_accptviol) / (max_accptviol - min_accptviol);
-			if (max_accptobj - min_accptobj < 1e-6)
-				merit_obj = 1.0;
-			else
-				merit_obj = 1 - (obj_vec[iidx] - min_accptobj) / (max_accptobj - min_accptobj);
-			merit_vec[iidx] = merit_obj + merit_viol;
-			ss.str("");
-			ss << "candidate: " << real_names[iidx] << ", merit: " << merit_vec[iidx];
-				message(1, ss.str());
-			if (merit_vec[iidx] > max_merit)
+        {
+			if (obj_vec[iidx] < oext)
+            {
+				if (infeas_vec[iidx] <= 1E-6)
 				{
-				max_merit = merit_vec[iidx];
 					idx = iidx;
 					oext = obj_vec[iidx];
 					oviol = infeas_vec[iidx];
+					nviol = nviol_vec[iidx];
+					num_feas_filter_accepts++;
 				}
+            }
+        }
+
+		if (idx == -1)
+		{
+			nviol = numeric_limits<double>::max();
+			for (auto iidx : accept_idxs)
+			{
+				if (nviol_vec[iidx] < nviol)
+				{
+					idx = iidx;
+					oext = obj_vec[iidx];
+					oviol = infeas_vec[iidx];
+					nviol = nviol_vec[iidx];
+				}
+			}
+		}
+		
+
+		
+		if (nviol >= 1E-6)
+		{
+			if (nviol < 1.0)
+				filter.set_tol(current_tol * nviol); //if we have at least one strictly feasible solution, tighten the filter tolerance
+			else
+				filter.set_tol(current_tol * 0.5);
 		}
 
         filter.update(oext,infeas_vec[idx],iter,sf_map.at(real_names.at(idx)));
@@ -3700,12 +3696,14 @@ bool SeqQuadProgram::pick_candidate_and_update_current(ParameterEnsemble& dv_can
                     idx = i;
                     oext = obj_vec[i];
                     oviol = infeas_vec[i];
+					nviol = nviol_vec[i];
                 }
                 else if ((obj_sense == "maximize") && (obj_vec[i] > oext))
                 {
                     idx = i;
                     oext = obj_vec[i];
                     oviol = infeas_vec[i];
+					nviol = nviol_vec[i];
                 }
             }
         }
@@ -3726,6 +3724,10 @@ bool SeqQuadProgram::pick_candidate_and_update_current(ParameterEnsemble& dv_can
                 }
             }
         }
+		if (current_tol <= 1E-6)
+			filter.set_tol(pest_scenario.get_pestpp_options().get_sqp_filter_tol());
+		else
+			filter.set_tol(current_tol * 2.0);
 
     }
 	if (idx == -1)
@@ -3745,6 +3747,11 @@ bool SeqQuadProgram::pick_candidate_and_update_current(ParameterEnsemble& dv_can
 	prev_ctl_dv_values = current_ctl_dv_values; //needed for BFGS later
 	if (accept)
 	{
+		if (num_feas_filter_accepts == 0)
+		{
+			BASE_SCALE_FACTOR = BASE_SCALE_FACTOR * SF_DEC_FAC;
+			return false;
+		}
 		message(0, "accepting upgrade", real_names[idx]);
 		best_name = real_names[idx];
 		t = dv_candidates.get_real_vector(idx);
@@ -3766,12 +3773,10 @@ bool SeqQuadProgram::pick_candidate_and_update_current(ParameterEnsemble& dv_can
 		if (last_viol == 0)
 			best_feas_phis.push_back(oext);
 
-		//if no filter-accepted solutions and we are in violation...
-		if (infeas_vec[idx] > filter.get_viol_tol())
-        {
+		if (infeas_vec[idx] > 1E-6)
 		    n_consec_infeas++;
-        }
 		else {
+			n_consec_infeas = 0;
             if (use_ensemble_grad) {
                 double new_par_sigma = pest_scenario.get_pestpp_options().get_par_sigma_range();
                 new_par_sigma = new_par_sigma * (PAR_SIGMA_INC_FAC);
@@ -3783,12 +3788,12 @@ bool SeqQuadProgram::pick_candidate_and_update_current(ParameterEnsemble& dv_can
                 parcov.try_from(pest_scenario, file_manager);
                 cout << parcov << endl;
             }
-			double new_base_scale_factor = SF_DEC_FAC * (best_phis[best_phis.size() - 2] - best_phis[best_phis.size() - 1]) / best_phis[best_phis.size() - 2];
+			/*double new_base_scale_factor = SF_INC_FAC * (best_phis[best_phis.size() - 2] - best_phis[best_phis.size() - 1]) / best_phis[best_phis.size() - 2];
 			if (new_base_scale_factor < 0)
 				BASE_SCALE_FACTOR = 1.0;
 			else
-				BASE_SCALE_FACTOR = new_base_scale_factor;
-            //BASE_SCALE_FACTOR = BASE_SCALE_FACTOR * SF_DEC_FAC;
+				BASE_SCALE_FACTOR = new_base_scale_factor;*/
+            BASE_SCALE_FACTOR = BASE_SCALE_FACTOR * SF_INC_FAC;
             message(0, "new base scale factor", BASE_SCALE_FACTOR);
         }
 
@@ -3814,7 +3819,7 @@ bool SeqQuadProgram::pick_candidate_and_update_current(ParameterEnsemble& dv_can
             pest_scenario.get_pestpp_options_ptr()->set_par_sigma_range(new_par_sigma);
             cout << parcov << endl;
         }
-        BASE_SCALE_FACTOR = BASE_SCALE_FACTOR * SF_INC_FAC;
+        BASE_SCALE_FACTOR = BASE_SCALE_FACTOR * SF_DEC_FAC;
         message(0, "new base scale factor", BASE_SCALE_FACTOR);
 		return false;
 	}
