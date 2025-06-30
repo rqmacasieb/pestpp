@@ -2718,9 +2718,9 @@ bool SeqQuadProgram::line_search(Eigen::VectorXd& search_d, const Parameters& _c
 	if (initial_slope >= 0.1) 
 	{
 		message(1, "Warning: search direction is not a descent direction");
+		Covariance original_hessian = hessian;
+		
 		// First try: Modify Hessian to make it positive definite
-		// This could use Modified Cholesky factorization (Section 3.4)
-		// or add multiple of identity (Section 6.3)
 		bool modified_success = try_modify_hessian();
 
 		if (modified_success) {
@@ -2732,20 +2732,28 @@ bool SeqQuadProgram::line_search(Eigen::VectorXd& search_d, const Parameters& _c
 
 		// If modification fails or still gives non-descent direction
 		if (!modified_success || initial_slope >= 0) {
-			message(1, "Resetting Hessian to identity as last resort");
+			message(1, "Resetting Hessian to scaled identity matrix");
 			Eigen::SparseMatrix<double> h(dv_names.size(), dv_names.size());
 			h.setIdentity();
-			hessian = Covariance(dv_names, h);
-
-			// Try with reset Hessian
+			update_scaling(search_d, grad);
+			for (int i = 0; i < dv_names.size(); i++) {
+				h.coeffRef(i, i) *= diagonal_scaling(i);
+			}
+			
+			Covariance identity_hessian(dv_names, h);
+			hessian = identity_hessian;
 			pair<Eigen::VectorXd, Eigen::VectorXd> x = calc_search_direction_vector(_current_dv_values, grad);
 			search_d = x.first;
 			initial_slope = grad.dot(search_d);
 
-			// If still not descent, use steepest descent
+			// If still not descent, use pure steepest descent and restore original Hessian
 			if (initial_slope >= 0) {
+				message(1, "Using pure steepest descent and restoring original Hessian");
 				search_d = -grad;
 				initial_slope = grad.dot(search_d);
+
+				hessian = original_hessian;
+				cout << endl << "hessian" << endl << hessian << endl;
 			}
 		}
 	}
@@ -3299,33 +3307,6 @@ bool SeqQuadProgram::solve_new()
 
 				if (n_consec_failures >= max_consec_failures)
 					break;
-			//if (line_search_attempts >= max_line_search_attempts) {
-			//	message(1, "Line search failed, switching to trust region method");
-
-			//	// Reset trust region radius to a conservative value
-			//	trust_radius = 1.0;
-			//	trial_ctl_dv_values = current_ctl_dv_values;
-			//	trial_obs = current_obs;
-			//	hessian = old_hessian;
-
-			//	successful = trust_region_step(current_ctl_dv_values, search_d, grad);
-
-			//	if (!successful) {
-			//		// If trust region also fails, use a more conservative approach
-			//		message(1, "Trust region also failed, using scaled steepest descent");
-
-			//		// Use scaled steepest descent direction
-			//		search_d = -grad;
-			//		double norm_factor = std::min(1.0, 0.01 / search_d.norm());
-			//		search_d *= norm_factor;
-
-			//		// Try one more time with minimal trust radius
-			//		trust_radius = 1.0;
-			//		trial_ctl_dv_values = current_ctl_dv_values;
-			//		trial_obs = current_obs;
-			//		successful = trust_region_step(current_ctl_dv_values, search_d, grad);
-			//	}
-			//}
 		}
 
 	}
@@ -3645,14 +3626,15 @@ bool SeqQuadProgram::pick_candidate_and_update_current(ParameterEnsemble& dv_can
         {
 			if (obj_vec[iidx] < oext)
             {
-				if (infeas_vec[iidx] <= 1E-6)
+				if (nviol_vec[iidx] <= 1E-6)
 				{
 					idx = iidx;
 					oext = obj_vec[iidx];
 					oviol = infeas_vec[iidx];
 					nviol = nviol_vec[iidx];
-					num_feas_filter_accepts++;
 				}
+				if (infeas_vec[iidx] <= 1E-6)
+					num_feas_filter_accepts++;
             }
         }
 
@@ -3670,18 +3652,9 @@ bool SeqQuadProgram::pick_candidate_and_update_current(ParameterEnsemble& dv_can
 				}
 			}
 		}
-		
 
-		
-		if (nviol >= 1E-6)
-		{
-			if (nviol < 1.0)
-				filter.set_tol(current_tol * nviol); //if we have at least one strictly feasible solution, tighten the filter tolerance
-			else
-				filter.set_tol(current_tol * 0.5);
-		}
-
-        filter.update(oext,infeas_vec[idx],iter,sf_map.at(real_names.at(idx)));
+		filter.set_tol(current_tol * 0.5);
+		filter.update(oext,infeas_vec[idx],iter,sf_map.at(real_names.at(idx)));
     }
 	else
     {
@@ -3730,8 +3703,8 @@ bool SeqQuadProgram::pick_candidate_and_update_current(ParameterEnsemble& dv_can
 			filter.set_tol(current_tol * 2.0);
 
     }
-	if (idx == -1)
-	    throw_sqp_error("shits busted");
+	//if (idx == -1)
+	//    throw_sqp_error("shits busted");
     message(0, "best phi and infeas this iteration: ", vector<double>{oext,oviol});
     t = dv_candidates.get_real_vector(real_names[idx]);
     cand_dv_values = current_ctl_dv_values;
@@ -3793,7 +3766,10 @@ bool SeqQuadProgram::pick_candidate_and_update_current(ParameterEnsemble& dv_can
 				BASE_SCALE_FACTOR = 1.0;
 			else
 				BASE_SCALE_FACTOR = new_base_scale_factor;*/
-            BASE_SCALE_FACTOR = BASE_SCALE_FACTOR * SF_INC_FAC;
+			if (num_feas_filter_accepts < 2)
+				BASE_SCALE_FACTOR = BASE_SCALE_FACTOR * SF_DEC_FAC;
+			else
+				BASE_SCALE_FACTOR = BASE_SCALE_FACTOR * SF_INC_FAC;
             message(0, "new base scale factor", BASE_SCALE_FACTOR);
         }
 
