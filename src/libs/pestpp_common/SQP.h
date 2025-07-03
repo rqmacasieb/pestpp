@@ -170,8 +170,8 @@ private:
 	string best_name;
 	//vector<int> subset_idxs;
 
-	Parameters current_ctl_dv_values, prev_ctl_dv_values, trial_ctl_dv_values;
-	Observations current_obs, trial_obs;
+	Parameters current_ctl_dv_values, prev_ctl_dv_values, trial_ctl_dv_values, infeas_cand_dv_values;
+	Observations current_obs, trial_obs, infeas_cand_obs;
 
 	Parameters current_grad_vector, prev_grad_vector;
 	map<int, Parameters> grad_vector_map;
@@ -213,21 +213,25 @@ private:
 	bool hessian_update_bfgs(Eigen::VectorXd s_k, Eigen::VectorXd y_k, Covariance old_hessian);
 	bool hessian_update_sr1(Eigen::VectorXd s_k, Eigen::VectorXd y_k, Covariance old_hessian);
 	bool solve_new();
+	bool solve_partial_step(const Eigen::VectorXd& _search_d, const Eigen::VectorXd& _grad);
 
 	bool seek_feasible();
 	bool line_search(Eigen::VectorXd& search_d, const Parameters& _current_dv_values, Eigen::VectorXd& grad);
+	bool line_search_partial_step(const Eigen::VectorXd& search_d, const Parameters& _current_dv_values, const Parameters& _infeas_cand_dv_values, const Observations& _current_obs, const Observations&  _infeas_cand_obs, const Eigen::VectorXd& grad);
+	bool iterative_partial_step(const string& _blocking_constraint);
 	bool pick_candidate_and_update_current(ParameterEnsemble& dv_candidates, ObservationEnsemble& _oe, map<string,double>& sf_map);
+	bool pick_partial_step(ParameterEnsemble& dv_candidates, ObservationEnsemble& _oe, map<string, double>& sf_map);
 	bool check_wolfe_conditions(Parameters& trial_dv_values, Observations& trial_obs, const Eigen::VectorXd& search_d, 
 		const Eigen::VectorXd& grad, double scale, double initial_obj, double initial_slope);
 	double get_reference_obj();
 
 	double compute_actual_reduction(Parameters& trial_dv_values, Observations& trial_obs);
 	double compute_predicted_reduction(const Eigen::VectorXd& step, const Eigen::VectorXd& grad);
+	
 	bool trust_region_step(Parameters& current_dv_values, Eigen::VectorXd& step, Eigen::VectorXd grad);
 	Eigen::VectorXd solve_trust_region_subproblem_dogleg(const Eigen::MatrixXd& B, const Eigen::VectorXd& g, double radius);
 	Eigen::VectorXd solve_trust_region_subproblem(const Eigen::MatrixXd& B, const Eigen::VectorXd& g, double radius);
 	Eigen::VectorXd compute_boundary_solution(const Eigen::VectorXd& p,	const Eigen::VectorXd& d, double radius);
-
 	Parameters calc_gradient_vector(const Parameters& _current_dv_values, string _center_on=string());
 	
 	Eigen::VectorXd calc_gradient_vector_from_coeffs(const Parameters & _current_dv_values);
@@ -236,7 +240,7 @@ private:
 
 	double get_obj_value(Parameters& _current_ctl_dv_vals, Observations& _current_obs);
 	map<string, double> get_obj_map(ParameterEnsemble& _dv, ObservationEnsemble& _oe);
-	pair<Mat, bool> get_constraint_mat(const Eigen::VectorXd* lagrange_mults = nullptr);
+	pair<Mat, bool> get_constraint_mat(Parameters& _dv_vals, Observations&_obs_vals, const Eigen::VectorXd* lagrange_mults = nullptr);
 
 	//Eigen::VectorXd calc_search_direction_vector(const Parameters& _current_dv_, Eigen::VectorXd &
 	// );
