@@ -131,8 +131,8 @@ private:
 
 	//trust region parameters
 	//TODO: Maybe put these as ++args later
-	double trust_radius = 1.0;
-	double trust_radius_max = 10.0;
+	double trust_radius = 0.25;
+	double trust_radius_max = 2.0;
 	double trust_radius_min = 1e-4;
 	double eta1 = 0.25;  // ratio threshold for radius reduction
 	double eta2 = 0.75;  // ratio threshold for radius increase
@@ -240,7 +240,7 @@ private:
 
 	double get_obj_value(Parameters& _current_ctl_dv_vals, Observations& _current_obs);
 	map<string, double> get_obj_map(ParameterEnsemble& _dv, ObservationEnsemble& _oe);
-	pair<Mat, bool> get_constraint_mat(Parameters& _dv_vals, Observations&_obs_vals, const Eigen::VectorXd* lagrange_mults = nullptr);
+	pair<Mat, bool> get_constraint_mat(Parameters& _dv_vals, Observations&_obs_vals, double working_set_tol = 0.005, const Eigen::VectorXd* lagrange_mults = nullptr);
 
 	//Eigen::VectorXd calc_search_direction_vector(const Parameters& _current_dv_, Eigen::VectorXd &
 	// );
@@ -278,7 +278,6 @@ private:
 
 	void sanity_checks();
 	bool isfullrank(const Eigen::MatrixXd& mat);
-	bool is_constraint_active(string& cname, Observations& current_obs);
 
 	void add_current_as_bases(ParameterEnsemble& _dv, ObservationEnsemble& _oe);
 

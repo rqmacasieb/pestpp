@@ -3164,12 +3164,24 @@ map<string, double> Constraints::get_unsatified_obs_constraints(Observations& co
         if (include_weight)
             weight = oi.get_weight(name);
 		//check for invalid obs constraints (e.g. satified)
-		if ((constraint_sense_map[name] == ConstraintSense::less_than) && (sim_val > obs_val) && (scaled_diff > tol))
-			unsatisfied[name] = weight * (sim_val - obs_val);
-		else if ((constraint_sense_map[name] == ConstraintSense::greater_than) && (sim_val < obs_val) && (scaled_diff > tol))
-			unsatisfied[name] = weight * (obs_val - sim_val);
-		else if ((constraint_sense_map[name] == ConstraintSense::equal_to) && (sim_val != obs_val) && (scaled_diff > tol))
-			unsatisfied[name] = weight * abs(sim_val - obs_val);
+		if (tol >= 0)
+		{
+			if ((constraint_sense_map[name] == ConstraintSense::less_than) && (sim_val > obs_val) && (scaled_diff > tol))
+				unsatisfied[name] = weight * (sim_val - obs_val);
+			else if ((constraint_sense_map[name] == ConstraintSense::greater_than) && (sim_val < obs_val) && (scaled_diff > tol))
+				unsatisfied[name] = weight * (obs_val - sim_val);
+			else if ((constraint_sense_map[name] == ConstraintSense::equal_to) && (sim_val != obs_val) && (scaled_diff > tol))
+				unsatisfied[name] = weight * abs(sim_val - obs_val);
+		}
+		else
+		{
+			if (constraint_sense_map[name] == ConstraintSense::less_than)
+				unsatisfied[name] = weight * (sim_val - obs_val);
+			else if (constraint_sense_map[name] == ConstraintSense::greater_than)
+				unsatisfied[name] = weight * (obs_val - sim_val);
+			else if (constraint_sense_map[name] == ConstraintSense::equal_to)
+				unsatisfied[name] = weight * abs(sim_val - obs_val);
+		}
 	}
 	return unsatisfied;
 
@@ -3316,7 +3328,8 @@ pair<Mat, bool> Constraints::get_working_set_constraint_matrix(Parameters& par_a
 
 pair<Mat, bool> Constraints::get_working_set_constraint_matrix(Parameters& par_and_dec_vars, Observations& constraints_sim, const Jacobian_1to1& _jco, bool do_shift, const Eigen::VectorXd* lagrange_mults, double working_set_tol)
 {
-	pair<vector<string>,vector<string>> working_set = get_working_set(par_and_dec_vars,constraints_sim,do_shift,working_set_tol);
+	double wset_tol = max(0.05, working_set_tol);
+	pair<vector<string>,vector<string>> working_set = get_working_set(par_and_dec_vars,constraints_sim,do_shift, wset_tol);
 	Mat mat;
 	bool converged = false;
     if (working_set.first.size() > 0) 

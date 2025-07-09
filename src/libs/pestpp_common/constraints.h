@@ -110,7 +110,7 @@ public:
 	map<string, double> get_unsatified_obs_constraints(Observations& constraints_sim, double tol=0.0, bool do_shift = true, bool include_weight = false);
 	map<string, double> get_constraint_map(Parameters& par_and_dec_vars, Observations& constraints_sim, bool do_shift);
 
-	pair<Mat, bool> get_working_set_constraint_matrix(Parameters& par_and_dec_vars, Observations& constraints_sim, const Jacobian_1to1& jco, bool do_shift, const Eigen::VectorXd* lagrange_mults = nullptr, double working_set_tol = 0.005); //temporarily setting to 0.15 for testing, might need to revert to 0.10
+	pair<Mat, bool> get_working_set_constraint_matrix(Parameters& par_and_dec_vars, Observations& constraints_sim, const Jacobian_1to1& jco, bool do_shift, const Eigen::VectorXd* lagrange_mults = nullptr, double working_set_tol = 0.15); //temporarily setting to 0.15 for testing, might need to revert to 0.10
 	pair<Mat, bool> get_working_set_constraint_matrix(Parameters& par_and_dec_vars, Observations& constraints_sim, ParameterEnsemble& dv, ObservationEnsemble& oe, bool do_shift, const Eigen::VectorXd* lagrange_mults = nullptr, double working_set_tol = 0.05);
 	pair<vector<string>, bool> reduce_working_set(vector<string>& working_set, const Eigen::VectorXd& lagrange_mults);
 
