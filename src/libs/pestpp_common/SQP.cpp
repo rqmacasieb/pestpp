@@ -2479,7 +2479,7 @@ Eigen::VectorXd SeqQuadProgram::compute_boundary_solution(const Eigen::VectorXd&
 	return p + tau * d;
 }
 
-bool SeqQuadProgram::trust_region_step(Parameters& current_dv_values, Eigen::VectorXd& step, Eigen::VectorXd grad)
+bool SeqQuadProgram::trust_region_step(Parameters& current_dv_values, Eigen::VectorXd grad)
 {
 	prev_ctl_dv_values = trial_ctl_dv_values; //saving a copy for BFGS later
 
@@ -3372,6 +3372,10 @@ bool SeqQuadProgram::solve_new()
 			}
 		}
 
+		//trial_ctl_dv_values = current_ctl_dv_values;
+		//trial_obs = current_obs;
+		//successful = trust_region_step(current_ctl_dv_values, grad);
+
 		successful = line_search(search_d, _current_num_dv_values, grad);
 		string blocking_constraint = "";
 		if (successful)
@@ -3730,6 +3734,7 @@ bool SeqQuadProgram::pick_candidate_and_update_current(ParameterEnsemble& dv_can
 	map<string, double> obj_map = get_obj_map(dv_candidates, _oe);
 	map<string, map<string, double>> violations = constraints.get_ensemble_violations_map(dv_candidates,_oe,filter.get_viol_tol(),true);
 	map<string, map<string, double>> violations_nominal = constraints.get_ensemble_violations_map(dv_candidates, _oe, 0.0, true);
+	map<string, map<string, double>> feasible_distance = constraints.get_ensemble_violations_map(dv_candidates, _oe, -1, true);
 	Parameters cand_dv_values = current_ctl_dv_values;
 	Observations cand_obs_values = current_obs;
 	Eigen::VectorXd t;
@@ -3737,7 +3742,7 @@ bool SeqQuadProgram::pick_candidate_and_update_current(ParameterEnsemble& dv_can
 	ParamTransformSeq pts = pest_scenario.get_base_par_tran_seq();
 	bool filter_accept;
 	string tag;
-	vector<double> infeas_vec, nviol_vec;
+	vector<double> infeas_vec, nviol_vec, feas_dist_map;
 	vector<int> accept_idxs;
 	double current_tol = filter.get_viol_tol();
 	int num_feas_filter_accepts = 0, num_infeas_filter_accepts = 0;
@@ -3749,7 +3754,7 @@ bool SeqQuadProgram::pick_candidate_and_update_current(ParameterEnsemble& dv_can
 		tag = ss.str();
 		ss.str("");
 		ss << tag << " phi: " << obj_vec[i];
-		double infeas_sum = 0.0, infeas_sum_nom = 0.0;
+		double infeas_sum = 0.0, infeas_sum_nom = 0.0, feas_dist = 0;
 		for (auto& v : violations[real_names[i]])
 			infeas_sum += v.second;
 		ss << " infeasibility total: " << infeas_sum << ", ";
@@ -3757,6 +3762,9 @@ bool SeqQuadProgram::pick_candidate_and_update_current(ParameterEnsemble& dv_can
 		for (auto& v : violations_nominal[real_names[i]])
 			infeas_sum_nom += v.second;
 		nviol_vec.push_back(infeas_sum_nom);
+		for (auto& f : feasible_distance[real_names[i]])
+			feas_dist -= f.second;
+		feas_dist_map.push_back(feas_dist);
 		filter_accept = filter.accept(obj_vec[i], infeas_sum,iter,sf_map.at(real_names[i]),false);
 		if (filter_accept)
 			ss << " filter accepted ";
@@ -3781,19 +3789,31 @@ bool SeqQuadProgram::pick_candidate_and_update_current(ParameterEnsemble& dv_can
 		cand_obs_values.update_without_clear(onames, t);
 		constraints.sqp_report(iter, cand_dv_values, cand_obs_values, false,tag);
 	}
-	
+	//
+	//bool feas_2_infeas = false;
+	//for (int i = 1; i < obj_vec.size(); i++)
+	//{
+	//	if ((feas_dist_map[i] * feas_dist_map[i - 1]) < 0)
+	//		feas_2_infeas = true;
+	//}
+
     if (accept_idxs.size() > 0)
     {
         accept = true;
         ss.str("");
         ss << "number of scale factors passing filter:" << accept_idxs.size();
         message(1,ss.str());
-		
+		double delta_feas = -999;
 		for (auto iidx : accept_idxs)
         {
+			if (iidx > 0)
+				delta_feas = feas_dist_map[iidx] * feas_dist_map[iidx - 1];
+			else
+				delta_feas = feas_dist_map[iidx];
+
 			if (obj_vec[iidx] < oext)
             {
-				if (nviol_vec[iidx] <= 1E-6)
+				if ((nviol_vec[iidx] <= 1E-6) && (delta_feas >= 0))
 				{
 					idx = iidx;
 					oext = obj_vec[iidx];
