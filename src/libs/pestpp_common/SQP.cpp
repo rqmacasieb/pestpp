@@ -3057,7 +3057,6 @@ bool SeqQuadProgram::line_search(Eigen::VectorXd& search_d, const Parameters& _c
 			}
 		}
 		else {
-			//dv_num_candidate = fancy_solve_routine(scale_val, _current_num_dv_values);
 			Parameters num_candidate = _current_dv_values;
 
 			Eigen::VectorXd scale_search_d = search_d * scale_val;
@@ -3065,11 +3064,9 @@ bool SeqQuadProgram::line_search(Eigen::VectorXd& search_d, const Parameters& _c
 				message(1, "very short upgrade for scale value", scale_val);
 
 			Eigen::VectorXd cvals = num_candidate.get_data_eigen_vec(dv_names);
-
 			cvals.array() += (scale_search_d/search_d.norm()).array();
 			num_candidate.update_without_clear(dv_names, cvals);
 
-			//Eigen::VectorXd vec = dv_num_candidate.get_data_eigen_vec(dv_names);
 			Eigen::VectorXd vec = num_candidate.get_data_eigen_vec(dv_names);
 			dv_candidates.update_real_ip(real_names[i], vec);
 			used_scale_vals.push_back(scale_val);
@@ -3093,7 +3090,6 @@ bool SeqQuadProgram::line_search(Eigen::VectorXd& search_d, const Parameters& _c
 	ss << file_manager.get_base_filename() << "." << iter << ".dv_candidates.csv";
 	dv_candidates.to_csv(ss.str());
 
-	//check for duplicate candidates
 	Eigen::VectorXd v1, v2;
 	double d;
 	vector<string> drop;
@@ -3127,7 +3123,6 @@ bool SeqQuadProgram::line_search(Eigen::VectorXd& search_d, const Parameters& _c
 
 	message(0, "running candidate decision variable batch");
 	vector<double> passed_scale_vals = scale_vals;
-	//passed_scale_vals will get amended in this function based on run fails...
 
 	ObservationEnsemble oe_candidates = run_candidate_ensemble(dv_candidates);
 	ss.str("");
@@ -3140,70 +3135,6 @@ bool SeqQuadProgram::line_search(Eigen::VectorXd& search_d, const Parameters& _c
 		sf_map[dv_candidates.get_real_names()[i]] = used_scale_vals[i];
 	}
 	return pick_candidate_and_update_current(dv_candidates, oe_candidates, sf_map);
-
-	//RQM: Not sure, this might be redundant unnecessary checks if filter can pick already, bu let's see...
-	//keeps kicking out candidates even before picking by filter. commenting out for now...
-	//evaluate cand using non-monotone criteria (see pp 444-445, Nocedal and Wright) and Wolfe conditions (see pp 33-34, Nocedal and Wright)
-	//double best_obj = numeric_limits<double>::max();
-	//double reference_obj = get_reference_obj();
-
-	//vector<string> acceptable_candidates;
-	//for (size_t i = 0; i < dv_candidates.get_real_names().size(); i++)
-	//{
-	//	string real_name = dv_candidates.get_real_names()[i];
-	//	double scale = real_sf_map[real_name];
-
-	//	//get trial values
-	//	Parameters trial_dv_values = _current_dv_values;
-	//	Eigen::VectorXd trial_par_vec = dv_candidates.get_real_vector(real_name);
-	//	trial_dv_values.update_without_clear(dv_names, trial_par_vec);
-
-	//	Observations trial_obs = current_obs;
-	//	Eigen::VectorXd trial_obs_vec = oe_candidates.get_real_vector(real_name);
-	//	trial_obs.update(oe_candidates.get_var_names(), trial_obs_vec);
-
-	//	//check Wolfe conditions against reference value
-	//	if (check_wolfe_conditions(trial_dv_values, trial_obs, search_d, grad,
-	//		scale, reference_obj, initial_slope))
-	//	{
-	//		acceptable_candidates.push_back(real_name);
-	//	}
-	//}
-
-	////second pass: pick among acceptable candidates
-	//if (!acceptable_candidates.empty())
-	//{
-	//	// Create filtered ensembles with only acceptable candidates
-	//	ParameterEnsemble filtered_dv(&pest_scenario, &rand_gen);
-	//	ObservationEnsemble filtered_oe(&pest_scenario, &rand_gen);
-	//	map<string, double> filtered_sf_map;
-
-	//	for (const auto& name : acceptable_candidates)
-	//	{
-	//		filtered_dv.append(name, dv_candidates.get_real_vector(name));
-	//		filtered_oe.append(name, oe_candidates.get_real_vector(name));
-	//		filtered_sf_map[name] = real_sf_map[name];
-	//	}
-
-	//	// Use existing selection logic
-	//	bool success = pick_candidate_and_update_current(filtered_dv, filtered_oe, filtered_sf_map);
-
-	//	if (success)
-	//	{
-	//		// Update successful scale and objective history
-	//		prev_successful_scale = filtered_sf_map[best_name];
-
-	//		double best_obj = get_obj_value(current_ctl_dv_values, current_obs);
-	//		previous_obj_values.push_back(best_obj);
-	//		if (previous_obj_values.size() > memory_length)
-	//			previous_obj_values.erase(previous_obj_values.begin());
-	//	}
-
-	//	return success;
-	//}
-
-	//return false;
-
 }
 
 bool SeqQuadProgram::check_wolfe_conditions(Parameters& trial_dv_values, Observations& trial_obs, const Eigen::VectorXd& search_d,
@@ -3241,7 +3172,7 @@ pair<Eigen::VectorXd, Eigen::VectorXd> SeqQuadProgram::calc_search_direction_vec
 	Eigen::VectorXd search_d, lm;
 	pair<Eigen::VectorXd, Eigen::VectorXd> x;
 
-	if (cnames.size() > 0)  // solve constrained QP subproblem
+	if (cnames.size() > 0)
 	{
 		message(0, "current working set:", cnames);
 
@@ -3276,7 +3207,6 @@ pair<Eigen::VectorXd, Eigen::VectorXd> SeqQuadProgram::calc_search_direction_vec
 
 		message(1, "constraint diff:", constraint_diff);  // tmp
 		
-		// throw error here if not all on/near constraint
 		if ((constraint_diff.array().abs() > filter.get_viol_tol()).any())  // todo make some level of forgiveness with a tolerance parameter here
 		{
 			//throw_sqp_error("not on constraint");  // better to pick this up elsewhere (before) anyway
@@ -3285,8 +3215,7 @@ pair<Eigen::VectorXd, Eigen::VectorXd> SeqQuadProgram::calc_search_direction_vec
 		}
 		Eigen::MatrixXd G = *hessian.e_ptr();  // initialize the hessian as identity matrix (Dhedari et al 2012)
 		Eigen::VectorXd c;
-		//c = grad_vector + G * _current_dv_values.get_data_eigen_vec(dv_names);  // TODO: check not just grad (see both) and check sign too...
-		////c is the rhs of Eq 18.20, p. 538 in Nocedal and Wright
+		//c is the rhs of Eq 18.20, p. 538 in Nocedal and Wright
 
 		string eqp_solve_method; // probably too heavy to be a ++arg
 		eqp_solve_method = "null_space";
@@ -3307,7 +3236,6 @@ pair<Eigen::VectorXd, Eigen::VectorXd> SeqQuadProgram::calc_search_direction_vec
 			throw_sqp_error("eqp_solve_method not implemented");
 		}
 		lambda = lm;
-		message(1, "current working set:", cnames);  // tmp
 	}
 	else  // solve unconstrained QP subproblem
 	{
@@ -3322,7 +3250,7 @@ pair<Eigen::VectorXd, Eigen::VectorXd> SeqQuadProgram::calc_search_direction_vec
 		cout << endl << "hessian" << endl << hessian << endl;
 		cout << endl << "grad_vector" << endl << grad_vector << endl;
 	}
-	return pair<Eigen::VectorXd, Eigen::VectorXd> (search_d, lm);  // lm will be empty if non-constrained solve
+	return pair<Eigen::VectorXd, Eigen::VectorXd> (search_d, lm);
 }
 
 Eigen::VectorXd SeqQuadProgram::fancy_solve_routine(const Parameters& _current_dv_num_values, const Parameters& _grad_vector)
@@ -3502,13 +3430,6 @@ bool SeqQuadProgram::solve_new()
 			line_search_attempts++;
 			BASE_SCALE_FACTOR *= SF_DEC_FAC;
 
-			//message(1, "line search failed, trying with trust region step");
-			//trial_ctl_dv_values = current_ctl_dv_values;
-			//trial_obs = current_obs;
-			//successful = trust_region_step(trial_ctl_dv_values, search_d, grad);
-			
-			//reset hessian matrix to identity per Liu and Reynolds
-			//maybe we just need to reset to identity matrix right away and the BASE_SCALE_FACTOR to 1.0
 			if (n_consec_failures >= max_consec_failures)
 			{
 				Eigen::SparseMatrix<double> h(dv_names.size(), dv_names.size());
@@ -3522,7 +3443,6 @@ bool SeqQuadProgram::solve_new()
 				n_consec_failures = 0;
 				BASE_SCALE_FACTOR *= SF_INC_FAC;
 			}
-
 				if (n_consec_failures >= max_consec_failures)
 					break;
 		}
