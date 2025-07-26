@@ -1700,21 +1700,31 @@ bool PestppOptions::assign_value_by_key_sqp(const string& key, const string& val
 		sqp_update_hessian = pest_utils::parse_string_arg_to_bool(value);
 		return true;
 	}
+	else if (key == "SQP_SOLVE_PARTIAL_STEP")
+	{
+		sqp_solve_partial_step = pest_utils::parse_string_arg_to_bool(value);
+		return true;
+	}
 	else if (key == "SQP_FILTER_TOL")
 	{
 		convert_ip(value, sqp_filter_tol);
 		return true;
 	}
-	else if (key == "SQP_SCALE_FACS")
+	else if (key == "SQP_WORKING_SET_TOL")
 	{
-		sqp_scale_facs.clear();
+		convert_ip(value, sqp_working_set_tol);
+		return true;
+	}
+	else if (key == "SQP_ALPHA_MULTS")
+	{
+		sqp_alpha_mults.clear();
 		vector<string> tok;
 		tokenize(value, tok, ",		");
 		double v;
 		for (const auto& t : tok)
 		{
 			convert_ip(t, v);
-			sqp_scale_facs.push_back(v);
+			sqp_alpha_mults.push_back(v);
 		}
 		return true;
 	}
@@ -1879,10 +1889,12 @@ void PestppOptions::summary(ostream& os) const
 	os << "sqp_obs_restart_en: " << sqp_obs_restart_en << endl;
 	os << "sqp_num_reals: " << sqp_num_reals << endl;
 	os << "sqp_update_hessian: " << sqp_update_hessian << endl;
-	os << "sqp_scale_facs:" << endl;
-	for (auto m : sqp_scale_facs)
+	os << "sqp_solve_partial_step: " << sqp_solve_partial_step << endl;
+	os << "sqp_alpha_mults:" << endl;
+	for (auto m : sqp_alpha_mults)
 		os << "  " << m << endl;
 	os << "sqp_filter_tol: " << sqp_filter_tol << endl;
+	os << "sqp_working_set_tol: " << sqp_working_set_tol << endl;
 
 	os << endl << "...pestpp-mou options:" << endl;
 	os << "mou_generator: " << mou_generator << endl;
@@ -2111,9 +2123,11 @@ void PestppOptions::set_defaults()
 	set_sqp_dv_en("");
 	set_sqp_obs_restart_en("");
 	set_sqp_num_reals(-1);
-	set_sqp_update_hessian(false);
-	set_sqp_scale_facs(vector<double>{0.00001, 0.0001,0.0005, 0.001, 0.0025, 0.005, 0.01, 0.05, 0.075, 0.1, 0.25,0.5, 1.0,2.,5.,10.,});
+	set_sqp_update_hessian(true);
+	set_sqp_solve_partial_step(true);
+	set_sqp_alpha_mults(vector<double>{0.00001, 0.0001,0.0005, 0.001, 0.0025, 0.005, 0.01, 0.05, 0.075, 0.1, 0.25,0.5, 1.0,2.,5.,10.,});
 	set_sqp_filter_tol(0.05);
+	set_sqp_working_set_tol(0.10);
 
 	set_mou_generator("PSO");
 	set_mou_population_size(100);

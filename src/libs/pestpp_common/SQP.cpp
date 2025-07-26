@@ -894,7 +894,7 @@ void SeqQuadProgram::initialize()
 		return;
 	}
 
-	message(1, "using the following upgrade vector scale (e.g. 'line search') values:", ppo->get_sqp_scale_facs());
+	message(1, "using the following upgrade vector scale (e.g. 'line search') values:", ppo->get_sqp_alpha_mults());
 	
 	//ofstream &frec = file_manager.rec_ofstream();
 	last_best = 1.0E+30;
@@ -906,14 +906,14 @@ void SeqQuadProgram::initialize()
 	//vector<double> scale_facs = pest_scenario.get_pestpp_options().get_lambda_scale_vec();
 	//message(1, "using scaling factors: ", scale_facs);
 	set<string> passed = ppo->get_passed_args();
-	if (passed.find("SQP_SCALE_FACS") == passed.end())
+	if (passed.find("sqp_alpha_mults") == passed.end())
 	{
 	    if ((use_ensemble_grad) && (SOLVE_EACH_REAL))
         {
-	        message(1,"'sqp_scale_facs' not passed, using ensemble gradient, and solving each real, resetting scale facs");
+	        message(1,"'sqp_alpha_mults' not passed, using ensemble gradient, and solving each real, resetting scale facs");
 	        vector<double> new_scale_facs{0.000001,0.00001,0.0005,0.01,.1};
-	        message(1,"new sqp_scale_facs",new_scale_facs);
-	        ppo->set_sqp_scale_facs(new_scale_facs);
+	        message(1,"new sqp_alpha_mults",new_scale_facs);
+	        ppo->set_sqp_alpha_mults(new_scale_facs);
         };
 	}
 
@@ -954,6 +954,8 @@ void SeqQuadProgram::initialize()
 	{
 		constraints.presolve_chance_report(iter, current_obs, true, "initial chance constraint report");
 	}
+
+	working_set_tol = pest_scenario.get_pestpp_options().get_sqp_working_set_tol();
 
 	//set the initial grad vector
 	message(2, "calculating initial objective function gradient");
@@ -1654,7 +1656,7 @@ bool SeqQuadProgram::update_hessian_and_grad_vector()
 	//check if there's an active constraint for the current dv then compute constraint jco and update y_k
 	vector<string> prev_cnames, curr_cnames;
 	prev_cnames = prev_constraint_mat.get_row_names();
-	current_constraint_mat = get_constraint_mat(current_ctl_dv_values, current_obs).first;
+	current_constraint_mat = get_constraint_mat(current_ctl_dv_values, current_obs, (working_set_tol)).first;
 	curr_cnames = current_constraint_mat.get_row_names();
 	
 	set<string> all_constraint_names;
@@ -1767,10 +1769,10 @@ void SeqQuadProgram::iterate_2_solution()
 		ss << "starting solve for iteration: " << iter;
 		performance_log->log_event(ss.str());
  		
-		double current_tol = filter.get_viol_tol();
+		double ws = working_set_tol;
 		accept = solve_new();
 		if (accept)
-			filter.set_tol(current_tol * 0.5);
+			working_set_tol = max(0.05, ws * 0.5);
 
 
         if (use_ensemble_grad)
@@ -2695,7 +2697,7 @@ bool SeqQuadProgram::line_search_partial_step(const Eigen::VectorXd& search_d, c
 	vector<string> real_names;
 	vector<double> scale_vals;
 	scale_vals.clear();
-	for (auto& sf : pest_scenario.get_pestpp_options().get_sqp_scale_facs())
+	for (auto& sf : pest_scenario.get_pestpp_options().get_sqp_alpha_mults())
 	{
 		scale_vals.push_back(sf);
 	}
@@ -2714,7 +2716,7 @@ bool SeqQuadProgram::line_search_partial_step(const Eigen::VectorXd& search_d, c
 
 	scale_vals.clear();
 	scale_vals.push_back(0.0);
-	for (auto& sf : pest_scenario.get_pestpp_options().get_sqp_scale_facs())
+	for (auto& sf : pest_scenario.get_pestpp_options().get_sqp_alpha_mults())
 	{
 		scale_vals.push_back(sf * PSTP_SCALE_FACTOR);
 	}
@@ -2885,12 +2887,20 @@ bool SeqQuadProgram::iterative_partial_step(const string& _blocking_constraint)
 			alpha_high = alpha;
 		}
 		else {
-			alpha_low = alpha;
 			found_boundary = true;
+			alpha_low = alpha;
 
-			// Save current best feasible point
 			current_ctl_dv_values = test_dv_values;
 			current_obs = test_obs;
+			/*if (get_obj_value(current_ctl_dv_values, test_obs) < last_best)
+			{
+				alpha_low = alpha;
+				
+				current_ctl_dv_values = test_dv_values;
+				current_obs = test_obs;
+			}
+			else
+				alpha_high = alpha;*/
 		}
 
 		iter_count++;
@@ -2992,7 +3002,7 @@ bool SeqQuadProgram::line_search(Eigen::VectorXd& search_d, const Parameters& _c
 	vector<string> real_names;
 	vector<double> scale_vals;
 	scale_vals.clear();
-	for (auto& sf : pest_scenario.get_pestpp_options().get_sqp_scale_facs())
+	for (auto& sf : pest_scenario.get_pestpp_options().get_sqp_alpha_mults())
 	{
 		scale_vals.push_back(sf * BASE_SCALE_FACTOR);
 	}
@@ -3313,7 +3323,7 @@ bool SeqQuadProgram::solve_new()
 	}
 
 	
-	pair<Mat, bool> constraint_mat = get_constraint_mat(current_ctl_dv_values, current_obs,(filter.get_viol_tol()));
+	pair<Mat, bool> constraint_mat = get_constraint_mat(current_ctl_dv_values, current_obs,(working_set_tol));
 	current_constraint_mat = constraint_mat.first;
 	cnames = constraint_mat.first.get_row_names();
 	
@@ -3352,8 +3362,7 @@ bool SeqQuadProgram::solve_new()
 
 			if (search_d_approx_zero)
 			{
-				// Only now do we check Lagrange multipliers
-				pair<Mat, bool> constraint_mat = get_constraint_mat(current_ctl_dv_values, current_obs, (filter.get_viol_tol()), &lm);
+				pair<Mat, bool> constraint_mat = get_constraint_mat(current_ctl_dv_values, current_obs, (working_set_tol), &lm);
 
 				// If all multipliers non-negative, we're at optimal solution
 				if (constraint_mat.second) {
@@ -3367,7 +3376,7 @@ bool SeqQuadProgram::solve_new()
 					current_constraint_mat = constraint_mat.first;
 					cnames = constraint_mat.first.get_row_names();
 					message(1, "constraints dropped due to negative multipliers:", cnames);
-					continue;  // try again with new working set
+					continue;
 				}
 			}
 		}
@@ -3413,15 +3422,19 @@ bool SeqQuadProgram::solve_new()
 		{
 			successful = false;
 			message(1, "performing binary search for constraint boundary with working set:", cnames);
-			if (iterative_partial_step(blocking_constraint))
+			if (pest_scenario.get_pestpp_options().get_sqp_solve_partial_step())
 			{
-				constraint_mat = get_constraint_mat(current_ctl_dv_values, current_obs, (filter.get_viol_tol()));
-				current_constraint_mat = constraint_mat.first;
-				successful = true;
-				break;
+				if (iterative_partial_step(blocking_constraint))
+				{
+					constraint_mat = get_constraint_mat(current_ctl_dv_values, current_obs, (working_set_tol));
+					current_constraint_mat = constraint_mat.first;
+					successful = true;
+					//BASE_SCALE_FACTOR /= SF_INC_FAC;
+					break;
+				}
+				else
+					throw_sqp_error("Something is wrong with iterative partial step...");
 			}
-			else
-				throw_sqp_error("Something is wrong with iterative partial step...");
 		}
 		
 		if (successful)
@@ -3744,7 +3757,6 @@ bool SeqQuadProgram::pick_candidate_and_update_current(ParameterEnsemble& dv_can
 	string tag;
 	vector<double> infeas_vec, nviol_vec, feas_dist_map;
 	vector<int> accept_idxs;
-	double current_tol = filter.get_viol_tol();
 	int num_feas_filter_accepts = 0, num_infeas_filter_accepts = 0;
 	bool accept = false;
 	for (int i = 0; i < obj_vec.size(); i++)
@@ -3789,13 +3801,6 @@ bool SeqQuadProgram::pick_candidate_and_update_current(ParameterEnsemble& dv_can
 		cand_obs_values.update_without_clear(onames, t);
 		constraints.sqp_report(iter, cand_dv_values, cand_obs_values, false,tag);
 	}
-	//
-	//bool feas_2_infeas = false;
-	//for (int i = 1; i < obj_vec.size(); i++)
-	//{
-	//	if ((feas_dist_map[i] * feas_dist_map[i - 1]) < 0)
-	//		feas_2_infeas = true;
-	//}
 
     if (accept_idxs.size() > 0)
     {
@@ -4100,7 +4105,7 @@ bool SeqQuadProgram::pick_partial_step(ParameterEnsemble& dv_candidates, Observa
 
 		for (auto iidx : accept_idxs)
 		{
-			if (obj_vec[iidx] < oext)
+			if (obj_vec[iidx] < last_best)
 			{
 				if (infeas_vec[iidx] <= 1E-6)
 				{

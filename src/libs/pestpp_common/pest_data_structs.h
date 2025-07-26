@@ -378,10 +378,14 @@ public:
 	void set_sqp_num_reals(int _num_reals) { sqp_num_reals = _num_reals; }
 	bool get_sqp_update_hessian()const { return sqp_update_hessian; }
 	void set_sqp_update_hessian(bool _flag) { sqp_update_hessian = _flag; }
-	vector<double> get_sqp_scale_facs() const { return sqp_scale_facs; }  // perhaps change arg name to sqp_alpha_mults
-	void set_sqp_scale_facs(vector<double> _mults) { sqp_scale_facs = _mults; }
+	bool get_sqp_solve_partial_step()const { return sqp_solve_partial_step; }
+	void set_sqp_solve_partial_step(bool _flag) { sqp_solve_partial_step = _flag; }
+	vector<double> get_sqp_alpha_mults() const { return sqp_alpha_mults; } 
+	void set_sqp_alpha_mults(vector<double> _mults) { sqp_alpha_mults = _mults; }
 	double get_sqp_filter_tol() const { return sqp_filter_tol; }
 	void set_sqp_filter_tol(double val) { sqp_filter_tol = val; }
+	double get_sqp_working_set_tol() const { return sqp_working_set_tol; }
+	void set_sqp_working_set_tol(double val) { sqp_working_set_tol = val; }
 
 	string get_mou_generator() const { return mou_generator; }
 	void set_mou_generator(string name) { mou_generator = name; }
@@ -777,13 +781,15 @@ private:
 	string sqp_obs_restart_en;
 	int sqp_num_reals;
 	bool sqp_update_hessian;
-	vector<double> sqp_scale_facs;
+	bool sqp_solve_partial_step;
+	vector<double> sqp_alpha_mults;
 	double sqp_filter_tol;
+	double sqp_working_set_tol;
 	int sqp_max_consec_infeas;
 	int sqp_max_consec_infeas_ies;
 	int max_consec_phiinc;
 	double sf_dec_fac;
-	double df_inc_fac;
+	double sf_inc_fac;
 
 	int mou_population_size;
 	string mou_generator; 

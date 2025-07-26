@@ -3328,8 +3328,8 @@ pair<Mat, bool> Constraints::get_working_set_constraint_matrix(Parameters& par_a
 
 pair<Mat, bool> Constraints::get_working_set_constraint_matrix(Parameters& par_and_dec_vars, Observations& constraints_sim, const Jacobian_1to1& _jco, bool do_shift, const Eigen::VectorXd* lagrange_mults, double working_set_tol)
 {
-	double wset_tol = max(0.05, working_set_tol);
-	pair<vector<string>,vector<string>> working_set = get_working_set(par_and_dec_vars,constraints_sim,do_shift, wset_tol);
+	//double wset_tol = max(0.05, working_set_tol);
+	pair<vector<string>,vector<string>> working_set = get_working_set(par_and_dec_vars,constraints_sim,do_shift, working_set_tol);
 	Mat mat;
 	bool converged = false;
     if (working_set.first.size() > 0) 

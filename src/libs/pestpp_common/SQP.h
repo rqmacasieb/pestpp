@@ -161,6 +161,7 @@ private:
 	vector<double> best_violations;
 	double best_phi_yet;
 	double best_violation_yet;
+	double working_set_tol;
 
 	int warn_min_reals, error_min_reals;
 
