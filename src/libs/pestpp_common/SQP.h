@@ -197,6 +197,7 @@ private:
 	bool oe_drawn, dv_drawn;
 
 	bool use_ensemble_grad;
+	bool is_blocking_constraint = false;
 
 	Jacobian_1to1 jco;
 
@@ -214,11 +215,9 @@ private:
 	bool hessian_update_bfgs(Eigen::VectorXd s_k, Eigen::VectorXd y_k, Covariance old_hessian);
 	bool hessian_update_sr1(Eigen::VectorXd s_k, Eigen::VectorXd y_k, Covariance old_hessian);
 	bool solve_new();
-	bool solve_partial_step(const Eigen::VectorXd& _search_d, const Eigen::VectorXd& _grad);
 
 	bool seek_feasible();
 	bool line_search(Eigen::VectorXd& search_d, const Parameters& _current_dv_values, Eigen::VectorXd& grad);
-	bool line_search_partial_step(const Eigen::VectorXd& search_d, const Parameters& _current_dv_values, const Parameters& _infeas_cand_dv_values, const Observations& _current_obs, const Observations&  _infeas_cand_obs, const Eigen::VectorXd& grad);
 	bool iterative_partial_step(const string& _blocking_constraint);
 	bool pick_candidate_and_update_current(ParameterEnsemble& dv_candidates, ObservationEnsemble& _oe, map<string,double>& sf_map);
 	bool pick_partial_step(ParameterEnsemble& dv_candidates, ObservationEnsemble& _oe, map<string, double>& sf_map);

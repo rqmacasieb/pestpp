@@ -3236,7 +3236,7 @@ pair<vector<string>, bool> Constraints::reduce_working_set(vector<string>& worki
 	vector<string> working_set_ineq_names = get_working_set_ineq_names(working_set);
 
 	// Find most negative Lagrange multiplier for inequality constraints
-	double lm_min = 0.0;
+	double lm_max = -9999;
 	int idx = -1;
 	set<string> working_set_ineq_set(working_set_ineq_names.begin(), working_set_ineq_names.end());
 
@@ -3244,14 +3244,14 @@ pair<vector<string>, bool> Constraints::reduce_working_set(vector<string>& worki
 	{
 		if (working_set_ineq_set.find(working_set[i]) == working_set_ineq_set.end())
 			continue;
-		if ((lagrange_mults[i] < 0.0) && (lagrange_mults[i] < lm_min))
+		if ((lagrange_mults[i] > 0.0) && (lagrange_mults[i] > lm_max))
 		{
 			idx = i;
-			lm_min = lagrange_mults[i];
+			lm_max = lagrange_mults[i];
 		}
 	}
 
-	if (lm_min == 0.0)
+	if (lm_max == 0.0)
 	{
 		return pair<vector<string>, bool>(working_set, true);
 		//throw_constraints_error("optimal solution detected at solve EQP step (lagrangian multiplier for all ineq constraints in working set is non-neg)");
