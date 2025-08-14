@@ -2113,33 +2113,6 @@ Parameters SeqQuadProgram::calc_gradient_vector(const Parameters& _current_dv_va
 	return pgrad;
 }
 
-//Eigen::MatrixXd SeqQuadProgram::update_hessian()
-//{
-//// quasi-Newton Hessian updating via BFGS
-//// only if combination of conditions satisfies (some of which are user-specified)
-//if (Hessian update or self scale) & (BFGS);
-//{
-//	ss.str("");
-//	ss << "update Hessian via standard quasi-Newton BFGS";
-//	string s = ss.str();
-//	message(1, s);
-//	throw_sqp_error("TODO");
-//}
-//else
-//{
-//	ss.str("");
-//	ss << "skipping Hessian scaling and updating";
-//	string s = ss.str();
-//	message(1, s);
-//}
-//}
-
-//pair<Eigen::VectorXd, Eigen::VectorXd> SeqQuadProgram::_solve_eqp()
-//{
-//	//return pair<>
-//}
-
-
 pair<Eigen::VectorXd, Eigen::VectorXd> SeqQuadProgram::_kkt_null_space(Eigen::MatrixXd& G, Eigen::MatrixXd& constraint_jco, Eigen::VectorXd& constraint_diff, Eigen::VectorXd& curved_grad, vector<string>& cnames)
 {
 
@@ -2215,7 +2188,6 @@ pair<Eigen::VectorXd, Eigen::VectorXd> SeqQuadProgram::_kkt_null_space(Eigen::Ma
 			else
 			{
 				p_z = ldlt.solve(rhs); //From Eq 18.23 pp. 539 Nocedal and Wright
-				message(1, "p_z", p_z);  // tmp
 			}
 		}
 		else
@@ -2239,16 +2211,14 @@ pair<Eigen::VectorXd, Eigen::VectorXd> SeqQuadProgram::_kkt_null_space(Eigen::Ma
 			else
 			{
 				p_z = ldlt.solve(rhs); //From Eq 18.19b pp. 538 Nocedal and Wright
-				message(1, "p_z", p_z);  // tmp
 			}
 		}
 	}
 	else
 	{
-		throw_sqp_error("zero null space dimensionality wrt active constraints");  // tmp
+		p_z = Eigen::VectorXd::Zero(0);
 	}
 
-	// combine to make total direction
 	message(1, "combining range and null space components of search direction");  // tmp
 	if (Z.cols() > 0)
 		search_d = Y * p_y + Z * p_z; // Eq. 18.18 p. 539 Nocedal and Wright 
@@ -2274,10 +2244,6 @@ pair<Eigen::VectorXd, Eigen::VectorXd> SeqQuadProgram::_kkt_null_space(Eigen::Ma
 		Eigen::BDCSVD<Eigen::MatrixXd> AY(coeff,Eigen::ComputeThinU | Eigen::ComputeThinV);
 		lm = AY.solve(rhs);
 	}
-
-	message(1, "search d ", search_d);  // tmp
-	message(1, "lm", lm);  // tmp
-
 	return pair<Eigen::VectorXd, Eigen::VectorXd>(search_d, lm);
 }
 
@@ -2411,7 +2377,7 @@ pair<Mat, bool> SeqQuadProgram::get_constraint_mat(Parameters& _dv_vals, Observa
 {
 	if (use_ensemble_grad) {
 		message(1, "getting ensemble-based working set constraint matrix");
-		return constraints.get_working_set_constraint_matrix(_dv_vals, _obs_vals, dv, oe, true, lm);
+		return constraints.get_working_set_constraint_matrix(_dv_vals, _obs_vals, dv, oe, true, lm, (working_set_tol));
 	}
 	else
 	{
@@ -3185,6 +3151,7 @@ bool SeqQuadProgram::solve_new()
 		search_d = x.first;
 		lm = x.second;
 
+		message(1, "constraint_jco:", constraint_jco); // tmp
 		message(1, "sd:", search_d.transpose());  // tmp
 		message(1, "sd_norm:", search_d.norm()); //tmp
 		message(1, "lm:", lm); //tmp
@@ -3292,7 +3259,11 @@ bool SeqQuadProgram::solve_new()
 		{
 			n_consec_failures++;
 			line_search_attempts++;
-			BASE_SCALE_FACTOR *= SF_DEC_FAC;
+
+			if (use_ensemble_grad)
+				BASE_SCALE_FACTOR /= SF_INC_FAC;
+			else
+				BASE_SCALE_FACTOR *= SF_DEC_FAC;
 
 			if (n_consec_failures >= max_consec_failures)
 			{
