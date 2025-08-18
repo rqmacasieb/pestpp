@@ -209,7 +209,7 @@ private:
 	void prep_4_ensemble_grad();
 	void prep_4_fd_grad();
 
-	bool update_hessian_and_grad_vector();
+	bool update_hessian();
 	void update_scaling(const Eigen::VectorXd& step, const Eigen::VectorXd& grad);
 	bool try_modify_hessian();
 	bool hessian_update_bfgs(Eigen::VectorXd s_k, Eigen::VectorXd y_k, Covariance old_hessian);

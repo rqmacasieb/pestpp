@@ -1627,7 +1627,7 @@ bool SeqQuadProgram::hessian_update_bfgs(Eigen::VectorXd s_k, Eigen::VectorXd y_
 	return true;
 }
 
-bool SeqQuadProgram::update_hessian_and_grad_vector()
+bool SeqQuadProgram::update_hessian()
 {
 	if (!pest_scenario.get_pestpp_options().get_sqp_update_hessian())
 	{
@@ -1806,7 +1806,8 @@ void SeqQuadProgram::iterate_2_solution()
 		    n_consec_infeas = 0;
         }
 
-		update_hessian_and_grad_vector();
+		if (pest_scenario.get_pestpp_options().get_sqp_update_hessian())
+			update_hessian();
 	}
 }
 
@@ -1966,7 +1967,6 @@ Parameters SeqQuadProgram::calc_gradient_vector(const Parameters& _current_dv_va
 			// compute sample dec var cov matrix and its pseudo inverse
 			// see eq (8) of Dehdari and Oliver 2012 SPE and Fonseca et al 2015 SPE
 			// TODO: so can pseudo inverse: Covariance dv_cov_matrix; 
-			//Eigen::MatrixXd dv_cov_matrix;
 			//Eigen::MatrixXd parcov_inv;
 			// start by computing mean-shifted dec var ensemble
 			Eigen::MatrixXd dv_anoms = dv.get_eigen_anomalies(vector<string>(), dv_names, center_on);  // need this for both cov and cross-cov
@@ -1981,7 +1981,7 @@ Parameters SeqQuadProgram::calc_gradient_vector(const Parameters& _current_dv_va
 				//parcov_inv = parcov_diag.get_matrix().diagonal();
 				//parcov_inv = parcov_inv.cwiseInverse();  // equivalent to pseudo inv?
 			}
-			//dv_cov_matrix = 1.0 / (dv.shape().first - 1.0) * (dv_anoms.transpose() * dv_anoms);
+			Eigen::MatrixXd dv_cov_matrix = 1.0 / (dv.shape().first - 1.0) * (dv_anoms.transpose() * dv_anoms);
 			//message(1, "dv_cov:", dv_cov_matrix);
 			//parcov_inv = dv_cov_matrix.cwiseInverse();  // check equivalence to pseudo inv
 
@@ -2010,14 +2010,14 @@ Parameters SeqQuadProgram::calc_gradient_vector(const Parameters& _current_dv_va
 			// compute dec var-phi cross-cov vector
 			// see eq (9) of Dehdari and Oliver 2012 SPE and Fonseca et al 2015 SPE
 			// start by computing mean-shifted obj function ensemble
-            Eigen::MatrixXd ivec, upgrade_1, s, V, U, st;
+            Eigen::MatrixXd s, V, U, st;
             SVD_REDSVD rsvd;
             //SVD_EIGEN rsvd;
             rsvd.set_performance_log(performance_log);
             //dv_anoms.transposeInPlace();
-
-            rsvd.solve_ip(dv_anoms, s, U, V, pest_scenario.get_svd_info().eigthresh, pest_scenario.get_svd_info().maxsing);
-			Eigen::MatrixXd dv_anoms_pseudoinv = V * s.asDiagonal().inverse() * U.transpose();
+			cout << endl << "dv_anoms:" << endl << dv_anoms << endl;
+            rsvd.solve_ip(dv_cov_matrix, s, U, V, pest_scenario.get_svd_info().eigthresh, pest_scenario.get_svd_info().maxsing);
+			Eigen::MatrixXd dv_cov_pseudoinv = V * s.asDiagonal().inverse() * U.transpose();
 			Eigen::MatrixXd obj_anoms(dv.shape().first,1);
             if (use_obj_obs) {
                 obj_anoms = oe.get_eigen_anomalies(vector<string>(), vector<string>{obj_func_str},center_on);
@@ -2043,15 +2043,13 @@ Parameters SeqQuadProgram::calc_gradient_vector(const Parameters& _current_dv_va
                 obj_anoms.array() -= obj_anoms.mean();
 
             }
-			Eigen::MatrixXd cross_cov_vector;  // or Eigen::VectorXd?
-			//cross_cov_vector = 1.0 / (dv.shape().first - 1.0) * (dv_anoms.transpose() * obj_anoms);
+			Eigen::VectorXd cross_cov_vector = 1.0 / (dv.shape().first - 1.0) * (dv_anoms.transpose() * obj_anoms);
 			//cout << "dv-obj_cross_cov:" << endl << cross_cov_vector << endl;
 			
 			// now compute grad vector
 			// this is a matrix-vector product; the matrix being the pseudo inv of diag empirical dec var cov matrix and the vector being the dec var-phi cross-cov vector\
 			// see, e.g., Chen et al. (2009) and Fonseca et al. (2015) 
-			//grad = parcov_inv * cross_cov_vector;//*parcov.e_ptr() * cross_cov_vector;
-			grad = /*1.0 / ((double)dv.shape().first - 1.0) * */(dv_anoms_pseudoinv * obj_anoms);
+			grad = dv_cov_pseudoinv * cross_cov_vector;
 			// if (constraints)
 			//{
 			//	ss.str("");
@@ -3800,7 +3798,7 @@ bool SeqQuadProgram::pick_candidate_and_update_current(ParameterEnsemble& dv_can
                 message(1, "regenerating parcov");
                 pest_scenario.get_pestpp_options_ptr()->set_par_sigma_range(new_par_sigma);
                 parcov.try_from(pest_scenario, file_manager);
-                cout << parcov << endl;
+                cout << "parcov: " << endl << parcov << endl;
             }
 			//if (num_feas_filter_accepts < 2)
 			//{
@@ -3828,7 +3826,7 @@ bool SeqQuadProgram::pick_candidate_and_update_current(ParameterEnsemble& dv_can
             message(1, "regenerating parcov");
             parcov.try_from(pest_scenario, file_manager);
             pest_scenario.get_pestpp_options_ptr()->set_par_sigma_range(new_par_sigma);
-            cout << parcov << endl;
+            cout << "parcov: " << endl << parcov << endl;
         }
         //BASE_SCALE_FACTOR = BASE_SCALE_FACTOR * SF_DEC_FAC;
         
