@@ -169,6 +169,7 @@ private:
 	vector<string> act_obs_names, act_par_names;
 	vector<string> dv_names;
 	string best_name;
+	bool use_subset;
 	//vector<int> subset_idxs;
 
 	Parameters current_ctl_dv_values, prev_ctl_dv_values, trial_ctl_dv_values, infeas_cand_dv_values;
@@ -215,6 +216,7 @@ private:
 	bool hessian_update_bfgs(Eigen::VectorXd s_k, Eigen::VectorXd y_k, Covariance old_hessian);
 	bool hessian_update_sr1(Eigen::VectorXd s_k, Eigen::VectorXd y_k, Covariance old_hessian);
 	bool solve_new();
+	bool solve_new_ensemble();
 
 	bool seek_feasible();
 	bool line_search(Eigen::VectorXd& search_d, const Parameters& _current_dv_values, Eigen::VectorXd& grad);
@@ -281,6 +283,7 @@ private:
 
 	void add_current_as_bases(ParameterEnsemble& _dv, ObservationEnsemble& _oe);
 
+	vector<int> get_subset_idxs(int size, int nreal_subset);
 };
 
 #endif

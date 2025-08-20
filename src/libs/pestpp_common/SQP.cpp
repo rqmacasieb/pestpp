@@ -941,6 +941,26 @@ void SeqQuadProgram::initialize()
 	if (use_ensemble_grad)
 	{
 		prep_4_ensemble_grad();
+
+		int subset_size = pest_scenario.get_pestpp_options().get_ies_subset_size();
+		if (subset_size > dv.shape().first)
+		{
+			use_subset = false;
+		}
+		else
+		{
+			if (subset_size < 0)
+			{
+				message(1, "using subset in line search, percentage of realizations used in subset testing: ", -1. * subset_size);
+			}
+			else
+			{
+				message(1, "using subset in line search, number of realizations used in subset testing: ", subset_size);
+			}
+			string how = pest_scenario.get_pestpp_options().get_ies_subset_how();
+			message(1, "subset how: ", how);
+			use_subset = true;
+		}
 	}
 	else
 	{
@@ -1770,7 +1790,11 @@ void SeqQuadProgram::iterate_2_solution()
 		performance_log->log_event(ss.str());
  		
 		double ws = working_set_tol;
-		accept = solve_new();
+
+		if (use_ensemble_grad)
+			accept = solve_new_ensemble();
+		else
+			accept = solve_new();
 		if (accept)
 			working_set_tol = max(0.05, ws * 0.5);
 
@@ -2015,7 +2039,6 @@ Parameters SeqQuadProgram::calc_gradient_vector(const Parameters& _current_dv_va
             //SVD_EIGEN rsvd;
             rsvd.set_performance_log(performance_log);
             //dv_anoms.transposeInPlace();
-			cout << endl << "dv_anoms:" << endl << dv_anoms << endl;
             rsvd.solve_ip(dv_cov_matrix, s, U, V, pest_scenario.get_svd_info().eigthresh, pest_scenario.get_svd_info().maxsing);
 			Eigen::MatrixXd dv_cov_pseudoinv = V * s.asDiagonal().inverse() * U.transpose();
 			Eigen::MatrixXd obj_anoms(dv.shape().first,1);
@@ -2374,7 +2397,6 @@ pair<Eigen::VectorXd, Eigen::VectorXd> SeqQuadProgram::_kkt_direct(Eigen::Matrix
 pair<Mat, bool> SeqQuadProgram::get_constraint_mat(Parameters& _dv_vals, Observations& _obs_vals, double working_set_tol, const Eigen::VectorXd* lm)
 {
 	if (use_ensemble_grad) {
-		message(1, "getting ensemble-based working set constraint matrix");
 		return constraints.get_working_set_constraint_matrix(_dv_vals, _obs_vals, dv, oe, true, lm, (working_set_tol));
 	}
 	else
@@ -3118,7 +3140,7 @@ bool SeqQuadProgram::solve_new()
 	_current_num_dv_values = _current_num_dv_values.get_subset(dv_names.begin(), dv_names.end()); 
 	
 	
-
+	
 	if (use_ensemble_grad)
 	{
 		dv.transform_ip(ParameterEnsemble::transStatus::NUM);
@@ -3278,6 +3300,260 @@ bool SeqQuadProgram::solve_new()
 			}
 				if (n_consec_failures >= max_consec_failures)
 					break;
+		}
+
+	}
+	message(0, "new base scale factor: ", BASE_SCALE_FACTOR);
+	return successful;
+}
+
+bool SeqQuadProgram::solve_new_ensemble()
+{
+	stringstream ss;
+	ofstream& frec = file_manager.rec_ofstream();
+	if ((use_ensemble_grad) && (dv.shape().first <= error_min_reals))
+	{
+		message(0, "too few active realizations:", oe.shape().first);
+		message(1, "need more than ", error_min_reals);
+		throw_sqp_error(string("too few active realizations, cannot continue"));
+	}
+	else if ((use_ensemble_grad) && (dv.shape().first < warn_min_reals))
+	{
+		ss.str("");
+		ss << "WARNING: less than " << warn_min_reals << " active realizations...might not be enough";
+		string s = ss.str();
+		message(1, s);
+	}
+
+	int local_subset_size = pest_scenario.get_pestpp_options().get_ies_subset_size();
+	if (local_subset_size < 0)
+	{
+		ss.str("");
+
+		local_subset_size = (int)((double)dv.shape().first) * ((-1. * (double)local_subset_size) / 100.);
+
+		ss << "subset defined as a percentage of ensemble size, using " << local_subset_size;
+		ss << " realizations for subset" << endl;
+		message(2, ss.str());
+		if (local_subset_size < 4)
+		{
+			ss.str("");
+			ss << "percentage-based subset size too small, increasing to 4" << endl;
+			local_subset_size = 4;
+			message(2, ss.str());
+		}
+	}
+	if ((use_subset) && (local_subset_size > dv.shape().first))
+	{
+		ss.str("");
+		ss << "subset size (" << local_subset_size << ") greater than ensemble size (" << dv.shape().first << ")";
+		frec << "  ---  " << ss.str() << endl;
+		cout << "  ---  " << ss.str() << endl;
+		frec << "  ...reducing subset size to " << dv.shape().first << endl;
+		cout << "  ...reducing subset size to " << dv.shape().first << endl;
+		local_subset_size = dv.shape().first;
+	}
+	else if (pest_scenario.get_pestpp_options().get_sqp_alpha_mults().size() == 1)
+	{
+		ss.str("");
+		ss << "only testing one scale factor, not using subset";
+		frec << "  ---  " << ss.str() << endl;
+		cout << "  ---  " << ss.str() << endl;
+		local_subset_size = dv.shape().first;
+	}
+
+
+	Parameters _current_num_dv_values = current_ctl_dv_values;  // make copy
+	ParamTransformSeq pts = pest_scenario.get_base_par_tran_seq();
+	pts.ctl2numeric_ip(_current_num_dv_values);
+	_current_num_dv_values = _current_num_dv_values.get_subset(dv_names.begin(), dv_names.end());
+
+	performance_log->log_event("reordering variables in dv");
+	dv.reorder(vector<string>(), dv_names);	
+	dv.transform_ip(ParameterEnsemble::transStatus::NUM);
+		
+	//vector<double> mean_vec = dv.get_mean_stl_var_vector();
+	//_current_num_dv_values.update(dv_names, mean_vec);
+	
+	map <string, pair<Mat, bool>> constraint_mat_en;
+	Parameters dv_vals = current_ctl_dv_values;
+	Observations obs_vals = current_obs;
+	for (auto d : dv.get_real_names())
+	{
+		Eigen::VectorXd real_dv_vec = dv.get_real_vector(d);
+		dv_vals.update_without_clear(dv_names, real_dv_vec);
+		Eigen::VectorXd real_obs_vec = oe.get_real_vector(d);
+		obs_vals.update_without_clear(oe.get_var_names(), real_obs_vec);
+		constraint_mat_en[d] = get_constraint_mat(dv_vals, obs_vals, working_set_tol);
+	}
+
+	pair<Mat, bool> constraint_mat = get_constraint_mat(current_ctl_dv_values, current_obs, (working_set_tol));
+	current_constraint_mat = constraint_mat.first;
+	cnames = constraint_mat.first.get_row_names();
+
+	//copy for BFGS later -- revisit for ensemble
+	prev_ctl_dv_values = current_ctl_dv_values;
+	prev_constraint_mat = current_constraint_mat;
+
+	Eigen::VectorXd search_d, lm;
+	Eigen::VectorXd grad = current_grad_vector.get_data_eigen_vec(dv_names);
+	bool successful = false;
+	Covariance old_hessian = hessian;
+
+	int line_search_attempts = 0;
+	while (!successful && line_search_attempts < max_line_search_attempts)
+	{
+		vector<int> subset_idxs = get_subset_idxs(dv.shape().first, local_subset_size);
+
+		constraint_jco = constraint_mat.first.e_ptr()->toDense(); //TODO: revisit for ensemble implementation
+		infeas_cand_obs.clear();
+		infeas_cand_dv_values.clear();
+
+		map<string, pair<Eigen::VectorXd, Eigen::VectorXd>> sd_lm_en;
+		message(1, "getting ensemble working set constraint matrix");
+		for (auto d : dv.get_real_names())
+		{
+			Eigen::VectorXd real_dv_vec = dv.get_real_vector(d);
+			dv_vals.update_without_clear(dv_names, real_dv_vec);
+			sd_lm_en[d] = calc_search_direction_vector(dv_vals, grad);
+
+			message(1, "sd:", sd_lm_en[d].first.transpose());  // tmp
+			message(1, "sd_norm:", sd_lm_en[d].first.norm()); //tmp
+			message(1, "lm:", sd_lm_en[d].second); //tmp
+		}
+		
+		search_d = sd_lm_en["0"].first;
+		lm = sd_lm_en["0"].second;
+
+		message(1, "constraint_jco:", constraint_jco); // tmp
+		message(1, "sd:", search_d.transpose());  // tmp
+		message(1, "sd_norm:", search_d.norm()); //tmp
+		message(1, "lm:", lm); //tmp
+
+		if (cnames.size() > 0)
+		{
+			//Algorithm 16.3 in Nocedal and Wright, pp. 472-473
+			bool search_d_approx_zero = false;
+			double tol = 0.0001;  // should be a carefully chosen tolerance
+			if (search_d.norm() < tol) {
+				search_d_approx_zero = true;
+			}
+
+			if (search_d_approx_zero)
+			{
+				pair<Mat, bool> constraint_mat = get_constraint_mat(current_ctl_dv_values, current_obs, (working_set_tol), &lm);
+
+				//if all multipliers non-negative, we're at optimal solution
+				if (constraint_mat.second) {
+					message(1, "optimal solution found - all Lagrange multipliers non-negative");
+					converged = true;
+					return true;
+				}
+			}
+
+			if ((lm.array() > 0).any())
+			{
+				pair<Mat, bool> constraint_mat = get_constraint_mat(current_ctl_dv_values, current_obs, (working_set_tol), &lm);
+				if (constraint_mat.first.get_row_names() != cnames) {
+					current_constraint_mat = constraint_mat.first;
+					cnames = constraint_mat.first.get_row_names();
+					message(1, "constraints dropped due to negative multipliers:", cnames);
+					continue;
+				}
+			}
+		}
+
+		//trial_ctl_dv_values = current_ctl_dv_values;
+		//trial_obs = current_obs;
+		//successful = trust_region_step(current_ctl_dv_values, grad); //should consider switching to trust region at some point?
+		is_blocking_constraint = false;
+		successful = line_search(search_d, _current_num_dv_values, grad);
+		string blocking_constraint = "";
+		if (successful)
+		{
+			if (is_blocking_constraint)
+			{
+				map<string, double> violations;
+				if (infeas_cand_obs.size() != 0)
+					violations = constraints.get_unsatified_obs_constraints(infeas_cand_obs, 0.0);
+
+				if (!violations.empty())
+				{
+					double max_violation = -1.0;
+					for (const auto& v : violations)
+					{
+						if (v.second > max_violation)
+						{
+							max_violation = v.second;
+							blocking_constraint = v.first;
+						}
+					}
+
+					if (find(cnames.begin(), cnames.end(), blocking_constraint) == cnames.end())
+					{
+						message(1, "adding blocking constraint to working set:", blocking_constraint);
+						cnames.push_back(blocking_constraint);
+						pair<Mat, bool> new_constraint_mat = get_constraint_mat(current_ctl_dv_values, current_obs);
+						current_constraint_mat = new_constraint_mat.first;
+					}
+					else
+						blocking_constraint = "";
+				}
+			}
+		}
+
+
+		if (blocking_constraint != "")
+		{
+			successful = false;
+			message(1, "performing binary search for constraint boundary with working set:", cnames);
+			if (pest_scenario.get_pestpp_options().get_sqp_solve_partial_step())
+			{
+				if (iterative_partial_step(blocking_constraint))
+				{
+					constraint_mat = get_constraint_mat(current_ctl_dv_values, current_obs, (working_set_tol));
+					current_constraint_mat = constraint_mat.first;
+					successful = true;
+					BASE_SCALE_FACTOR *= SF_INC_FAC;
+					break;
+				}
+				else
+					throw_sqp_error("Something is wrong with iterative partial step...");
+			}
+		}
+
+		if (successful)
+		{
+			if ((search_d.norm() < 0.1) && (((lm.array() < 0).all()) || (lm.size() != 0)))
+				BASE_SCALE_FACTOR /= SF_INC_FAC;
+			else
+				BASE_SCALE_FACTOR *= SF_INC_FAC;
+		}
+		else
+		{
+			n_consec_failures++;
+			line_search_attempts++;
+
+			if (use_ensemble_grad)
+				BASE_SCALE_FACTOR /= SF_INC_FAC;
+			else
+				BASE_SCALE_FACTOR *= SF_DEC_FAC;
+
+			if (n_consec_failures >= max_consec_failures)
+			{
+				Eigen::SparseMatrix<double> h(dv_names.size(), dv_names.size());
+				h.setIdentity();
+				update_scaling(search_d, grad);
+				for (int i = 0; i < dv_names.size(); i++) {
+					h.coeffRef(i, i) *= diagonal_scaling(i);
+				}
+
+				hessian = Covariance(dv_names, h);
+				n_consec_failures = 0;
+				BASE_SCALE_FACTOR *= SF_INC_FAC;
+			}
+			if (n_consec_failures >= max_consec_failures)
+				break;
 		}
 
 	}
@@ -4407,5 +4683,80 @@ vector<int> SeqQuadProgram::run_ensemble(ParameterEnsemble &_pe, ObservationEnse
 
 void SeqQuadProgram::finalize()
 {
+
+}
+
+vector<int> SeqQuadProgram::get_subset_idxs(int size, int nreal_subset)
+{
+	vector<int> subset_idxs;
+	if ((!use_subset) || (nreal_subset >= size))
+	{
+		for (int i = 0; i < size; i++)
+			subset_idxs.push_back(i);
+		return subset_idxs;
+	}
+
+	vector<string>::iterator bidx = find(dv_names.begin(), dv_names.end(), BASE_REAL_NAME);
+	if (bidx != dv_names.end())
+	{
+
+		subset_idxs.push_back(bidx - dv_names.begin());
+	}
+	//int size = pe.shape().first;
+	string how = pest_scenario.get_pestpp_options().get_ies_subset_how();
+	if (how == "FIRST")
+	{
+		for (int i = 0; i < size; i++)
+		{
+			if (subset_idxs.size() >= nreal_subset)
+				break;
+			if (find(subset_idxs.begin(), subset_idxs.end(), i) != subset_idxs.end())
+				continue;
+
+			subset_idxs.push_back(i);
+
+		}
+
+	}
+	else if (how == "LAST")
+	{
+
+		for (int i = size - 1; i >= 0; i--)
+		{
+			if (subset_idxs.size() >= nreal_subset)
+				break;
+			if (find(subset_idxs.begin(), subset_idxs.end(), i) != subset_idxs.end())
+				continue;
+
+			subset_idxs.push_back(i);
+
+		}
+
+	}
+
+	else if (how == "RANDOM")
+	{
+		std::uniform_int_distribution<int> uni(0, size - 1);
+		int idx;
+		for (int i = 0; i < 1000000000; i++)
+		{
+			if (subset_idxs.size() >= nreal_subset)
+				break;
+			idx = uni(subset_rand_gen);
+			if (find(subset_idxs.begin(), subset_idxs.end(), idx) != subset_idxs.end())
+				continue;
+			subset_idxs.push_back(idx);
+		}
+		if (subset_idxs.size() != nreal_subset)
+			throw_sqp_error("max iterations exceeded when trying to find random subset idxs");
+
+	}
+	else
+	{
+		throw_sqp_error("unknown 'subset_how'");
+	}
+
+	sort(subset_idxs.begin(), subset_idxs.end());
+	return subset_idxs;
 
 }
