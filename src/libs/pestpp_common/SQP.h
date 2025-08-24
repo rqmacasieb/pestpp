@@ -221,7 +221,8 @@ private:
 	bool seek_feasible();
 	bool line_search(Eigen::VectorXd& search_d, const Parameters& _current_dv_values, Eigen::VectorXd& grad);
 	bool iterative_partial_step(const string& _blocking_constraint);
-	bool pick_candidate_and_update_current(ParameterEnsemble& dv_candidates, ObservationEnsemble& _oe, map<string,double>& sf_map);
+	double pick_candidate_and_update_current(ParameterEnsemble& dv_candidates, ObservationEnsemble& _oe, map<string,double>& sf_map);
+	bool pick_upgrade_and_update_current(ParameterEnsemble& dv_candidates, ObservationEnsemble& _oe);
 	bool pick_partial_step(ParameterEnsemble& dv_candidates, ObservationEnsemble& _oe, map<string, double>& sf_map);
 	bool check_wolfe_conditions(Parameters& trial_dv_values, Observations& trial_obs, const Eigen::VectorXd& search_d, 
 		const Eigen::VectorXd& grad, double scale, double initial_obj, double initial_slope);
@@ -239,6 +240,8 @@ private:
 	Eigen::VectorXd calc_gradient_vector_from_coeffs(const Parameters & _current_dv_values);
 
 	Eigen::VectorXd get_obj_vector(ParameterEnsemble& _dv, ObservationEnsemble& _oe);
+
+	
 
 	double get_obj_value(Parameters& _current_ctl_dv_vals, Observations& _current_obs);
 	map<string, double> get_obj_map(ParameterEnsemble& _dv, ObservationEnsemble& _oe);
