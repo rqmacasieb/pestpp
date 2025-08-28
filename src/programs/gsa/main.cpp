@@ -94,7 +94,9 @@ int main(int argc, char* argv[])
 			}
 			catch (PestError e)
 			{
-				cerr << "Error prococessing control file: " << ctl_file << endl << endl;
+                frec << "Error processing control file: " << ctl_file << endl << endl;
+                frec << e.what() << endl << endl;
+                cerr << "Error prococessing control file: " << ctl_file << endl << endl;
 				cerr << e.what() << endl << endl;
 				throw(e);
 			}
@@ -180,7 +182,11 @@ int main(int argc, char* argv[])
 			pest_scenario.get_pestpp_options().get_overdue_reched_fac(),
 			pest_scenario.get_pestpp_options().get_overdue_giveup_fac(),
 			pest_scenario.get_pestpp_options().get_overdue_giveup_minutes(),
-			pest_scenario.get_pestpp_options().get_panther_echo());
+			pest_scenario.get_pestpp_options().get_panther_echo(),
+            vector<string>{}, vector<string>{},
+            pest_scenario.get_pestpp_options().get_panther_timeout_milliseconds(),
+            pest_scenario.get_pestpp_options().get_panther_echo_interval_milliseconds(),
+            pest_scenario.get_pestpp_options().get_panther_persistent_workers());
 	}
 	else
 	{

@@ -55,10 +55,16 @@ void Pest::set_defaults()
 {
 	pestpp_options.set_defaults();
 	svd_info.set_defaults();
-	regul_scheme_ptr = new DynamicRegularization;
-	regul_scheme_ptr->set_defaults();
+	regul_scheme_ptr = 0;//new DynamicRegularization;
+	//regul_scheme_ptr->set_defaults();
 	control_info.set_defaults();
 
+}
+
+void Pest::set_default_dynreg()
+{
+    regul_scheme_ptr = new DynamicRegularization;
+    regul_scheme_ptr->set_defaults();
 }
 
 void Pest::check_inputs(ostream &f_rec, bool forgive, bool forgive_parchglim, int cycle)
@@ -124,59 +130,86 @@ void Pest::check_inputs(ostream &f_rec, bool forgive, bool forgive_parchglim, in
     const map<string,pair<string,double>> tied_map = base_par_transform.get_tied_ptr()->get_items();
     ParameterRec::TRAN_TYPE tranfixed = ParameterRec::TRAN_TYPE::FIXED;
     ParameterRec::TRAN_TYPE trantied = ParameterRec::TRAN_TYPE::TIED;
+    ParameterRec::TRAN_TYPE tranlog = ParameterRec::TRAN_TYPE::LOG;
+
     ParameterRec::TRAN_TYPE tran;
-	for (auto &pname : ctl_ordered_par_names)
-	{
-		//double pval = ctl_parameters[pname];
-		//double lb = ctl_parameter_info.get_low_bnd(pname);
-		prec = ctl_parameter_info.get_parameter_rec_ptr(pname);
-		tran = prec->tranform_type;
-		adj_par = true;
-		if ((tran == tranfixed) || (tran == tranfixed))
-			adj_par = false;
-		if (tran == trantied)
-		{
-			string partied = tied_map.at(pname).first;
-			if (sadj.find(partied) == sadj.end())
-			{
-				par_problems.push_back("'tied' parameter '" + pname + "' is tied to '" + partied + "' which is not an adjustable parameter");
-			}
-		}
+    stringstream ss;
+	for (auto &pname : ctl_ordered_par_names) {
+        //double pval = ctl_parameters[pname];
+        //double lb = ctl_parameter_info.get_low_bnd(pname);
+        prec = ctl_parameter_info.get_parameter_rec_ptr(pname);
+        tran = prec->tranform_type;
+        adj_par = true;
+        if ((tran == tranfixed) || (tran == tranfixed))
+            adj_par = false;
+        if (tran == trantied) {
+            string partied = tied_map.at(pname).first;
+            if (sadj.find(partied) == sadj.end()) {
+                par_problems.push_back("'tied' parameter '" + pname + "' is tied to '" + partied +
+                                       "' which is not an adjustable parameter");
+            }
+        } else if (tran == tranlog)
+        {
+            if (prec->init_value <= 0.0)
+            {
+                ss.str("");
+                ss << pname << ": log transform and initial value <= 0.0: " << prec->init_value;
+                par_problems.push_back(ss.str());
+            }
+            if (prec->lbnd <= 0.0)
+            {
+                ss.str("");
+                ss << pname << ": log transform and lower bound <= 0.0: " << prec->lbnd;
+                par_problems.push_back(ss.str());
+            }
+            if (prec->ubnd <= 0.0)
+            {
+                ss.str("");
+                ss << pname << ": log transform and upper bound <= 0.0: " << prec->ubnd;
+                par_problems.push_back(ss.str());
+            }
+        }
+
 		if (prec->lbnd >= prec->ubnd)
 		{
+            ss.str("");
+            ss << pname << ": bounds are busted:" << prec->lbnd << " >= " << prec->ubnd;
 			if ((forgive) || (!adj_par))
-			{
-				par_warnings.push_back(pname + ": bounds are busted");
+            {
+				par_warnings.push_back(ss.str());
 			}
 			else
 			{
-				par_problems.push_back(pname + ": bounds are busted");
+				par_problems.push_back(ss.str());
 			}
 		}
 		if (prec->init_value < prec->lbnd)
 		{
+            ss.str("");
+            ss << pname << ": initial value is less than lower bound:" << prec->init_value << " < " << prec->lbnd;
 			if ((forgive) || (!adj_par))
 			{
-				par_warnings.push_back(pname + " initial value is less than lower bound");
+				par_warnings.push_back(ss.str());
 			}
 			else
 			{
-				par_problems.push_back(pname + " initial value is less than lower bound");
+				par_problems.push_back(ss.str());
 			}
 		}
 		else if (prec->init_value == prec->lbnd)
 		{
 			par_lb++;
 		}
-		if (prec->init_value > prec->ubnd)
-			if ((forgive) || (!adj_par))
-			{
-				par_warnings.push_back(pname + " initial value is greater than upper bound");
-			}
-			else
-			{
-				par_problems.push_back(pname + " initial value is greater than upper bound");
-			}
+		if (prec->init_value > prec->ubnd) {
+            ss.str("");
+            ss << pname << ": initial value is greater than upper bound:" << prec->init_value << " > " << prec->ubnd;
+
+            if ((forgive) || (!adj_par)) {
+                par_warnings.push_back(ss.str());
+            } else {
+                par_problems.push_back(ss.str());
+            }
+        }
 		else if (prec->init_value == prec->ubnd)
 		{
 			par_ub++;
@@ -430,538 +463,31 @@ vector<string> Pest::get_nonregul_obs() const
 	return ret_val;
 }
 
-//int Pest::process_ctl_file_old(ifstream &fin, string pst_filename)
-//{
-//	ofstream f_out("ctl_process.out");
-//	return process_ctl_file_old(fin, pst_filename, f_out);
-//}
-
 int Pest::process_ctl_file(ifstream& fin, string _pst_filename)
 {
 	ofstream f_out("ctl_process.out");
 	return process_ctl_file(fin, _pst_filename, f_out);
 }
 
-
-//int Pest::process_ctl_file_old(ifstream &fin, string _pst_filename, ofstream &f_rec)
-//{
-//	string line;
-//	string line_upper;
-//	string section("");
-//	vector<string> tokens;
-//	int sec_begin_lnum, sec_lnum;
-//	double value;
-//	string name;
-//	string *trans_type;
-//	string prior_info_string;
-//	pair<string, string> pi_name_group;
-//	int lnum;
-//	int num_par;
-//	int num_tpl_file;
-//	int dercom;
-//	int i_tpl_ins = 0;
-//	double phimlim;
-//	double phimaccept;
-//	double fracphim;
-//	double wfinit = 1.0;
-//	double wfmin = numeric_limits<double>::min();
-//	double wfmax = numeric_limits<double>::max();
-//	double wffac;
-//	double wftol;
-//	bool use_dynamic_reg = false;
-//	bool reg_adj_grp_weights = false;
-//	vector<string> pestpp_input;
-//	regul_scheme_ptr = new DynamicRegularization(use_dynamic_reg);
-//
-//	//dont change these text names - they are used in ParamTransformSeq
-//	TranTied *t_tied = new TranTied("PEST to model tied transformation");
-//	TranOffset *t_offset = new TranOffset("PEST to model offset transformation");
-//	TranScale *t_scale = new TranScale("PEST to model scale transformation");
-//	TranLog10 *t_log = new TranLog10("PEST to model log transformation");
-//	TranFixed *t_fixed = new TranFixed("PEST to model fixed transformation");
-//	//TranNormalize *t_auto_norm = new TranNormalize("PEST auto-normalization transformation");
-//
-//	base_par_transform.push_back_ctl2model(t_scale);
-//	base_par_transform.push_back_ctl2model(t_offset);
-//	base_par_transform.push_back_ctl2active_ctl(t_tied);
-//	base_par_transform.push_back_ctl2active_ctl(t_fixed);
-//	base_par_transform.push_back_active_ctl2numeric(t_log);
-//	
-//
-//	set<string> tied_names;
-//	pst_filename = _pst_filename;
-//
-//#ifndef _DEBUG
-//	try {
-//#endif
-//	prior_info_string = "";
-//	for(lnum=1, sec_begin_lnum=1; getline(fin, line); ++ lnum)
-//	{
-//		strip_ip(line);
-//		line_upper = upper_cp(line);
-//		tokens.clear();
-//		tokenize(line_upper, tokens);
-//		sec_lnum = lnum - sec_begin_lnum;
-//		
-//		if (lnum == 1)
-//		{
-//			if (tokens[0] != "PCF")
-//			{
-//				cout << "WARNING: fist line of control file should be 'PCF' not " << tokens[0] << endl;
-//			}
-//		}
-//
-//		else if (tokens.empty())
-//		{
-//			//skip blank line
-//		}
-//		else if (line[0] == '#')
-//		{
-//
-//		}
-//		else if (line_upper.substr(0,2) == "++")
-//		{
-//			pestpp_input.push_back(line);
-//		}
-//
-//		else if (line_upper[0] == '*')
-//		{
-//			section = upper_cp(strip_cp(line_upper, "both", " *\t\n"));
-//			sec_begin_lnum = lnum;
-//		}
-//		else if (section == "CONTROL DATA")
-//		{
-//			if (sec_lnum == 1)
-//			{
-//				if (tokens[1] == "REGULARIZATION" || tokens[1] == "REGULARISATION")
-//				{
-//					use_dynamic_reg = true;
-//					control_info.pestmode = ControlInfo::PestMode::REGUL;
-//
-//				}
-//				else if (tokens[1] == "ESTIMATION")
-//					control_info.pestmode = ControlInfo::PestMode::ESTIMATION;
-//				else if (tokens[1] == "PARETO")
-//					control_info.pestmode = ControlInfo::PestMode::PARETO;
-//			}
-//
-//
-//			else if (sec_lnum == 2)
-//			{
-//				convert_ip(tokens[0], num_par);
-//			}
-//			else if (sec_lnum == 3)
-//			{
-//				convert_ip(tokens[0], num_tpl_file);
-//				if(tokens.size() >= 5) {
-//					convert_ip(tokens[4], control_info.numcom);
-//				}
-//				else {
-//					control_info.numcom = 0;
-//				}
-//				if(tokens.size() >= 6) {
-//					convert_ip(tokens[5], control_info.jacfile);
-//				}
-//				else {
-//					control_info.jacfile = 0;
-//				}
-//			}
-//			else if (sec_lnum == 5)
-//			{
-//				convert_ip(tokens[0], control_info.relparmax);
-//				convert_ip(tokens[1], control_info.facparmax);
-//				convert_ip(tokens[2], control_info.facorig);
-//			}
-//			else if (sec_lnum == 6)
-//			{
-//				// remove text arguements from the line as these can be specified out of order
-//				// and PEST++ does not use them
-//				set<string> remove_tags = { "aui", "auid", "noaui", "senreuse", "nsenreuse", "boundscale", "noboundscale" };
-//				auto end_iter = std::remove_if(tokens.begin(), tokens.end(),
-//					[&remove_tags](string &str)->bool{return (remove_tags.find(upper_cp(str)) != remove_tags.end()
-//					|| remove_tags.find(lower_cp(str)) != remove_tags.end()); });
-//				tokens.resize(std::distance(tokens.begin(), end_iter));
-//
-//				convert_ip(tokens[0], control_info.phiredswh);
-//				if (tokens.size() >= 2) {
-//					convert_ip(tokens[1], control_info.noptswitch);
-//				}
-//				if (tokens.size() >= 3) {
-//					convert_ip(tokens[2], control_info.splitswh);
-//				}
-//
-//			}
-//			else if (sec_lnum == 7)
-//			{
-//				convert_ip(tokens[0], control_info.noptmax);
-//				convert_ip(tokens[1], control_info.phiredstp);
-//				convert_ip(tokens[2], control_info.nphistp);
-//				convert_ip(tokens[3], control_info.nphinored);
-//				convert_ip(tokens[4], control_info.relparstp);
-//				convert_ip(tokens[5], control_info.nrelpar);
-//			}
-//			else
-//			{
-//				other_lines[lnum] = line;
-//			}
-//		}
-//		else if (section == "SINGULAR VALUE DECOMPOSITION")
-//		{
-//			if (sec_lnum == 2) {
-//				convert_ip(tokens[0], svd_info.maxsing);
-//				convert_ip(tokens[1], svd_info.eigthresh);
-//			}
-//			else if (sec_lnum == 3) {
-//				convert_ip(tokens[0], svd_info.eigwrite);
-//			}
-//			else
-//			{
-//				other_lines[lnum] = line;
-//			}
-//		}
-//		else if (section == "PARAMETER GROUPS")
-//		{
-//			ParameterGroupRec pgi;
-//			name = tokens[0];
-//			size_t n_tokens = tokens.size();
-//			pgi.name = name;
-//			ctl_ordered_par_group_names.push_back(name);
-//			convert_ip(tokens[1], pgi.inctyp);
-//			convert_ip(tokens[2], pgi.derinc);
-//			convert_ip(tokens[3], pgi.derinclb);
-//			convert_ip(tokens[4], pgi.forcen);
-//			convert_ip(tokens[5], pgi.derincmul);
-//			convert_ip(tokens[6], pgi.dermthd);
-//			if (n_tokens >= 8) convert_ip(tokens[7], pgi.splitthresh);
-//			if (n_tokens >= 9) convert_ip(tokens[8], pgi.splitreldiff);
-//			base_group_info.insert_group(name, pgi);
-//		}
-//		else if (section == "PARAMETER DATA")
-//		{
-//			if (sec_lnum <= num_par) {
-//				double scale;
-//				double offset;
-//				ParameterRec pi;
-//				name = tokens[0];
-//				trans_type = &tokens[1];
-//				convert_ip(tokens[2], pi.chglim);
-//				convert_ip(tokens[3], pi.init_value);
-//				convert_ip(tokens[4], pi.lbnd);
-//				convert_ip(tokens[5], pi.ubnd);
-//				convert_ip(tokens[6], pi.group);
-//				convert_ip(tokens[7], scale);
-//				convert_ip(tokens[8], offset);
-//				if (control_info.numcom > 1)
-//					convert_ip(tokens[9], pi.dercom);
-//				else
-//					pi.dercom = 1;
-//				pi.scale = scale;
-//				pi.offset = offset;
-//				// add parameters to model parameter and paramter_info datasets
-//				ctl_ordered_par_names.push_back(name);
-//				if (*trans_type == "FIXED")
-//				{
-//					pi.tranform_type = ParameterRec::TRAN_TYPE::FIXED;
-//				}
-//				else if (*trans_type == "LOG")
-//				{
-//					pi.tranform_type = ParameterRec::TRAN_TYPE::LOG;
-//					n_adj_par++;
-//				}
-//				else if (*trans_type == "TIED")
-//				{
-//					pi.tranform_type = ParameterRec::TRAN_TYPE::TIED;
-//				}
-//				else if (*trans_type == "NONE")
-//				{
-//					pi.tranform_type = ParameterRec::TRAN_TYPE::NONE;
-//					n_adj_par++;
-//				}
-//				else
-//				{
-//					//pi.tranform_type = ParameterRec::TRAN_TYPE::NONE;
-//					//assert(true);
-//					//n_adj_par++;
-//					throw PestError("unrecognized partrans for par " + name + ": " + *trans_type);
-//				}
-//				ctl_parameter_info.insert(name, pi);
-//				ctl_parameters.insert(name, pi.init_value);
-//				base_group_info.insert_parameter_link(name, pi.group);
-//
-//				// build appropriate transformations
-//				if (*trans_type == "FIXED") {
-//					t_fixed->insert(name, pi.init_value);}
-//				else if (*trans_type == "LOG") {
-//					t_log->insert(name);
-//				}
-//				if (offset!=0) {
-//					t_offset->insert(name, offset);
-//				}
-//				if (scale !=1) {
-//					t_scale->insert(name, scale);
-//				}
-//			}
-//			// Get rest of information for tied paramters
-//			else {
-//				name = tokens[0];
-//				string name_tied =  tokens[1];
-//				double ratio =  ctl_parameters[name] / ctl_parameters[name_tied];
-//				t_tied->insert(name, pair<string, double>(name_tied, ratio));
-//				tied_names.insert(name_tied);
-//			}
-//		}
-//		else if (section == "OBSERVATION GROUPS")
-//		{
-//			string name = tokens[0];
-//			if (tokens.size() > 1)
-//			{
-//				stringstream ss;
-//				ss << "observation covariance matrix detected for group '" << tokens[0] << "' - these are not supported...yet!";
-//				string s = ss.str();
-//				throw PestError(s);
-//			}
-//			ObservationGroupRec group_rec;
-//			observation_info.groups[name] = group_rec;
-//			vector<string>::iterator is = find(ctl_ordered_obs_group_names.begin(), ctl_ordered_obs_group_names.end(), name);
-//			if (is == ctl_ordered_obs_group_names.end())
-//			{
-//				ctl_ordered_obs_group_names.push_back(name);
-//			}
-//		}
-//		else if (section == "OBSERVATION DATA")
-//		{
-//			ObservationRec obs_i;
-//			name = tokens[0];
-//			convert_ip(tokens[1], value);
-//			convert_ip(tokens[2], obs_i.weight);
-//			obs_i.group = tokens[3];
-//			ctl_ordered_obs_names.push_back(name);
-//			observation_info.observations[name] = obs_i;
-//			observation_values.insert(name, value);
-//		}
-//
-//		else if (section == "PRIOR INFORMATION")
-//		{
-//			//This section processes the prior information.  It does not write out the
-//			//last prior infomration.  THis is because it must check for line continuations
-//			if (!prior_info_string.empty() && tokens[0] != "&"){
-//				pi_name_group = prior_info.AddRecord(prior_info_string);
-//				ctl_ordered_pi_names.push_back(pi_name_group.first);
-//				vector<string>::iterator is = find(ctl_ordered_obs_group_names.begin(), ctl_ordered_obs_group_names.end(), pi_name_group.second);
-//				if (is == ctl_ordered_obs_group_names.end())
-//				{
-//					ctl_ordered_obs_group_names.push_back(pi_name_group.second);
-//				}
-//				prior_info_string.clear();
-//			}
-//			else if (tokens[0] == "&") {
-//				prior_info_string.append(" ");
-//			}
-//			prior_info_string.append(line_upper);
-//		}
-//
-//		else if (section == "PRIOR INFORMATION" )
-//		{
-//			//This section processes the prior information.  It does not write out the
-//			//last prior infomration
-//			if (!prior_info_string.empty() && tokens[0] != "&") {
-//				pi_name_group = prior_info.AddRecord(prior_info_string);
-//				ctl_ordered_pi_names.push_back(pi_name_group.first);
-//				vector<string>::iterator is = find(ctl_ordered_obs_group_names.begin(), ctl_ordered_obs_group_names.end(), pi_name_group.second);
-//				if (is == ctl_ordered_obs_group_names.end())
-//				{
-//					ctl_ordered_obs_group_names.push_back(pi_name_group.second);
-//				}
-//				prior_info_string.clear();
-//			}
-//			else if (tokens[0] != "&") {
-//				prior_info_string.append(" ");
-//			}
-//			prior_info_string.append(line);
-//		}
-//		else if (section == "MODEL COMMAND LINE" )
-//		{
-//			model_exec_info.comline_vec.push_back(line);
-//		}
-//		else if (section == "MODEL INPUT/OUTPUT" )
-//		{
-//			vector<string> tokens_case_sen;
-//			tokenize(line, tokens_case_sen);
-//			if(i_tpl_ins < num_tpl_file)
-//			{
-//				model_exec_info.tplfile_vec.push_back(tokens_case_sen[0]);
-//				model_exec_info.inpfile_vec.push_back(tokens_case_sen[1]);
-//			}
-//			else
-//			{
-//				model_exec_info.insfile_vec.push_back(tokens_case_sen[0]);
-//				model_exec_info.outfile_vec.push_back(tokens_case_sen[1]);
-//			}
-//			++i_tpl_ins;
-//		}
-//		else if (section == "REGULARISATION" || section=="REGULARIZATION" )
-//		{
-//			if (sec_lnum == 1) {
-//				convert_ip(tokens[0], phimlim);
-//				convert_ip(tokens[1], phimaccept);
-//				fracphim = 0.0;
-//				if(tokens.size() >=3) convert_ip(tokens[2], fracphim);
-//			}
-//			else if (sec_lnum == 2) {
-//				convert_ip(tokens[0], wfinit);
-//				convert_ip(tokens[1], wfmin);
-//				convert_ip(tokens[2], wfmax);
-//			}
-//			else if (sec_lnum == 3) {
-//				int iregadj;
-//				convert_ip(tokens[0], wffac);
-//				convert_ip(tokens[1], wftol);
-//				if (tokens.size() > 2)
-//				{
-//					convert_ip(tokens[2], iregadj);
-//					if (iregadj == 1) reg_adj_grp_weights = true;
-//				}
-//				delete regul_scheme_ptr;
-//				regul_scheme_ptr = new DynamicRegularization(use_dynamic_reg, reg_adj_grp_weights, phimlim,
-//					phimaccept, fracphim, wfmin, wfmax, wffac, wftol, wfinit);
-//			}
-//			else
-//			{
-//				other_lines[lnum] = line;
-//			}
-//		}
-//		else if (section == "PARETO")
-//		{
-//			if (sec_lnum == 1)
-//			{
-//				convert_ip(tokens[0], pareto_info.obsgroup);
-//			}
-//			else if (sec_lnum == 2)
-//			{
-//				convert_ip(tokens[0], pareto_info.wf_start);
-//				convert_ip(tokens[1], pareto_info.wf_fin);
-//				convert_ip(tokens[2], pareto_info.wf_inc);
-//			}
-//			else if (sec_lnum == 3)
-//			{
-//				convert_ip(tokens[0], pareto_info.niter_start);
-//				convert_ip(tokens[1], pareto_info.niter_gen);
-//				convert_ip(tokens[2], pareto_info.niter_fin);
-//			}
-//
-//		}
-//		else
-//		{
-//			other_lines[lnum] = line;
-//		}
-//	}
-//
-//	// write out last prior information record
-//	if (!prior_info_string.empty())
-//	{
-//		pi_name_group = prior_info.AddRecord(prior_info_string);
-//		ctl_ordered_pi_names.push_back(pi_name_group.first);
-//		vector<string>::iterator is = find(ctl_ordered_obs_group_names.begin(), ctl_ordered_obs_group_names.end(), pi_name_group.second);
-//		if (is == ctl_ordered_obs_group_names.end())
-//		{
-//			ctl_ordered_obs_group_names.push_back(pi_name_group.second);
-//		}
-//		prior_info_string.clear();
-//	}
-//#ifndef _DEBUG
-//	}
-//	catch (PestConversionError &e) {
-//		std::stringstream out;
-//		out << "Error parsing \"" << pst_filename << "\" on line number " << lnum << endl;
-//		out << e.what() << endl;
-//		e.add_front(out.str());
-//		e.raise();
-//	}
-//#endif
-//	fin.close();
-//	
-//	map<string, PestppOptions::ARG_STATUS> arg_map, line_arg_map;
-//	for(vector<string>::const_iterator b=pestpp_input.begin(),e=pestpp_input.end();
-//		b!=e; ++b) {
-//
-//		try 
-//		{
-//			line_arg_map = pestpp_options.parse_plusplus_line(*b);
-//		}
-//		catch (...)
-//		{
-//			throw runtime_error("error parsing ++ line '" + line + "'");
-//		}
-//		arg_map.insert(line_arg_map.begin(),line_arg_map.end());
-//	}
-//	//check for not "accepted" args here...
-//
-//	
-//	regul_scheme_ptr->set_max_reg_iter(pestpp_options.get_max_reg_iter());
-//
-//	if (pestpp_options.get_tie_by_group())
-//	{
-//		cout << "Note: ++tie_by_group(true) - tying adjustable parameters by groups" << endl;
-//		f_rec << "Note: ++tie_by_group(true) - tying adjustable parameters by groups" << endl;
-//		map<string, vector<string>> group_map;
-//		string gname;
-//		ParameterRec::TRAN_TYPE tlog = ParameterRec::TRAN_TYPE::LOG, 
-//			tnone = ParameterRec::TRAN_TYPE::NONE, 
-//			ttied = ParameterRec::TRAN_TYPE::TIED;
-//		int new_n_adj_par = 0;
-//		for (auto pname : ctl_ordered_par_names)
-//		{
-//			if ((ctl_parameter_info.get_parameter_rec_ptr(pname)->tranform_type == tlog) ||
-//				(ctl_parameter_info.get_parameter_rec_ptr(pname)->tranform_type == tnone))
-//			{
-//
-//				if (tied_names.find(pname) != tied_names.end())
-//				{
-//					new_n_adj_par++;
-//					continue;
-//				}
-//				gname = ctl_parameter_info.get_parameter_rec_ptr(pname)->group;
-//				if (group_map.find(gname) == group_map.end())
-//					group_map[gname] = vector<string>();
-//				group_map[gname].push_back(pname);
-//			}
-//			
-//		}
-//		string tie_to_name;
-//		vector<string> to_tie_names;
-//		vector<string>::const_iterator first, last;
-//		for (auto gm : group_map)
-//		{
-//			tie_to_name = gm.second[0];
-//			new_n_adj_par++;
-//			first = gm.second.begin() + 1;
-//			last = gm.second.end();
-//			to_tie_names = vector<string>(first, last);
-//			for (auto pname : to_tie_names)
-//			{
-//				double ratio = ctl_parameters[pname] / ctl_parameters[tie_to_name];
-//				t_tied->insert(pname, pair<string, double>(tie_to_name, ratio));
-//				ctl_parameter_info.get_parameter_rec_ptr_4_mod(pname)->tranform_type = ttied;
-//			}
-//
-//		}
-//		f_rec << "-->number of adjustable parameters reduced from " << n_adj_par << " to " << new_n_adj_par << endl;
-//		cout << "-->number of adjustable parameters reduced from " << n_adj_par << " to " << new_n_adj_par << endl;
-//		n_adj_par = new_n_adj_par;
-//		if (tied_names.size() > 0)
-//		{
-//			f_rec << "-->existing adjustable parameters that others tie to have been maintained:" << endl;
-//			for (auto tname : tied_names)
-//				f_rec << tname << endl;
-//		}
-//	}
-//
-//	return 0;
-//}
+bool IsQuote(char c)
+{
+    switch(c)
+    {
+        case '\"':
+        case '\'':
+            return true;
+        default:
+            return false;
+    }
+}
 
 int Pest::process_ctl_file(ifstream& fin, string _pst_filename, ofstream& f_rec)
 {
 	cout << "processing control file " << _pst_filename << endl;
+	if (!fin)
+    {
+	    throw PestError("control file stream is not good");
+    }
 	string line;
 	string line_upper;
 	string section("");
@@ -1015,9 +541,9 @@ int Pest::process_ctl_file(ifstream& fin, string _pst_filename, ofstream& f_rec)
 	vector<string> tokens_case_sen;
 	vector<string> model_input_formal_names{ "PEST_FILE","MODEL_FILE" };
 	vector<string> model_output_formal_names{ "PEST_FILE","MODEL_FILE" };
-#ifndef _DEBUG
-	try {
-#endif
+//#ifndef _DEBUG
+//	try {
+//#endif
 		prior_info_string = "";
 		
 		for (lnum = 1, sec_begin_lnum = 1; getline(fin, line); ++lnum)
@@ -1051,7 +577,7 @@ int Pest::process_ctl_file(ifstream& fin, string _pst_filename, ofstream& f_rec)
 			else if (line_upper.substr(0, 2) == "++")
 			{
 				if (sections_found.find("CONTROL DATA KEYWORD") != sections_found.end())
-					throw_control_file_error(f_rec, "'* control data keyword' cant be used with '++' args");
+					throw_control_file_error(f_rec, "'* control data keyword' can't be used with '++' args");
 				sections_found.insert("PLUSPLUS");
 				pestpp_input.push_back(line);
 				section = "PLUSPLUS";
@@ -1104,7 +630,7 @@ int Pest::process_ctl_file(ifstream& fin, string _pst_filename, ofstream& f_rec)
 				//try to use this as a control data arg
 				if (stat == PestppOptions::ARG_STATUS::ARG_NOTFOUND)
 				{
-					stat = control_info.assign_value_by_key(kv.first,kv.second);
+					stat = control_info.assign_value_by_key(kv.first,kv.second,f_rec);
 					check_report_assignment(f_rec, stat, kv.first, kv.second);
 				}
 				
@@ -1160,7 +686,14 @@ int Pest::process_ctl_file(ifstream& fin, string _pst_filename, ofstream& f_rec)
 				{
 					convert_ip(tokens[0], num_tpl_file);
 					if (tokens.size() >= 5) {
-						convert_ip(tokens[4], control_info.numcom);
+                        try {
+                            convert_ip(tokens[4], control_info.numcom);
+                        }
+                        catch (...)
+                        {
+                            cout << "WARNING: error parsing '" << tokens[4] <<"' to numcom option...continuing" << endl;
+                            control_info.numcom = 0;
+                        }
 					}
 					else {
 						control_info.numcom = 0;
@@ -1180,7 +713,7 @@ int Pest::process_ctl_file(ifstream& fin, string _pst_filename, ofstream& f_rec)
 				}
 				else if (sec_lnum == 6)
 				{
-					// remove text arguements from the line as these can be specified out of order
+					// remove text arguments from the line as these can be specified out of order
 					// and PEST++ does not use them
 					set<string> remove_tags = { "aui", "auid", "noaui", "senreuse", "nsenreuse", "boundscale", "noboundscale" };
 					auto end_iter = std::remove_if(tokens.begin(), tokens.end(),
@@ -1236,7 +769,7 @@ int Pest::process_ctl_file(ifstream& fin, string _pst_filename, ofstream& f_rec)
 					if (cnames.find(n) == cnames.end())
 					{
 						ss.str("");
-						ss << "external '* parameter group' file '" << efile.get_filename() << "' missing reqiured column '" << n << "'";
+						ss << "external '* parameter group' file '" << efile.get_filename() << "' missing required column '" << n << "'";
 						throw_control_file_error(f_rec, ss.str());
 					}
 				}
@@ -1272,7 +805,7 @@ int Pest::process_ctl_file(ifstream& fin, string _pst_filename, ofstream& f_rec)
 				{
 					tokens_to_par_rec(f_rec, tokens, t_fixed, t_log, t_scale, t_offset);
 				}
-				// Get rest of information for tied paramters
+				// Get rest of information for tied parameters
 				else 
 				{
 					name = tokens[0];
@@ -1316,7 +849,7 @@ int Pest::process_ctl_file(ifstream& fin, string _pst_filename, ofstream& f_rec)
 						if (cnames.find(nn) == cnames.end())
 						{
 							ss.str("");
-							ss << "external '* parameter data' file '" << efile.get_filename() << "' missing reqiured column '";
+							ss << "external '* parameter data' file '" << efile.get_filename() << "' missing required column '";
 							ss << n << "' (alias '" + nn + "' also not found";
 							throw_control_file_error(f_rec, ss.str());
 						}
@@ -1353,7 +886,7 @@ int Pest::process_ctl_file(ifstream& fin, string _pst_filename, ofstream& f_rec)
 					{
 						ss.str("");
 						ss << "external '* parameter data' file '" << efile.get_filename() << "' included 'tied' parameters";
-						ss << "but doesnt have 'PARTIED' column";
+						ss << "but doesn't have 'PARTIED' column";
 						throw_control_file_error(f_rec, ss.str());
 					}
 
@@ -1390,7 +923,7 @@ int Pest::process_ctl_file(ifstream& fin, string _pst_filename, ofstream& f_rec)
 					if (cnames.find(n) == cnames.end())
 					{
 						ss.str("");
-						ss << "external '* observation group' file '" << efile.get_filename() << "' missing reqiured column '" << n << "'";
+						ss << "external '* observation group' file '" << efile.get_filename() << "' missing required column '" << n << "'";
 						throw_control_file_error(f_rec, ss.str());
 					}
 				}
@@ -1432,7 +965,7 @@ int Pest::process_ctl_file(ifstream& fin, string _pst_filename, ofstream& f_rec)
 						if (cnames.find(nn) == cnames.end())
 						{
 							ss.str("");
-							ss << "external '* observation data' file '" << efile.get_filename() << "' missing reqiured column '" << n << "'";
+							ss << "external '* observation data' file '" << efile.get_filename() << "' missing required column '" << n << "'";
 							throw_control_file_error(f_rec, ss.str());
 						}
 						else
@@ -1481,7 +1014,7 @@ int Pest::process_ctl_file(ifstream& fin, string _pst_filename, ofstream& f_rec)
 					if (cnames.find(n) == cnames.end())
 					{
 						ss.str("");
-						ss << "external '* prior information' file '" << efile.get_filename() << "' missing reqiured column '" << n << "'";
+						ss << "external '* prior information' file '" << efile.get_filename() << "' missing required column '" << n << "'";
 						throw_control_file_error(f_rec, ss.str());
 					}
 				}
@@ -1502,7 +1035,23 @@ int Pest::process_ctl_file(ifstream& fin, string _pst_filename, ofstream& f_rec)
 		
 			else if (section == "MODEL COMMAND LINE")
 			{
-				model_exec_info.comline_vec.push_back(line);
+                if ((line.find('\"') != std::string::npos) || (line.find('\'') != std::string::npos))
+                {
+                    ss.str("");
+                    ss << "WARNING: single and/or double quote char(s) found in model command line :" << line << endl;
+                    string temp_line = line;
+                    temp_line.erase(std::remove_if(temp_line.begin(), temp_line.end(), IsQuote), temp_line.end());
+                    //pest_utils::strip_ip(temp_line);
+
+                    ss << "         new model command line: " << temp_line << endl;
+                    cout << ss.str();
+                    f_rec << ss.str();
+                    model_exec_info.comline_vec.push_back(string(temp_line));
+                }
+                else
+                {
+                    model_exec_info.comline_vec.push_back(line);
+                }
 			}
 
 			else if (section == "MODEL INPUT")
@@ -1525,7 +1074,7 @@ int Pest::process_ctl_file(ifstream& fin, string _pst_filename, ofstream& f_rec)
 					if (cnames.find(n) == cnames.end())
 					{
 						ss.str("");
-						ss << "external '* model input' file '" << efile.get_filename() << "' missing reqiured column '" << n << "'";
+						ss << "external '* model input' file '" << efile.get_filename() << "' missing required column '" << n << "'";
 						throw_control_file_error(f_rec, ss.str());
 					}
 				}
@@ -1565,7 +1114,7 @@ int Pest::process_ctl_file(ifstream& fin, string _pst_filename, ofstream& f_rec)
 					if (cnames.find(n) == cnames.end())
 					{
 						ss.str("");
-						ss << "external '* model output' file '" << efile.get_filename() << "' missing reqiured column '" << n << "'";
+						ss << "external '* model output' file '" << efile.get_filename() << "' missing required column '" << n << "'";
 						throw_control_file_error(f_rec, ss.str());
 					}
 				}
@@ -1685,16 +1234,16 @@ int Pest::process_ctl_file(ifstream& fin, string _pst_filename, ofstream& f_rec)
 		{
 			tokens_to_pi_rec(f_rec, line_upper);
 		}
-#ifndef _DEBUG
-	}
-	catch (PestConversionError& e) {
-		std::stringstream out;
-		out << "Error processing \"" << pst_filename << "\" on line number " << lnum << endl;
-		out << e.what() << endl;
-		e.add_front(out.str());
-		e.raise();
-	}
-#endif
+//#ifndef _DEBUG
+//	}
+//	catch (PestConversionError& e) {
+//		std::stringstream out;
+//		out << "Error processing \"" << pst_filename << "\" on line number " << lnum << endl;
+//		out << e.what() << endl;
+//		e.add_front(out.str());
+//		e.raise();
+//	}
+//#endif
 	fin.close();
 
 	
@@ -1984,8 +1533,9 @@ pair<string,double> Pest::enforce_par_limits(PerformanceLog* performance_log, Pa
 	double rpm = control_info.relparmax;
 	double orig_val, last_val, fac_lb, fac_ub, rel_lb, rel_ub, eff_ub, eff_lb,chg_lb, chg_ub;
 	double chg_fac, chg_rel;
-	double scaling_factor = 1.0;
 	string parchglim;
+	double scaling_factor = 1.0;
+	double temp = 1.0;
 	double bnd_tol = 0.001;
 	double scaled_bnd_val;
 	string controlling_par = "";
@@ -1995,211 +1545,318 @@ pair<string,double> Pest::enforce_par_limits(PerformanceLog* performance_log, Pa
 	Parameters upgrade_ctl_pars;
 	Parameters last_ctl_pars;
 
+	// if tied parameters exist, use the old scaling_factor code
+	// this ensures compliance with tied parameters.
 	if (pestpp_options.get_enforce_tied_bounds())
 	{
 		upgrade_ctl_pars = base_par_transform.active_ctl2ctl_cp(upgrade_active_ctl_pars);
 		last_ctl_pars = base_par_transform.active_ctl2ctl_cp(last_active_ctl_pars);
-	}
-	else
-	{
-		upgrade_ctl_pars = upgrade_active_ctl_pars;
-		last_ctl_pars = last_active_ctl_pars;
+		for (auto& p : upgrade_ctl_pars)
+		{
+			/*if (pest_utils::lower_cp(p.first) == "s_xomehgwat")
+				cout << p.first << endl;*/
+			last_val = last_ctl_pars.get_rec(p.first);
+            
+			p_rec = p_info.get_parameter_rec_ptr(p.first);
+			parchglim = p_rec->chglim;
 
-	}
-	for (auto p : upgrade_ctl_pars)
-	{
-		/*if (pest_utils::lower_cp(p.first) == "s_xomehgwat")
-			cout << p.first << endl;*/
-		last_val = last_ctl_pars.get_rec(p.first);
+			if (p.second == 0.0)
+				p.second = p_rec->ubnd / 4.0;
+			orig_val = ctl_parameters.get_rec(p.first);
+			if (orig_val == 0.0)
+				orig_val = p_rec->ubnd / 4.0;
+
+			//apply facorig correction if needed
+			if (ctl_parameter_info.get_parameter_rec_ptr(p.first)->tranform_type == ParameterRec::TRAN_TYPE::NONE)
+			{
+				if (abs(p.second) < abs(orig_val) * facorig)
+					p.second = orig_val * facorig;
+				if (abs(last_val) < abs(orig_val * facorig))
+					last_val = orig_val * facorig;
+			}
+				
+			//calc fac lims
+			if (abs(last_val) > abs(p.second))
+				chg_fac = last_val / p.second;
+			else
+				chg_fac = p.second / last_val;
+			//if (p.second > 0.0)
+			if (last_val > 0.0)
+			{
+				fac_lb = last_val / fpm;
+				fac_ub = last_val * fpm;
+			}
 		
-		p_rec = p_info.get_parameter_rec_ptr(p.first);
-		parchglim = p_rec->chglim;
-
-		if (p.second == 0.0)
-			p.second = p_rec->ubnd / 4.0;
-		orig_val = ctl_parameters.get_rec(p.first);
-		if (orig_val == 0.0)
-			orig_val = p_rec->ubnd / 4.0;
-
-		//apply facorig correction if needed
-		if (ctl_parameter_info.get_parameter_rec_ptr(p.first)->tranform_type == ParameterRec::TRAN_TYPE::NONE)
-		{
-			if (abs(p.second) < abs(orig_val) * facorig)
-				p.second = orig_val * facorig;
-			if (abs(last_val) < abs(orig_val * facorig))
-				last_val = orig_val * facorig;
-		}
-			
-
-
-		//calc fac lims
-		if (abs(last_val) > abs(p.second))
-			chg_fac = last_val / p.second;
-		else
-			chg_fac = p.second / last_val;
-		//if (p.second > 0.0)
-		if (last_val > 0.0)
-		{
-			fac_lb = last_val / fpm;
-			fac_ub = last_val * fpm;
-		}
-	
-		else
-		{
-			fac_lb = last_val * fpm;
-			fac_ub = last_val / fpm;
-			
-		}
-
-		//calc rel lims
-		rel_lb = last_ctl_pars.get_rec(p.first) - (abs(last_val) * rpm);
-		rel_ub = last_ctl_pars.get_rec(p.first) + (abs(last_val) * rpm);
-		chg_rel = (last_val - p.second) / last_val;
-
-		if (parchglim == "FACTOR")
-		{
-			chg_lb = fac_lb;
-			chg_ub = fac_ub;
-		}
-		else if (parchglim == "RELATIVE")
-		{
-			chg_lb = rel_lb;
-			chg_ub = rel_ub;
-		}
-		else
-		{
-			throw runtime_error("Pest::enforce_par_limits() error: unrecognized 'parchglim': " + parchglim);
-		}
-
-
-		double temp = 1.0;
-		if (enforce_chglim)
-		{		
-			if (p.second > chg_ub)
+			else
 			{
-				temp = abs((chg_ub - last_val) / (p.second - last_val));
+				fac_lb = last_val * fpm;
+				fac_ub = last_val / fpm;
+				
+			}
+
+			//calc rel lims
+			rel_lb = last_ctl_pars.get_rec(p.first) - (abs(last_val) * rpm);
+			rel_ub = last_ctl_pars.get_rec(p.first) + (abs(last_val) * rpm);
+			chg_rel = (last_val - p.second) / last_val;
+
+			if (parchglim == "FACTOR")
+			{
+				chg_lb = fac_lb;
+				chg_ub = fac_ub;
+			}
+			else if (parchglim == "RELATIVE")
+			{
+				chg_lb = rel_lb;
+				chg_ub = rel_ub;
+			}
+			else
+			{
+				throw runtime_error("Pest::enforce_par_limits() error: unrecognized 'parchglim': " + parchglim);
+			}
+
+
+
+			double temp = 1.0;
+			if (enforce_chglim)
+			{		
+				if (p.second > chg_ub)
+				{
+					temp = abs((chg_ub - last_val) / (p.second - last_val));
+					if ((temp > 1.0) || (temp < 0.0))
+					{
+						ss.str("");
+						ss << "Pest::enforce_par_limts() error: invalid upper parchglim scaling factor " << temp << " for par " << p.first << endl;
+						ss << " chglim:" << chg_ub << ", last_val:" << last_val << ", current_val:" << p.second << endl;
+						throw runtime_error(ss.str());
+					}
+
+					if (temp < scaling_factor)
+					{
+						scaling_factor = temp;
+						controlling_par = p.first;
+						control_type = "upper change limit";
+					}
+				}
+
+				else if (p.second < chg_lb)
+					temp = abs((last_val - chg_lb) / (last_val - p.second));
 				if ((temp > 1.0) || (temp < 0.0))
 				{
 					ss.str("");
-					ss << "Pest::enforce_par_limts() error: invalid upper parchglim scaling factor " << temp << " for par " << p.first << endl;
-					ss << " chglim:" << chg_ub << ", last_val:" << last_val << ", current_val:" << p.second << endl;
-					throw runtime_error(ss.str());
-				}
-
-				if (temp < scaling_factor)
-				{
-					scaling_factor = temp;
-					controlling_par = p.first;
-					control_type = "upper change limit";
-				}
-			}
-
-			else if (p.second < chg_lb)
-				temp = abs((last_val - chg_lb) / (last_val - p.second));
-			if ((temp > 1.0) || (temp < 0.0))
-			{
-				ss.str("");
-				ss << "Pest::enforce_par_limts() error: invalid lower parchglim scaling factor " << temp << " for par " << p.first << endl;
-				ss << " chglim:" << chg_lb << ", last_val:" << last_val << ", current_val:" << p.second << endl;
-				throw runtime_error(ss.str());
-			}
-			if (temp < scaling_factor)
-			{
-				scaling_factor = temp;
-				controlling_par = p.first;
-				control_type = "lower change limit";
-			}
-		}
-
-		if (enforce_bounds)
-		{
-			/*if (last_val >= p_rec->ubnd)
-			{
-				ss.str("");
-				ss << "Pest::enforce_par_limits() error: last value for parameter " << p.first << " at upper bound";
-				throw runtime_error(ss.str());
-			}
-
-			else if (last_val <= p_rec->lbnd)
-			{
-				ss.str("");
-				ss << "Pest::enforce_par_limits() error: last value for parameter " << p.first << " at lower bound";
-				throw runtime_error(ss.str());
-			}*/
-			scaled_bnd_val = p_rec->ubnd + abs(p_rec->ubnd * bnd_tol);
-			if (p.second > scaled_bnd_val)
-			{
-				temp = abs((p_rec->ubnd - last_val) / (p.second - last_val));
-				if ((temp > 1.0) || (temp < 0.0))
-				{
-					
-					ss << "Pest::enforce_par_limts() error: invalid upper bound scaling factor " << temp << " for par " << p.first << endl;
-					ss << " ubnd:" << p_rec->ubnd << ", last_val:" << last_val << ", current_val:" << p.second << endl;
+					ss << "Pest::enforce_par_limts() error: invalid lower parchglim scaling factor " << temp << " for par " << p.first << endl;
+					ss << " chglim:" << chg_lb << ", last_val:" << last_val << ", current_val:" << p.second << endl;
 					throw runtime_error(ss.str());
 				}
 				if (temp < scaling_factor)
 				{
 					scaling_factor = temp;
 					controlling_par = p.first;
-					control_type = "upper bound";
+					control_type = "lower change limit";
 				}
 			}
-			scaled_bnd_val = p_rec->lbnd - abs(p_rec->lbnd * bnd_tol);
-			if (p.second < p_rec->lbnd)
+
+			if (enforce_bounds)
 			{
-				temp = abs((last_val - p_rec->lbnd) / (last_val - p.second));
-				if ((temp > 1.0) || (temp < 0.0))
+				/*if (last_val >= p_rec->ubnd)
 				{
 					ss.str("");
-					ss << "Pest::enforce_par_limts() error: invalid lower bound scaling factor " << temp << " for par " << p.first << endl;
-					ss << " lbnd:" << p_rec->lbnd << ", last_val:" << last_val << ", current_val:" << p.second << endl;
+					ss << "Pest::enforce_par_limits() error: last value for parameter " << p.first << " at upper bound";
 					throw runtime_error(ss.str());
 				}
-				if (temp < scaling_factor)
-				{
-					scaling_factor = temp;
-					controlling_par = p.first;
-					control_type = "lower bound";
-				}
-			}
-		}	
-	}
-	ss.str("");
-	ss << "change enforcement controlling par:" << controlling_par << ", control_type: " << control_type << ", scaling_factor: " << scaling_factor << endl;
 
-	if (scaling_factor == 0.0)
-	{
+				else if (last_val <= p_rec->lbnd)
+				{
+					ss.str("");
+					ss << "Pest::enforce_par_limits() error: last value for parameter " << p.first << " at lower bound";
+					throw runtime_error(ss.str());
+				}*/
+				scaled_bnd_val = p_rec->ubnd + abs(p_rec->ubnd * bnd_tol);
+				if (p.second > scaled_bnd_val)
+				{
+					temp = abs((p_rec->ubnd - last_val) / (p.second - last_val));
+					if ((temp > 1.0) || (temp < 0.0))
+					{
+						
+						ss << "Pest::enforce_par_limts() error: invalid upper bound scaling factor " << temp << " for par " << p.first << endl;
+						ss << " ubnd:" << p_rec->ubnd << ", last_val:" << last_val << ", current_val:" << p.second << endl;
+						throw runtime_error(ss.str());
+					}
+					if (temp < scaling_factor)
+					{
+						scaling_factor = temp;
+						controlling_par = p.first;
+						control_type = "upper bound";
+					}
+				}
+				scaled_bnd_val = p_rec->lbnd - abs(p_rec->lbnd * bnd_tol);
+				if (p.second < p_rec->lbnd)
+				{
+					temp = abs((last_val - p_rec->lbnd) / (last_val - p.second));
+					if ((temp > 1.0) || (temp < 0.0))
+					{
+						ss.str("");
+						ss << "Pest::enforce_par_limts() error: invalid lower bound scaling factor " << temp << " for par " << p.first << endl;
+						ss << " lbnd:" << p_rec->lbnd << ", last_val:" << last_val << ", current_val:" << p.second << endl;
+						throw runtime_error(ss.str());
+					}
+					if (temp < scaling_factor)
+					{
+						scaling_factor = temp;
+						controlling_par = p.first;
+						control_type = "lower bound";
+					}
+				}
+			}	
+		}
 		ss.str("");
-		ss << "Pest::enforce_par_change_limits error : zero length parameter vector" << endl;
-		ss << "parameter: " << controlling_par << ", control type: " << control_type;
-		throw runtime_error(ss.str());
-	}
+		ss << "change enforcement controlling par:" << controlling_par << ", control_type: " << control_type << ", scaling_factor: " << scaling_factor << endl;
 
-	if (scaling_factor != 1.0)
+		if (scaling_factor == 0.0)
+		{
+			ss.str("");
+			ss << "Pest::enforce_par_change_limits error : zero length parameter vector" << endl;
+			ss << "parameter: " << controlling_par << ", control type: " << control_type;
+			throw runtime_error(ss.str());
+		}
+
+		if (scaling_factor != 1.0)
+		{
+			for (auto &p : upgrade_active_ctl_pars)
+			{
+				
+				last_val = last_ctl_pars.get_rec(p.first);
+				p.second =last_val + (p.second - last_val) *  scaling_factor;
+			}
+		}
+		
+		//check for slightly out of bounds
+		for (auto &p : upgrade_ctl_pars)
+		{
+			p_rec = p_info.get_parameter_rec_ptr(p.first);
+			if (p.second < p_rec->lbnd)
+				p.second = p_rec->lbnd;
+			else if (p.second > p_rec->ubnd)
+				p.second = p_rec->ubnd;
+
+		}
+	}
+	// if we don't have tied parameters, use clamping logic instead.
+	else
 	{
 		for (auto &p : upgrade_active_ctl_pars)
 		{
 			
-			last_val = last_ctl_pars.get_rec(p.first);
-			p.second =last_val + (p.second - last_val) *  scaling_factor;
+			last_val = last_active_ctl_pars.get_rec(p.first);
+			p_rec = p_info.get_parameter_rec_ptr(p.first);
+			parchglim = p_rec->chglim;
+			if (parchglim == "RELATIVE" && last_val == 0.0)
+			{
+				throw runtime_error("Relative parchglim not defined for zero-valued parameter " + p.first);
+			}
+
+			
+
+			if (p.second == 0.0)
+				p.second = p_rec->ubnd / 4.0;
+			orig_val = ctl_parameters.get_rec(p.first);
+			if (orig_val == 0.0)
+				orig_val = p_rec->ubnd / 4.0;
+
+			//calc fac lims
+			if (last_val > 0.0)
+			{
+				fac_lb = last_val / fpm;
+				fac_ub = last_val * fpm;
+			}
+		
+			else
+			{
+				fac_lb = last_val * fpm;
+				fac_ub = last_val / fpm;
+				
+			}
+
+			//calc rel lims
+			rel_lb = last_active_ctl_pars.get_rec(p.first) - (abs(last_val) * rpm);
+			rel_ub = last_active_ctl_pars.get_rec(p.first) + (abs(last_val) * rpm);
+
+			if (parchglim == "FACTOR")
+			{
+				chg_lb = fac_lb;
+				chg_ub = fac_ub;
+			}
+			else if (parchglim == "RELATIVE")
+			{
+				chg_lb = rel_lb;
+				chg_ub = rel_ub;
+			}
+			else
+			{
+				throw runtime_error("Pest::enforce_par_limits() error: unrecognized 'parchglim': " + parchglim);
+			}
+
+
+			// double temp = 1.0;
+
+			// New logic for enforcing chglim and bounds
+			// First, we'll check the change limits.
+			// Next, we'll check parameter bounds.
+			// If anything violates, clamp to the offending bound.
+
+			if (enforce_chglim)
+			// similar to below, clamp rather than shrink every parameter if a parameter violates change limits
+			{ 
+				if (p.second > chg_ub)
+				{
+					temp = abs((chg_ub - last_val) / (p.second - last_val));
+					if ((temp > 1.0) || (temp < 0.0))
+					{
+						ss.str("");
+						ss << "Pest::enforce_par_limts() error: invalid upper parchglim scaling factor " << temp << " for par " << p.first << endl;
+						ss << " chglim:" << chg_ub << ", last_val:" << last_val << ", current_val:" << p.second << endl;
+						throw runtime_error(ss.str());
+					}
+					p.second = chg_ub;
+				}
+				else if (p.second < chg_lb)
+				{
+					temp = abs((last_val - chg_lb) / (last_val - p.second));
+					if ((temp > 1.0) || (temp < 0.0))
+					{
+						ss.str("");
+						ss << "Pest::enforce_par_limts() error: invalid lower parchglim scaling factor " << temp << " for par " << p.first << endl;
+						ss << " chglim:" << chg_lb << ", last_val:" << last_val << ", current_val:" << p.second << endl;
+						throw runtime_error(ss.str());
+					}
+					p.second = chg_lb;
+				}
+
+				//apply facorig correction if needed
+				if (ctl_parameter_info.get_parameter_rec_ptr(p.first)->tranform_type == ParameterRec::TRAN_TYPE::NONE)
+				{
+					if (abs(p.second) < abs(orig_val) * facorig)
+						p.second = orig_val * facorig;
+					if (abs(last_val) < abs(orig_val * facorig))
+						last_val = orig_val * facorig;
+				}
+			}
+
+			if (enforce_bounds)
+			{
+				if (p.second > p_rec->ubnd)
+				{
+					p.second = p_rec->ubnd;
+				}
+				else if (p.second < p_rec->lbnd)
+				{
+					p.second = p_rec->lbnd;
+				}
+			}	
 		}
 	}
-	
-	//check for slightly out of bounds
-	for (auto &p : upgrade_ctl_pars)
-	{
-		p_rec = p_info.get_parameter_rec_ptr(p.first);
-		if (p.second < p_rec->lbnd)
-			p.second = p_rec->lbnd;
-		else if (p.second > p_rec->ubnd)
-			p.second = p_rec->ubnd;
 
-	}
-	ss.str("");
-	ss << control_type << "," << controlling_par;
 	pair<string, double> _control_info(ss.str(), scaling_factor);
 	return _control_info;
-
 }
 
 pair<Parameters,Parameters> Pest::get_effective_ctl_lower_upper_bnd(Parameters &pars)
@@ -2386,7 +2043,7 @@ void Pest::assign_da_cycles(ofstream &f_rec)
 			
 //			for (auto tpl : mi_cycle_map)
 //			{
-//				model_exec_info.incycle_vec.push_back(tpl.second); // we can do that becuase row order does not change.
+//				model_exec_info.incycle_vec.push_back(tpl.second); // we can do that because row order does not change.
 //
 //			}
 			for (auto& tpl : mi_cycle_dci_map)
@@ -2424,7 +2081,7 @@ void Pest::assign_da_cycles(ofstream &f_rec)
 		{		
 //			for (auto ins : mi_cycle_map)
 //			{
-//				model_exec_info.outcycle_vec.push_back(ins.second); // we can do that becuase row order does not change.
+//				model_exec_info.outcycle_vec.push_back(ins.second); // we can do that because row order does not change.
 //			}
 			for (auto& ins : mi_cycle_dci_map)
             {
@@ -2938,8 +2595,8 @@ vector<int> Pest::get_assim_dci_cycles(ofstream& f_rec, vector<int> unique_cycle
 
     if (stop_cycle < 0) {
         ss.str("");
-        ss << "WARNING: didnt find any explicit 'stop' cycle values in control file info, assuming smoother formulation" << endl;
-        ss << "         assinging a generic 'stop' value of " << start_cycle + 1 << " which is 'start' cycle plus 1" << endl;
+        ss << "WARNING: didn't find any explicit 'stop' cycle values in control file info, assuming smoother formulation" << endl;
+        ss << "         assigning a generic 'stop' value of " << start_cycle + 1 << " which is 'start' cycle plus 1" << endl;
         cout << ss.str();
         f_rec << ss.str();
         stop_cycle = start_cycle + 1;
@@ -3066,7 +2723,7 @@ map<string, double> Pest::get_pars_at_near_bounds(const Parameters & pars, doubl
 
 
 Pest::~Pest() {
-	/*if (regul_scheme_ptr != 0)
+	if (regul_scheme_ptr != 0)
 	{
 		try
 		{
@@ -3075,7 +2732,8 @@ Pest::~Pest() {
 		catch (...)
 		{
 		}
-	}*/
+	}
+    base_group_info.free_mem();
 }
 
 pair<string, string> Pest::parse_keyword_line(ofstream &f_rec, const string &line)
@@ -3100,7 +2758,7 @@ pair<string, string> Pest::parse_keyword_line(ofstream &f_rec, const string &lin
 	tokenize(tmp_line,tokens,"\t ");
 	if (tokens.size() < 2)
 	{
-		throw_control_file_error(f_rec, "Pest::parse_keyword_line() error: too few tokens on line '" + line + "', need atleast 2");
+		throw_control_file_error(f_rec, "Pest::parse_keyword_line() error: too few tokens on line '" + line + "', need at least 2");
 	}
 	key = tokens[0];
 	upper_ip(key);
@@ -3383,6 +3041,7 @@ void Pest::tokens_to_pi_rec(ofstream& f_rec, const vector<string>& tokens)
 	if (s_obgnme.find(pi_name_group.second) == s_obgnme.end())
 	{
 		ctl_ordered_obs_group_names.push_back(pi_name_group.second);
+        s_obgnme.emplace(pi_name_group.second);
 	}
 	
 }
@@ -3478,6 +3137,9 @@ void Pest::release_unused_for_agent()
     ctl_ordered_par_group_names.clear();
     //base_group_info.clear();
     prior_info.clear();
+    base_group_info.free_mem();
+    regul_scheme_ptr = NULL;
+
 }
 
 

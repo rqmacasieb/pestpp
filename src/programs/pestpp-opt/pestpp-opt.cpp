@@ -96,6 +96,8 @@ int main(int argc, char* argv[])
 				}
 				catch (PestError e)
 				{
+                    frec << "Error processing control file: " << ctl_file << endl << endl;
+                    frec << e.what() << endl << endl;
 					cerr << "Error prococessing control file: " << ctl_file << endl << endl;
 					cerr << e.what() << endl << endl;
 					throw(e);
@@ -168,9 +170,9 @@ int main(int argc, char* argv[])
 			performance_log.log_event("finished processing control file");
 #ifndef _DEBUG
 		}
-		catch (PestError e)
+		catch (exception &e)
 		{
-			cerr << "Error prococessing control file: " << filename << endl << endl;
+			cerr << "Error processing control file: " << filename << endl << endl;
 			cerr << e.what() << endl << endl;
 			throw(e);
 		}
@@ -190,7 +192,7 @@ int main(int argc, char* argv[])
 			restart_ctl.get_restart_option() = RestartController::RestartOption::REUSE_JACOBIAN;
 		}
 
-		//Initialize OutputFileWriter to hadle IO of suplementary files (.par, .par, .svd)
+		//Initialize OutputFileWriter to handle IO of supplementary files (.par, .par, .svd)
 		//bool save_eign = pest_scenario.get_svd_info().eigwrite > 0;	=
 		OutputFileWriter output_file_writer(file_manager, pest_scenario,false);
 		
@@ -221,7 +223,11 @@ int main(int argc, char* argv[])
 				pest_scenario.get_pestpp_options().get_overdue_reched_fac(),
 				pest_scenario.get_pestpp_options().get_overdue_giveup_fac(),
 				pest_scenario.get_pestpp_options().get_overdue_giveup_minutes(),
-				pest_scenario.get_pestpp_options().get_panther_echo());
+				pest_scenario.get_pestpp_options().get_panther_echo(),
+                vector<string>{}, vector<string>{},
+                pest_scenario.get_pestpp_options().get_panther_timeout_milliseconds(),
+                pest_scenario.get_pestpp_options().get_panther_echo_interval_milliseconds(),
+                pest_scenario.get_pestpp_options().get_panther_persistent_workers());
 		}
 
 		else
@@ -273,10 +279,10 @@ int main(int argc, char* argv[])
 
 		ObjectiveFunc obj_func(&(pest_scenario.get_ctl_observations()), &(pest_scenario.get_ctl_observation_info()), &(pest_scenario.get_prior_info()));
 
-		TerminationController termination_ctl(pest_scenario.get_control_info().noptmax, pest_scenario.get_control_info().phiredstp,
-			pest_scenario.get_control_info().nphistp, pest_scenario.get_control_info().nphinored, pest_scenario.get_control_info().relparstp,
-			pest_scenario.get_control_info().nrelpar, pest_scenario.get_regul_scheme_ptr()->get_use_dynamic_reg(),
-			pest_scenario.get_regul_scheme_ptr()->get_phimaccept());
+//		TerminationController termination_ctl(pest_scenario.get_control_info().noptmax, pest_scenario.get_control_info().phiredstp,
+//			pest_scenario.get_control_info().nphistp, pest_scenario.get_control_info().nphinored, pest_scenario.get_control_info().relparstp,
+//			pest_scenario.get_control_info().nrelpar, pest_scenario.get_regul_scheme_ptr()->get_use_dynamic_reg(),
+//			pest_scenario.get_regul_scheme_ptr()->get_phimaccept());
 
 		
 
@@ -297,7 +303,7 @@ int main(int argc, char* argv[])
 		ModelRun optimum_run(&obj_func, pest_scenario.get_ctl_observations());
 
 
-		// if noptmax=0 make one run with the intital parameters
+		// if noptmax=0 make one run with the initial parameters
 		if (pest_scenario.get_control_info().noptmax == 0) {
 			Parameters init_model_pars = base_trans_seq.ctl2model_cp(cur_ctl_parameters);
 			optimum_run.set_ctl_parameters(init_model_pars);
@@ -321,7 +327,7 @@ int main(int argc, char* argv[])
 
 			if (success)
 			{
-				termination_ctl.check_last_iteration();
+				//termination_ctl.check_last_iteration();
 				optimum_run.update_ctl(tmp_pars, tmp_obs);
 				// save parameters to .par file
 				output_file_writer.write_par(file_manager.open_ofile_ext("par"), optimum_run.get_ctl_pars(), *(base_trans_seq.get_offset_ptr()),
@@ -341,14 +347,14 @@ int main(int argc, char* argv[])
 				fout_rec << "Model run failed.  No results were recorded." << endl << endl;
 				exit(1);
 			}
-			termination_ctl.set_terminate(true);
+			//termination_ctl.set_terminate(true);
 		}
 
 
 		
 		else
 		{
-			//Define model Run for Base Parameters (uses base parameter tranformations)
+			//Define model Run for Base Parameters (uses base parameter transformations)
 			ModelRun cur_run(&obj_func, pest_scenario.get_ctl_observations());
 
 			cur_run.set_ctl_parameters(cur_ctl_parameters);
@@ -363,12 +369,24 @@ int main(int argc, char* argv[])
 			}
 			
 			fout_rec << "   -----    Starting Optimization Iterations    ----    " << endl << endl;
-			
-			Covariance parcov;
-			parcov.try_from(pest_scenario, file_manager);
-			sequentialLP slp(pest_scenario, run_manager_ptr, parcov, &file_manager, output_file_writer, performance_log);
-			slp.solve();
-			fout_rec << "Number of forward model runs performed during optimization: " << run_manager_ptr->get_total_runs() << endl;
+			try {
+                Covariance parcov;
+                parcov.try_from(pest_scenario, file_manager);
+                sequentialLP slp(pest_scenario, run_manager_ptr, parcov, &file_manager, output_file_writer,
+                                 performance_log);
+                slp.solve();
+            }
+            catch (exception &e)
+            {
+                fout_rec << "ERROR: " << e.what() << endl;
+                throw runtime_error(e.what());
+
+            }
+            catch (...)
+            {
+                throw runtime_error("ERROR in sLP process");
+            }
+            fout_rec << "Number of forward model runs performed during optimization: " << run_manager_ptr->get_total_runs() << endl;
 		}
 		// clean up
 		//fout_rec.close();

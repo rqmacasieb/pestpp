@@ -597,7 +597,7 @@ void TranSVD::calc_svd()
 	VectorXd Sigma_trunc;
 	//tran_svd_pack->solve_ip(SqrtQ_J, Sigma, U, Vt, Sigma_trunc);
 	tran_svd_pack->solve_ip(jtqj, Sigma, U, Vt, Sigma_trunc);
-	// calculate the number of singluar values above the threshold
+	// calculate the number of singular values above the threshold
 
 	debug_print(Sigma);
 	debug_print(U);
@@ -658,8 +658,8 @@ void TranSVD::update_reset_frozen_pars(const Jacobian &jacobian, const QSqrtMatr
 	base_parameter_names.resize(std::distance(base_parameter_names.begin(), end_iter));
 	frozen_derivative_parameters = _frozen_derivative_pars;
 	//remove frozen derivatives from matrix parameter list
-	std::remove_if(base_parameter_names.begin(), base_parameter_names.end(),
-		[this](string &str)->bool{return this->frozen_derivative_parameters.find(str)!=this->frozen_derivative_parameters.end();});
+//	std::remove_if(base_parameter_names.begin(), base_parameter_names.end(),
+//		[this](string &str)->bool{return this->frozen_derivative_parameters.find(str)!=this->frozen_derivative_parameters.end();});
 
 	//SqrtQ_J = Q_sqrt.get_sparse_matrix(obs_names, DynamicRegularization::get_unit_reg_instance()) * jacobian.get_matrix(obs_names, base_parameter_names);
 	Eigen::SparseMatrix<double> j = jacobian.get_matrix(obs_names, base_parameter_names);
@@ -917,7 +917,7 @@ ParameterGroupInfo TranSVD::build_par_group_info(const ParameterGroupInfo &base_
 	for (int i_sup=0, n_sup=super_parameter_names.size(); i_sup < n_sup; ++i_sup)
 	{
 		get_MatrixXd_row_abs_max(Vt, i_sup, &max_col, &max_val);
-		derinc_par = base_pg_info.get_group_rec_ptr(base_parameter_names[max_col])->derinc;
+		derinc_par = base_pg_info.get_group_rec(base_parameter_names[max_col]).derinc;
 		derinc_sup = .01;
 		grp_name.str("");
 		grp_name << "g_" << super_parameter_names[i_sup];

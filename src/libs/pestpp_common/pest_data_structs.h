@@ -79,21 +79,23 @@ public:
 	to the specified group
 	*/
 	void insert_parameter_link(const string &parameter_name, const string & group_name);
-	const ParameterGroupRec* get_group_rec_ptr(const string &par_name) const;
-	const ParameterGroupRec* get_group_by_groupname(const string &group_name) const { return groups.at(group_name); }
-	ParameterGroupRec* get_group_by_groupname_4_mod(const string &group_name) { return groups.at(group_name); }
-	ParameterGroupRec* get_group_rec_ptr_4_mod(const string &par_name);
+	const ParameterGroupRec get_group_rec(const string &par_name) const;
+    ParameterGroupRec* get_group_rec_ptr_4_mod(const string &par_name);
+	const ParameterGroupRec get_group_by_groupname(const string &group_name) const { return groups.at(group_name); }
+	ParameterGroupRec* get_group_ptr_by_groupname_4_mod(const string &group_name) { return &groups.at(group_name); }
+
 	string get_group_name(const string &par_name) const;
-	const ParameterGroupInfo& operator=(const ParameterGroupInfo &rhs);
+	//const ParameterGroupInfo& operator=(const ParameterGroupInfo &rhs);
 	bool have_switch_derivative() const;
 	vector<string> get_group_names() const;
 	void par_erase(const string& par_name) { parameter2group.erase(par_name); }
 	void grp_erase(const string& grp_name) { groups.erase(grp_name);
 	}
+	void free_mem();
 	~ParameterGroupInfo();
 private:
-	unordered_map<string, ParameterGroupRec*> groups;
-	unordered_map<string, ParameterGroupRec*> parameter2group;
+	unordered_map<string, ParameterGroupRec> groups;
+	unordered_map<string, ParameterGroupRec> parameter2group;
 
 };
 
@@ -127,7 +129,7 @@ public:
 	Parameters get_init_value(const vector<string> &keys) const;
 	const ParameterRec* get_parameter_rec_ptr(const string &name) const;
 	ParameterRec* get_parameter_rec_ptr_4_mod(const string &name);
-	void insert(const string &name, const ParameterRec &rec) {parameter_info[name] = rec;}
+	void insert(const string &name, ParameterRec rec) {parameter_info[name] = rec;}
 	void erase(const string& name) { parameter_info.erase(name);}
 	ParameterInfo() {}
 	~ParameterInfo() {}
@@ -328,7 +330,10 @@ public:
 
 	string get_opt_obj_func()const { return opt_obj_func; }
 	void set_opt_obj_func(string _opt_obj_func) { opt_obj_func = _opt_obj_func; }
-	bool get_opt_coin_log()const { return opt_coin_log; }
+    string get_org_opt_obj_func()const { return org_opt_obj_func; }
+    void set_org_opt_obj_func(string _org_opt_obj_func) { org_opt_obj_func = _org_opt_obj_func; }
+
+    bool get_opt_coin_log()const { return opt_coin_log; }
 	void set_opt_coin_log(bool _log) { opt_coin_log = _log; }
 	bool get_opt_skip_final()const { return opt_skip_final; }
 	void set_opt_skip_final(bool _skip_final) { opt_skip_final = _skip_final; }
@@ -362,6 +367,8 @@ public:
 	void set_opt_obs_stack(string _stack) { opt_obs_stack = _stack; }
 	string get_opt_chance_points() const { return opt_chance_points; }
 	void set_opt_chance_points(string chance_points) { opt_chance_points = chance_points; }
+    string get_opt_chance_schedule() const {return opt_chance_schedule;}
+    void set_opt_chance_schedule(string fname) {opt_chance_schedule = fname;}
 
 
 	string get_sqp_dv_en()const { return sqp_dv_en; }
@@ -420,8 +427,8 @@ public:
 	void set_mou_pso_inertia(vector<double> _vals) { mou_pso_inertia = _vals; }
 	double get_mou_pso_vmax_factor() const { return mou_pso_vmax_factor; }
 	void set_mou_pso_vmax_factor(double _val) { mou_pso_vmax_factor = _val; }
-	string get_mou_pso_dv_bound_restoration() const { return mou_pso_dv_bound_restoration; }
-	void set_mou_pso_dv_bound_restoration(string name) { mou_pso_dv_bound_restoration = name; }
+	string get_mou_pso_dv_bound_handling() const { return mou_pso_dv_bound_handling; }
+	void set_mou_pso_dv_bound_handling(string name) { mou_pso_dv_bound_handling = name; }
 	int get_mou_max_nn_search() const { return mou_max_nn_search;}
 	void set_mou_max_nn_search(int val) { mou_max_nn_search = val; }
 	string get_mou_outer_repo_obs_file() const { return mou_outer_repo_obs_file; }
@@ -452,6 +459,8 @@ public:
     void set_mou_use_multigen(bool _flag) {mou_use_multigen = _flag;}
     bool get_mou_shuffle_fixed_pars() const {return mou_shuffle_fixed_pars;}
     void set_mou_shuffle_fixed_pars(bool _flag) {mou_shuffle_fixed_pars = _flag;}
+	bool get_mou_debug_dv_handling() const { return mou_debug_dv_handling; }
+	void set_mou_debug_dv_handling(bool _flag) { mou_debug_dv_handling = _flag; }
 
 	string get_ies_par_csv()const { return ies_par_csv; }
 	void set_ies_par_csv(string _ies_par_csv) { ies_par_csv = _ies_par_csv; }
@@ -516,9 +525,11 @@ public:
 	void set_ies_phi_fractions_files(string _file) {ies_phi_fractions_file = _file;}
     bool get_ies_phi_factors_by_real() const {return ies_phi_factors_by_real;}
     void set_ies_phi_factors_by_real(bool _flag) {ies_phi_factors_by_real = _flag;}
+    bool get_ies_updatebyreals() const {return ies_updatebyreals;}
+    void set_ies_updatebyreals(bool _flag) {ies_updatebyreals = _flag;}
 
-
-
+    bool get_save_dense() const {return save_dense; }
+    void set_save_dense(bool _flag) {save_dense = _flag;}
 	int get_ies_num_threads() const { return ies_num_threads; }
 	void set_ies_num_threads(int _threads) { ies_num_threads = _threads; }
 
@@ -569,8 +580,16 @@ public:
     void set_ies_multimodal_alpha(double _flag) { ies_multimodal_alpha = _flag; }
     void set_ensemble_output_precision(int prec) { ensemble_output_precision = prec;}
     int get_ensemble_output_precision() const {return ensemble_output_precision;}
+    void set_ies_n_iter_reinflate(vector<int> _n_iter_reinflate)  { ies_n_iter_reinflate = _n_iter_reinflate;}
+    vector<int> get_ies_n_iter_reinflate() const {return ies_n_iter_reinflate;}
+    void set_ies_reinflate_factor(vector<double> reinflate_factor)  { ies_reinflate_factor = reinflate_factor;}
+    vector<double> get_ies_reinflate_factor() const {return ies_reinflate_factor;}
+    void set_ies_aal_indicator_pars(vector<string> pars)  { ies_aal_indicator_pars = pars;}
+    vector<string> get_ies_aal_indicator_pars() const {return ies_aal_indicator_pars;}
+    void set_ies_run_realname(string name) {ies_run_realname = name;}
+    string get_ies_run_realname() const {return ies_run_realname;}
 
-	string get_gsa_method() const { return gsa_method; }
+    string get_gsa_method() const { return gsa_method; }
 	void set_gsa_method(string _m) { gsa_method = _m; }
 	bool get_gsa_morris_pooled_obs() const { return gsa_morris_pooled_obs; }
 	void set_gsa_morris_pooled_obs(bool _flag) {gsa_morris_pooled_obs = _flag; }
@@ -655,6 +674,15 @@ public:
     const vector<string>& get_panther_transfer_on_fail() const {return panther_transfer_on_fail;}
     void set_panther_transfer_on_finish(vector<string> _files) {panther_transfer_on_finish = _files;}
     void set_panther_transfer_on_fail(vector<string> _files) {panther_transfer_on_fail = _files;}
+    void set_panther_timeout_milliseconds(int _value) {panther_timeout_milliseconds = _value;}
+    void set_panther_echo_interval_milliseconds(int _value) {panther_echo_interval_milliseconds = _value;}
+    const int get_panther_echo_interval_milliseconds() const { return panther_echo_interval_milliseconds;}
+    const int get_panther_timeout_milliseconds() const { return panther_timeout_milliseconds;}
+    void set_panther_persistent_workers(bool _flag) {panther_persistent_workers = _flag;}
+    const bool get_panther_persistent_workers() const {return panther_persistent_workers;}
+
+
+
 
 
 
@@ -736,6 +764,7 @@ private:
 	bool de_dither_f;
 
 	string opt_obj_func;
+    string org_opt_obj_func;
 	bool opt_coin_log;
 	bool opt_skip_final;
 	vector<string> opt_dec_var_groups;
@@ -752,6 +781,7 @@ private:
 	string opt_par_stack;
 	string opt_obs_stack;
 	string opt_chance_points;
+    string opt_chance_schedule;
 
 	string sqp_dv_en;
 	string sqp_obs_restart_en;
@@ -779,7 +809,7 @@ private:
 	double mou_pso_alpha;
 	double mou_pso_rramp;
 	double mou_pso_rfit;
-	string mou_pso_dv_bound_restoration;
+	string mou_pso_dv_bound_handling;
 	vector<double> mou_pso_inertia;
 	double mou_pso_vmax_factor;
 	double mou_ppd_beta;
@@ -797,6 +827,7 @@ private:
 	bool mou_simplex_mutation;
 	bool mou_use_multigen;
 	bool mou_shuffle_fixed_pars;
+	bool mou_debug_dv_handling;
 
 	int ies_subset_size;
 	string ies_par_csv;
@@ -820,6 +851,7 @@ private:
 	bool ies_enforce_bounds;
 	double par_sigma_range;
 	bool save_binary;
+    bool save_dense;
 	string ies_localizer;
 	double ies_accept_phi_fac;
 	double ies_lambda_inc_fac;
@@ -856,6 +888,12 @@ private:
 	bool ies_localizer_forgive_missing;
 	string ies_phi_fractions_file;
 	bool ies_phi_factors_by_real;
+	vector<int> ies_n_iter_reinflate;
+    vector<double> ies_reinflate_factor;
+    bool ies_updatebyreals;
+    vector<string> ies_aal_indicator_pars;
+    string ies_run_realname;
+
 
 
 	// Data Assimilation parameters
@@ -892,6 +930,9 @@ private:
 	bool panther_debug_fail_freeze;
 	bool panther_echo;
 	vector<string> panther_transfer_on_finish, panther_transfer_on_fail;
+    int panther_timeout_milliseconds;
+    int panther_echo_interval_milliseconds;
+    bool panther_persistent_workers;
 
 };
 //ostream& operator<< (ostream &os, const PestppOptions& val);
@@ -916,7 +957,7 @@ public:
 	int noptswitch;
 	double splitswh;
 	PestMode pestmode;
-	PestppOptions::ARG_STATUS assign_value_by_key(const string key, const string org_value);
+	PestppOptions::ARG_STATUS assign_value_by_key(const string key, const string org_value, ofstream& f_rec);
 	ControlInfo() { ; }
 	void set_defaults();
 

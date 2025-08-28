@@ -50,8 +50,10 @@ const int RunManagerPanther::N_PINGS_UNRESPONSIVE = 3;
 const int RunManagerPanther::MIN_PING_INTERVAL_SECS = 60;				// Ping each slave at most once every minute
 const int RunManagerPanther::MAX_PING_INTERVAL_SECS = 120;				// Ping each slave at least once every 2 minutes
 const int RunManagerPanther::MAX_CONCURRENT_RUNS_LOWER_LIMIT = 1;
-const int RunManagerPanther::IDLE_THREAD_SIGNAL_TIMEOUT_SECS = 10;		// Allow up to 10s for the run_idle_async() thread to acknowledge signals (pause idling, terminate)
-
+const int RunManagerPanther::IDLE_THREAD_SIGNAL_TIMEOUT_SECS = 10;  // Allow up to 10s for the run_idle_async() thread to acknowledge signals (pause idling, terminate)
+const double RunManagerPanther::MIN_AVGRUNMINS_FOR_KILL = 0.01; //minimum avg runtime to try to kill and/or resched runs
+//const int RunManagerPanther::MILLISECONDS_BETWEEN_ECHOS = 10;
+//const int RunManagerPanther::TIMEOUT_MILLISECONDS = 10;
 
 AgentInfoRec::AgentInfoRec(int _socket_fd)
 {
@@ -272,14 +274,15 @@ int AgentInfoRec::seconds_since_last_ping_time() const
 
 RunManagerPanther::RunManagerPanther(const string& stor_filename, const string& _port, ofstream& _f_rmr, int _max_n_failure,
 	double _overdue_reched_fac, double _overdue_giveup_fac, double _overdue_giveup_minutes, bool _should_echo, const vector<string>& par_names,
-	const vector<string>& obs_names)
+	const vector<string>& obs_names,int _timeout_milliseconds,int _echo_interval_milliseconds, bool _persistent_workers)
 
 	: RunManagerAbstract(vector<string>(), vector<string>(), vector<string>(),
 		vector<string>(), vector<string>(), stor_filename, _max_n_failure),
 	overdue_reched_fac(_overdue_reched_fac), overdue_giveup_fac(_overdue_giveup_fac),
 	port(_port), f_rmr(_f_rmr), n_no_ops(0), overdue_giveup_minutes(_overdue_giveup_minutes),
 	terminate_idle_thread(false), currently_idle(true), idling(false), idle_thread_finished(false),
-	idle_thread(nullptr), should_echo(_should_echo),nftx(0)
+	idle_thread(nullptr), should_echo(_should_echo),nftx(0),timeout_milliseconds(_timeout_milliseconds),
+    echo_interval_milliseconds(_echo_interval_milliseconds),persistent_workers(_persistent_workers)
 {
 
 	const char * t =
@@ -317,7 +320,7 @@ RunManagerPanther::RunManagerPanther(const string& stor_filename, const string& 
 	struct addrinfo hints;
 	struct addrinfo* servinfo;
 	memset(&hints, 0, sizeof hints);
-	//Use this for IPv4 aand IPv6
+	//Use this for IPv4 and IPv6
 	//hints.ai_family = AF_UNSPEC;
 	//Use this just for IPv4;
 	hints.ai_family = AF_INET;
@@ -445,7 +448,7 @@ void RunManagerPanther::update_run(int run_id, const Parameters &pars, const Obs
 {
 
 	file_stor.update_run(run_id, pars, obs);
-	// erase any wating runs with this id
+	// erase any waiting runs with this id
 	for (auto it_run = waiting_runs.begin(); it_run != waiting_runs.end();)
 	{
 		if (*it_run == run_id)
@@ -488,7 +491,7 @@ RunManagerAbstract::RUN_UNTIL_COND RunManagerPanther::run_until(RUN_UNTIL_COND c
 	cout << "    running model " << num_runs << " times" << endl;
 	f_rmr << "running model " << num_runs << " times" << endl;
 	cout << "    starting at " << pest_utils::get_time_string() << endl;
-	if (agent_info_set.size() == 0) // first entry is the listener, slave apears after this
+	if (agent_info_set.size() == 0) // first entry is the listener, slave appears after this
 	{
 		cout << endl << "    waiting for agents to appear..." << endl << endl;
 		//f_rmr << endl << "    waiting for agents to appear..." << endl << endl;
@@ -520,7 +523,8 @@ RunManagerAbstract::RUN_UNTIL_COND RunManagerPanther::run_until(RUN_UNTIL_COND c
 	}
 
 	std::chrono::system_clock::time_point start_time = std::chrono::system_clock::now();
-	double run_time_sec = 0.0;
+    last_echo_time = std::chrono::system_clock::now();
+
 	while (!all_runs_complete() && terminate_reason == RUN_UNTIL_COND::NORMAL)
 	{
         int q = pest_utils::quit_file_found();
@@ -535,7 +539,7 @@ RunManagerAbstract::RUN_UNTIL_COND RunManagerPanther::run_until(RUN_UNTIL_COND c
 		//schedule runs on available nodes
 		schedule_runs();
 		echo();
-		// get and process incomming messages
+		// get and process incoming messages
 		if (!listen())
 		{
 			++n_no_ops;
@@ -544,11 +548,12 @@ RunManagerAbstract::RUN_UNTIL_COND RunManagerPanther::run_until(RUN_UNTIL_COND c
 		{
 			n_no_ops = 0;
 		}
+        echo();
 		if (ping())
 		{
 			n_no_ops = 0;
 		}
-
+        echo();
 		if ((condition == RUN_UNTIL_COND::NO_OPS || condition == RUN_UNTIL_COND::NO_OPS_OR_TIME) && n_no_ops >= max_no_ops)
 		{
 			terminate_reason = RUN_UNTIL_COND::NO_OPS;
@@ -560,7 +565,7 @@ RunManagerAbstract::RUN_UNTIL_COND RunManagerPanther::run_until(RUN_UNTIL_COND c
 		}
 
 	}
-    w_sleep(2000);
+    w_sleep(get_current_sleep_timeout_milliseconds(timeout_milliseconds));
 	n_no_ops = 0;
     while (true)
     {
@@ -573,7 +578,7 @@ RunManagerAbstract::RUN_UNTIL_COND RunManagerPanther::run_until(RUN_UNTIL_COND c
             n_no_ops = 0;
         }
 
-        cout << get_time_string_short() << " remaining file transfers: " << open_file_trans_streams.size() << "                                       \r" << flush;
+        cout << get_time_string_short() << " remaining file transfers: " << open_file_trans_streams.size() << "\r" << flush;
         if (ping())
         {
             n_no_ops = 0;
@@ -581,7 +586,7 @@ RunManagerAbstract::RUN_UNTIL_COND RunManagerPanther::run_until(RUN_UNTIL_COND c
         if (agent_info_set.size() == 0)
         {
             ss.str("");
-            ss << "lost comms with all agents, closing all reminaing open file transfers";
+            ss << "lost comms with all agents, closing all remaining open file transfers";
             report(ss.str(),true);
             for (auto& m : open_file_socket_map) {
                 string fname = m.second;
@@ -603,8 +608,8 @@ RunManagerAbstract::RUN_UNTIL_COND RunManagerPanther::run_until(RUN_UNTIL_COND c
         }
         if (open_file_trans_streams.size() == 0)
         {
-            listen();
-            break;
+            if (!listen())
+                break;
         }
         int q = pest_utils::quit_file_found();
         if ((q == 1) || (q == 2) || (q == 4))
@@ -612,7 +617,7 @@ RunManagerAbstract::RUN_UNTIL_COND RunManagerPanther::run_until(RUN_UNTIL_COND c
             cout << "'pest.stp' found" << endl;
             kill_all_active_runs();
             ss.str("");
-            ss << "'pest.stp' found, closing all reminaing open file transfers";
+            ss << "'pest.stp' found, closing all remaining open file transfers";
             report(ss.str(),true);
             for (auto& m : open_file_socket_map) {
                 string fname = m.second;
@@ -686,6 +691,29 @@ RunManagerAbstract::RUN_UNTIL_COND RunManagerPanther::run_until(RUN_UNTIL_COND c
 
 
     // Resume idle pinging thread
+
+    if (!persistent_workers) {
+        stringstream ss;
+
+        std::list<list<AgentInfoRec>::iterator> free_agent_list = get_free_agent_list();
+        list<AgentInfoRec>::iterator it_agent, iter_e;
+        for (int i=0;i<free_agent_list.size();i++) {
+            for (it_agent = agent_info_set.begin(), iter_e = agent_info_set.end();
+                 it_agent != iter_e; ++it_agent) {
+                AgentInfoRec::State state = it_agent->get_state();
+                if (state == AgentInfoRec::State::WAITING) {
+                    ss.str("");
+                    ss << "using non-persistent agents, closed connection to agent: " << it_agent->get_socket_name()
+                       << ", number of agents: " << socket_to_iter_map.size();
+                    close_agent(it_agent);
+
+
+                    report(ss.str(), false);
+                    break;
+                }
+            }
+        }
+    }
     resume_idle();
 
 	return terminate_reason;
@@ -726,7 +754,7 @@ void RunManagerPanther::run_idle_async()
 				idling.set(false);
 
 				// Sleep 1s to avoid spinlock
-				w_sleep(1000);
+				w_sleep(get_current_sleep_timeout_milliseconds(timeout_milliseconds));
 				continue;
 			}
 
@@ -816,7 +844,7 @@ void RunManagerPanther::end_run_idle_async()
 		}
 		
 		// Sleep to avoid spinlock
-		w_sleep(50);
+		w_sleep(get_current_sleep_timeout_milliseconds(timeout_milliseconds));
 	}
 
 	report("Stopped idle ping thread, as Panther manager is shutting down.", false);
@@ -857,7 +885,7 @@ void RunManagerPanther::pause_idle()
 		}
 		
 		// Sleep to avoid spinlock
-		w_sleep(50);
+		w_sleep(get_current_sleep_timeout_milliseconds(timeout_milliseconds));
 	}
 
 	report("Panther idle ping thread paused prior to scheduling runs.", false);
@@ -865,6 +893,7 @@ void RunManagerPanther::pause_idle()
 	{
 		report("Warning: timed out waiting for acknowledgement of signal from idle thread.", false);
 	}
+    //delete idle_thread;
 }
 
 void RunManagerPanther::resume_idle()
@@ -877,6 +906,27 @@ void RunManagerPanther::resume_idle()
 
 	// Don't bother waiting for acknowledgement here, as none of the management code relies on it; we can happily go off and do other processing while the thread gets around to resuming idle pings
 	report("Panther idle ping thread resumed.", false);
+}
+
+int RunManagerPanther::get_current_sleep_timeout_milliseconds(const int org_timeout_milliseconds)
+{
+    double avg = get_global_runtime_minute() / 1000.0;
+    if (org_timeout_milliseconds > 0)
+    {
+        return org_timeout_milliseconds;
+    }
+    double timeout;
+    if (avg == 0.0) {
+        timeout = 500;
+    }
+    else {
+        timeout = avg / 0.1;
+        timeout = max<double>(timeout, 10);
+        timeout = min<double>(timeout, 500);
+    }
+
+    //cout << timeout;
+    return timeout;
 }
 
 bool RunManagerPanther::ping(int i_sock)
@@ -947,8 +997,8 @@ bool RunManagerPanther::listen(pest_utils::thread_flag* terminate/* = nullptr*/)
 	fd_set read_fds; // temp file descriptor list for select()
 	socklen_t addr_len;
 	timeval tv;
-	tv.tv_sec = 1;
-	tv.tv_usec = 0;
+	tv.tv_sec = 0;
+	tv.tv_usec = 250;
 	read_fds = master; // copy it
 	if (w_select(fdmax+1, &read_fds, NULL, NULL, &tv) == -1)
 	{
@@ -1006,7 +1056,8 @@ void RunManagerPanther::close_agents()
 			sock_nums.push_back(si.first);
 		for (auto si : sock_nums)
 			close_agent(si);
-		w_sleep(100);
+
+		w_sleep(get_current_sleep_timeout_milliseconds(timeout_milliseconds));
 
 	}
 }
@@ -1107,7 +1158,7 @@ void RunManagerPanther::schedule_runs()
 					duration = it_agent->get_duration_minute();
 					avg_runtime = it_agent->get_runtime_minute();
 					if (avg_runtime <= 0) avg_runtime = global_avg_runtime;
-					if (avg_runtime <= 0) avg_runtime = 1.0E+10;
+					if (avg_runtime <= 0) avg_runtime = 1.0E+300;
 					vector<int> overdue_kill_runs_vec = get_overdue_runs_over_kill_threshold(run_id);
 
 					if (failure_map.count(run_id) + overdue_kill_runs_vec.size() >= max_n_failure)
@@ -1127,11 +1178,13 @@ void RunManagerPanther::schedule_runs()
 						// kill the overdue runs
 						kill_runs(run_id, true, "overdue");
 						// reschedule runs as we still haven't reach the max failure threshold
-						// and there are not concurrent runs for this id becuse we just killed all of them
+						// and there are not concurrent runs for this id because we just killed all of them
 						should_schedule = true;
 						model_runs_timed_out += overdue_kill_runs_vec.size();
 					}
-					else if (((duration > overdue_giveup_minutes) || (duration > avg_runtime*overdue_giveup_fac))
+
+					else if (((duration > overdue_giveup_minutes) || ((duration > avg_runtime*overdue_giveup_fac) &&
+                                                                      (avg_runtime > MIN_AVGRUNMINS_FOR_KILL)))
 						&& free_agent_list.empty())
 					{
 						// If there are no free slaves kill the overdue ones
@@ -1147,7 +1200,8 @@ void RunManagerPanther::schedule_runs()
 						}
 						model_runs_timed_out += 1;
 					}
-					else if (duration > avg_runtime*overdue_reched_fac)
+
+					else if ((duration > avg_runtime*overdue_reched_fac) && (avg_runtime > MIN_AVGRUNMINS_FOR_KILL))
 					{
 						//check how many concurrent runs are going
 						if (n_concur < max_concurrent_runs) should_schedule = true;
@@ -1190,6 +1244,35 @@ void RunManagerPanther::schedule_runs()
 			cout << "exception trying to find overdue runs: " << endl << e.what() << endl;
 		}
 	}
+    if ((!persistent_workers) && (waiting_runs.size() < free_agent_list.size()))
+    {
+        stringstream ss;
+        free_agent_list = get_free_agent_list();
+        int num_to_close = free_agent_list.size() - waiting_runs.size();
+        list<AgentInfoRec>::iterator it_agent, iter_e;
+
+        int closed = 0;
+
+        for (int i=0;i<num_to_close;i++)
+        {
+            for (it_agent = agent_info_set.begin(), iter_e = agent_info_set.end();
+                 it_agent != iter_e; ++it_agent) {
+                AgentInfoRec::State state = it_agent->get_state();
+                if (state == AgentInfoRec::State::WAITING) {
+                    ss.str("");
+                    ss << "using non-persistent agents, closed connection to agent: " << it_agent->get_socket_name()
+                       << ", number of agents: " << socket_to_iter_map.size();
+                    close_agent(it_agent);
+                    closed++;
+
+
+                    report(ss.str(), false);
+                    break;
+                }
+            }
+        }
+
+    }
 }
 
 int RunManagerPanther::schedule_run(int run_id, std::list<list<AgentInfoRec>::iterator> &free_agent_list, int n_responsive_agents)
@@ -1285,6 +1368,10 @@ void RunManagerPanther::echo()
 {
 	if (!should_echo)
 		return;
+    std::chrono::system_clock::time_point now = chrono::system_clock::now();
+    if (chrono::duration_cast<std::chrono::milliseconds> ( now- last_echo_time).count() < echo_interval_milliseconds)
+        return;
+    last_echo_time = now;
 	map<string, int> stats_map = get_agent_stats();
 	cout << get_time_string_short() << " mn:" << setw(5) << setprecision(2) << left << get_global_runtime_minute()  << " runs("
 	     << "C" << setw(5) << left << model_runs_done
@@ -1391,7 +1478,7 @@ void RunManagerPanther::process_message(int i_sock)
 		if (run_finished(run_id))
 		{
 			stringstream ss;
-			ss << "Prevoiusly completed run_id:" << run_id << " finished on:" << host_name << "$" << agent_info_iter->get_work_dir() <<
+			ss << "Previously completed run_id:" << run_id << " finished on:" << host_name << "$" << agent_info_iter->get_work_dir() <<
 				"  run time:" << agent_info_iter->get_runtime_minute() << " min group_id:" << group_id <<
 				" " << net_pack.get_info_txt() << " concurrent:" << get_n_concurrent(run_id);
 			report(ss.str(), false);
@@ -1448,6 +1535,10 @@ void RunManagerPanther::process_message(int i_sock)
 		stringstream ss;
 		ss << "Frozen agent:" << host_name << "$" << agent_info_iter->get_work_dir() << " is frozen because of panther_debug_freeze_on_fail = true...";
 		report(ss.str(), true);
+		ss.str("");
+		ss <<"closing connection to frozen agent:" << host_name << "$" << agent_info_iter->get_work_dir() << ", note: the agent will continue in a frozen state";
+		report(ss.str(), true);
+        close_agent(agent_info_iter);
 
 	}
 	else if (net_pack.get_type() == NetPackage::PackType::RUN_KILLED)
@@ -1533,8 +1624,9 @@ void RunManagerPanther::process_message(int i_sock)
             }
             else
             {
-                pair<map<string ,ofstream*>::iterator, bool> ret = open_file_trans_streams.insert(pair<string,ofstream*>(fnames.second,new ofstream));
-                ofstream& out = *ret.first->second;
+                //pair<map<string ,ofstream*>::iterator, bool> ret = open_file_trans_streams.insert(pair<string,ofstream*>(fnames.second,new ofstream));
+                //ofstream& out = *ret.first->second;
+                ofstream& out = *open_file_trans_streams.at(fnames.second);
                 vector<int8_t> ibuf = net_pack.get_data();
                 //cout << reinterpret_cast<char*>(ibuf.data()) << endl;
 				if (out.bad())
@@ -1590,12 +1682,14 @@ void RunManagerPanther::process_message(int i_sock)
             }
             else
             {
-                pair<map<string ,ofstream*>::iterator, bool> ret = open_file_trans_streams.insert(pair<string,ofstream*>(fnames.second,new ofstream));
-                ofstream& out = *ret.first->second;
+                //pair<map<string ,ofstream*>::iterator, bool> ret = open_file_trans_streams.insert(pair<string,ofstream*>(fnames.second,new ofstream));
+                //ofstream& out = *ret.first->second;
+                ofstream& out = *open_file_trans_streams.at(fnames.second);
                 int file_size = out.tellp();
                 out.flush();
                 out.close();
-                open_file_trans_streams.erase(ret.first);
+                delete open_file_trans_streams.at(fnames.second);
+                open_file_trans_streams.erase(fnames.second);
                 string agent_dir = host_name + "$" + agent_info_iter->get_work_dir();
                 if (agent_dir.find(" ") != string::npos)
                 {
@@ -1935,7 +2029,9 @@ void RunManagerPanther::kill_all_active_runs()
 			 if (avg_runtime <= 0) avg_runtime = get_global_runtime_minute();;
 			 if (avg_runtime <= 0) avg_runtime = 1.0E+10;
 			 duration = i->second->get_duration_minute();
-			 if ((just_quit) || (duration > overdue_giveup_minutes) || (duration >= avg_runtime*overdue_giveup_fac))
+			 if ((just_quit) || (duration > overdue_giveup_minutes) ||
+                     ((duration >= avg_runtime*overdue_giveup_fac) &&
+                     (avg_runtime > MIN_AVGRUNMINS_FOR_KILL)))
 			 {
 				 sock_id_vec.push_back(i->second->get_socket_fd());
 			 }
@@ -2128,7 +2224,7 @@ RunManagerPanther::~RunManagerPanther(void)
 	err = w_close(listener);
 	FD_CLR(listener, &master);
 	// this is needed to ensure that the first slave closes properly
-	w_sleep(2000);
+	w_sleep(get_current_sleep_timeout_milliseconds(timeout_milliseconds));
 	for (int i = 0; i <= fdmax; i++)
 	{
 		if (FD_ISSET(i, &master))
@@ -2141,6 +2237,8 @@ RunManagerPanther::~RunManagerPanther(void)
 		}
 	}
 	w_cleanup();
+    delete idle_thread;
+
 }
 
 RunManagerYAMRCondor::RunManagerYAMRCondor(const std::string & stor_filename,
@@ -2244,10 +2342,10 @@ void RunManagerYAMRCondor::cleanup(int cluster)
 	stringstream ss;
 	ss << "condor_rm " << cluster << " 1>cr_temp.stdout 2>cr_temp.stderr";
 	system(ss.str().c_str());
-	w_sleep(2000);
+	w_sleep(1000);
 	ss.str(string());
 	ss << "condor_rm " << cluster << " -forcex 1>cr_temp.stdout 2>cr_temp.stderr";
-	w_sleep(2000);
+	w_sleep(1000);
 	system(ss.str().c_str());
 	RunManagerPanther::close_agents();
 	cout << "   all agents freed " << endl << endl;

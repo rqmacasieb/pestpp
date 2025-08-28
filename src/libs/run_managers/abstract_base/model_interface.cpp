@@ -274,7 +274,7 @@ void ThreadedTemplateProcess::work(int tid, vector<int>& tpl_idx, Parameters par
 			{
 				if (tpl_idx.size() == 0)
 				{
-					cout << "thread " << tid << " processed " << count << " template files" << endl;
+					//cout << "thread " << tid << " processed " << count << " template files" << endl;
 					return;
 				}
 				i = tpl_idx[tpl_idx.size() - 1];
@@ -346,7 +346,8 @@ void ModelInterface::write_input_files(Parameters *pars_ptr)
 	if (nnum_threads > tplfile_vec.size())
 		nnum_threads = tplfile_vec.size();
 	std::chrono::system_clock::time_point start_time = chrono::system_clock::now();
-	cout << pest_utils::get_time_string() << " processing template files with " << nnum_threads << " threads..." << endl;
+    if (should_echo)
+        cout << pest_utils::get_time_string() << " processing template files with " << nnum_threads << " threads..." << endl;
 	vector<thread> threads;
 	vector<exception_ptr> exception_ptrs;
 	Parameters pro_pars = *pars_ptr; //copy
@@ -454,7 +455,8 @@ void ModelInterface::write_input_files(Parameters *pars_ptr)
 	}
 
 	pars_ptr->update_without_clear(pro_pars.get_keys(), pro_pars.get_data_vec(pro_pars.get_keys()));
-	cout << pest_utils::get_time_string() << " done, took " << pest_utils::get_duration_sec(start_time) << " seconds" << endl;
+    if (should_echo)
+        cout << pest_utils::get_time_string() << " done, took " << pest_utils::get_duration_sec(start_time) << " seconds" << endl;
 }
 
 void ModelInterface::read_output_files(Observations *obs)
@@ -463,7 +465,8 @@ void ModelInterface::read_output_files(Observations *obs)
 	if (nnum_threads > insfile_vec.size())
 		nnum_threads = insfile_vec.size();
 	std::chrono::system_clock::time_point start_time = chrono::system_clock::now();
-	cout << pest_utils::get_time_string() <<  " processing instruction files with " << nnum_threads << " threads..." << endl;
+    if (should_echo)
+        cout << pest_utils::get_time_string() <<  " processing instruction files with " << nnum_threads << " threads..." << endl;
 	vector<thread> threads;
 	vector<exception_ptr> exception_ptrs;
 	Observations temp_obs;
@@ -600,7 +603,8 @@ void ModelInterface::read_output_files(Observations *obs)
 	}
 	t = temp_obs.get_keys();
 	obs->update(t, temp_obs.get_data_vec(t));
-	cout << pest_utils::get_time_string() << " done, took " << pest_utils::get_duration_sec(start_time) << " seconds" << endl;
+    if (should_echo)
+	    cout << pest_utils::get_time_string() << " done, took " << pest_utils::get_duration_sec(start_time) << " seconds" << endl;
 
 }
 
@@ -635,7 +639,7 @@ void ModelInterface::remove_existing()
 		if (failed_file_op)
 		{
 			++n_tries;
-			w_sleep(1000);
+			w_sleep(500);
 			if (n_tries > 5)
 			{
 				ostringstream str;
@@ -661,7 +665,8 @@ void ModelInterface::run(pest_utils::thread_flag* terminate, pest_utils::thread_
 		write_input_files(pars_ptr);
 		
 		std::chrono::system_clock::time_point start_time = chrono::system_clock::now();
-		cout << pest_utils::get_time_string() << " calling forward run command(s)" << endl;
+		if (should_echo)
+            cout << pest_utils::get_time_string() << " calling forward run command(s)" << endl;
 
 #ifdef OS_WIN
 		//a flag to track if the run was terminated
@@ -677,7 +682,8 @@ void ModelInterface::run(pest_utils::thread_flag* terminate, pest_utils::thread_
 		}
 		for (auto &cmd_string : comline_vec)
 		{
-		    cout << pest_utils::get_time_string() << " calling forward run command: '" << cmd_string << "' " << endl;
+            if (should_echo)
+		        cout << pest_utils::get_time_string() << " calling forward run command: '" << cmd_string << "' " << endl;
 			//start the command
 			PROCESS_INFORMATION pi;
 			try
@@ -693,6 +699,9 @@ void ModelInterface::run(pest_utils::thread_flag* terminate, pest_utils::thread_
 			{
 				throw PestError("could not add process to job object: " + cmd_string);
 			}
+			DWORD pid = pi.dwProcessId;
+            if (should_echo)
+			    cout << "...pid: " << pid << endl;
 			DWORD exitcode;
 			while (true)
 			{
@@ -709,13 +718,18 @@ void ModelInterface::run(pest_utils::thread_flag* terminate, pest_utils::thread_
 						cout << "exit_code: " << exitcode << endl;
 						throw std::runtime_error("GetExitCodeProcess() returned error status for command: " + cmd_string);
 					}
+                    if (should_echo)
+                    {
+                        cout << "...exit_code: " << exitcode << endl;
+                    }
 					break;
 				}
 				//else cout << exitcode << "...still waiting for command " << cmd_string << endl;
 				//check for termination flag
 				if (terminate->get())
 				{
-					std::cout << "received terminate signal" << std::endl;
+                    if (should_echo)
+					    std::cout << "received terminate signal" << std::endl;
 					//try to kill the process
 					bool success = (CloseHandle(job) != 0);
 
@@ -743,31 +757,41 @@ void ModelInterface::run(pest_utils::thread_flag* terminate, pest_utils::thread_
 		bool term_break = false;
 		for (auto &cmd_string : comline_vec)
 		{
-            cout << pest_utils::get_time_string() << " calling forward run command: '" << cmd_string << "' " << endl;
+            if (should_echo)
+                cout << pest_utils::get_time_string() << " calling forward run command: '" << cmd_string << "' " << endl;
 			//start the command
 			int command_pid = start(cmd_string);
+            if (should_echo)
+			    cout << "...pid: " << command_pid << endl;
 			while (true)
 			{
                 std::this_thread::sleep_for(std::chrono::milliseconds(sleep_ms));
                 //check if process is still active
 				int status = 0;
 				pid_t exit_code = waitpid(command_pid, &status, WNOHANG);
-				//if the process ended, break
+
+                //if the process ended, break
 				if ((exit_code == -1) || (status != 0))
 				{
+                    cout << "exit_code: " << exit_code << endl;
+                    cout << "status: " << status << endl;
 					finished->set(true);
-					cout << "exit_code: " << exit_code << endl;
-					cout << "status: " << status << endl;
 					throw std::runtime_error("waitpid() returned error status for command: " + cmd_string);
 				}
 				else if (exit_code != 0)
 				{
+                    if (should_echo)
+                    {
+                        cout << "...exit_code: " << exit_code << endl;
+                        cout << "...status: " << status << endl;
+                    }
 				    break;
 				}
 				//check for termination flag
 				if (terminate->get())
 				{
-					std::cout << "received terminate signal" << std::endl;
+                    if (should_echo)
+					    std::cout << "received terminate signal" << std::endl;
 					//try to kill the process
 					errno = 0;
 					int success = kill(-command_pid, SIGKILL);
@@ -786,8 +810,8 @@ void ModelInterface::run(pest_utils::thread_flag* terminate, pest_utils::thread_
 			if (term_break) break;
 		}
 #endif
-
-		cout << pest_utils::get_time_string() << " forward run command(s) finished, took " << pest_utils::get_duration_sec(start_time) << " seconds" << endl;
+        if (should_echo)
+		    cout << pest_utils::get_time_string() << " forward run command(s) finished, took " << pest_utils::get_duration_sec(start_time) << " seconds" << endl;
 
 		if (term_break) return;
 
@@ -1053,7 +1077,7 @@ string TemplateFile::cast_to_fixed_len_string(int size, double value, string& na
 			precision--;
 		if (precision <= 0)
 		{
-			//time for desparate measures:
+			//time for desperate measures:
 			//if the exponent has a leading zero, drop it
 			if (val_str.substr(val_str.size() - 2, 1) == "0")
 			{
@@ -1085,7 +1109,7 @@ string TemplateFile::cast_to_fixed_len_string(int size, double value, string& na
 			        break;
             }
 			ss.str("");
-		 	ss << "TemplateFile casting error: cant represent value " << value;
+		 	ss << "TemplateFile casting error: can't represent value " << value;
 			ss << " for " << name << " in space that is only " << size << " chars wide";
 			throw_tpl_error(ss.str());
 		}
@@ -1110,7 +1134,7 @@ string TemplateFile::cast_to_fixed_len_string(int size, double value, string& na
 	if (val_str.size() < size)
 	{
 		ss.str("");
-		//if the fill value isnt a space and its a negative value
+		//if the fill value isn't a space and its a negative value
 		// we need to push the dash into the stringstream, then 
 		//remove the dash from the val string
 		int s = size;
@@ -1140,7 +1164,7 @@ string TemplateFile::cast_to_fixed_len_string(int size, double value, string& na
 string TemplateFile::read_line( ifstream& f_tpl)
 {
 	if (f_tpl.bad())
-		throw_tpl_error("cant read next line", line_num);
+		throw_tpl_error("can't read next line", line_num);
 	string line;
 	if (f_tpl.eof())
 		throw_tpl_error("unexpected eof", line_num);
@@ -1154,7 +1178,7 @@ string TemplateFile::read_line( ifstream& f_tpl)
 string InstructionFile::read_ins_line(ifstream& f_ins)
 {
 	if (f_ins.bad())
-		throw_ins_error("cant read next instruction file line", ins_line_num);
+		throw_ins_error("can't read next instruction file line", ins_line_num);
 	string line;
 	if (f_ins.eof())
 		throw_ins_error("unexpected instruction file eof ", ins_line_num);
@@ -1169,7 +1193,7 @@ string InstructionFile::read_ins_line(ifstream& f_ins)
 string InstructionFile::read_out_line(ifstream& f_out)
 {
 	if (f_out.bad())
-		throw_ins_error("cant read next output file line", ins_line_num, out_line_num);
+		throw_ins_error("can't read next output file line", ins_line_num, out_line_num);
 	string line;
 	if (f_out.eof())
 		throw_ins_error("unexpected output file eof ", ins_line_num, out_line_num);
@@ -1263,7 +1287,7 @@ void InstructionFile::prep_ins_file_for_reading(ifstream& f_ins)
 	marker = s_marker.c_str()[0];
     if (marker == '!')
     {
-        throw_ins_error("the bang ('!') cant be used as the marker bc it is used to indicate free-format instructions");
+        throw_ins_error("the bang ('!') can't be used as the marker bc it is used to indicate free-format instructions");
     }
 }
 
@@ -1533,7 +1557,7 @@ pair<string, double> InstructionFile::execute_fixed(const string& token, string&
 	}
 	if ((info.first != "DUM") && (idx != temp.size()))
 	{
-		throw_ins_error("error converting '" + temp + "' to double on output line '" + last_out_line + "' for fixed instruciton: '" + token + "', left-over chars: '" + temp.substr(idx, temp.size()) + "'", ins_line_num, out_line_num);
+		throw_ins_error("error converting '" + temp + "' to double on output line '" + last_out_line + "' for fixed instruction: '" + token + "', left-over chars: '" + temp.substr(idx, temp.size()) + "'", ins_line_num, out_line_num);
 	}
 	int pos = line.find(temp);
 	if (pos == string::npos)
@@ -1581,7 +1605,7 @@ pair<string, double> InstructionFile::execute_semi(const string& token, string& 
 	}
 	if ((info.first != "DUM") && (idx != tokens[0].size()))
 	{
-		throw_ins_error("error converting '" + temp + "' to double on output line '" + last_out_line + "' for semi-fixed instruciton: '" + token + "', left-over chars: '" + temp.substr(idx, temp.size()) + "'", ins_line_num, out_line_num);
+		throw_ins_error("error converting '" + temp + "' to double on output line '" + last_out_line + "' for semi-fixed instruction: '" + token + "', left-over chars: '" + temp.substr(idx, temp.size()) + "'", ins_line_num, out_line_num);
 	}
 	pos = line.find(temp);
 	if (pos == string::npos)
@@ -1617,11 +1641,11 @@ pair<string, double> InstructionFile::execute_free(const string& token, string& 
 	catch (...)
 	{
 		if (name != "DUM")
-			throw_ins_error("error converting '" + tokens[0] + "' to double on output line '" + last_out_line + "' for free instruciton: '"+token+"'", ins_line_num, out_line_num);
+			throw_ins_error("error converting '" + tokens[0] + "' to double on output line '" + last_out_line + "' for free instruction: '"+token+"'", ins_line_num, out_line_num);
 	}
 	if ((name != "DUM") && (idx != tokens[0].size()))
 	{
-		throw_ins_error("error converting '" + tokens[0] + "' to double on output line '" + last_out_line + "' for free instruciton: '" + token + "', left-over chars: '" + tokens[0].substr(idx,tokens[0].size())+"'", ins_line_num, out_line_num);
+		throw_ins_error("error converting '" + tokens[0] + "' to double on output line '" + last_out_line + "' for free instruction: '" + token + "', left-over chars: '" + tokens[0].substr(idx,tokens[0].size())+"'", ins_line_num, out_line_num);
 	}
 	int pos = line.find(tokens[0]);
 	if (pos == string::npos)
@@ -1667,7 +1691,7 @@ void InstructionFile::tokenize(const std::string& str, vector<string>& tokens, c
 void InstructionFile::execute_primary(const string& token, string& line, ifstream& f_out)
 {
 	//check that a closing marker is found
-	//this shouldnt be a prob,but good to check
+	//this shouldn't be a prob,but good to check
 	if (token.substr(token.size()-1,1) != string(1,marker))
 		throw_ins_error("primary marker token '" + token + "' doesn't have a closing marker char", ins_line_num);
 	int pos;
@@ -1694,7 +1718,7 @@ bool InstructionFile::execute_secondary(const string& token, string& line, ifstr
 	//check that a closing marker is found
 	int pos;
 	if (token.substr(token.size()-1,1) != string(1,marker))
-		throw_ins_error("secondary marker token '" + token + "' doesnt have a closing marker char");
+		throw_ins_error("secondary marker token '" + token + "' doesn't have a closing marker char");
 	string secondary_tag = token.substr(1, token.size()-2);
 	pos = line.find(secondary_tag);
 	if (pos == string::npos)
@@ -1727,7 +1751,7 @@ void InstructionFile::execute_whitespace(const string& token, string& line, ifst
 		pos = line.find(tokens[0]);
 		if (pos == string::npos)
 		{
-			throw_ins_error("internal error in execute_whitespace: couldnt find first token");
+			throw_ins_error("internal error in execute_whitespace: couldn't find first token");
 		}
 		line = line.substr(pos + tokens[0].size());
 		pos = line.find_first_not_of(delims);

@@ -53,7 +53,7 @@ namespace pest_utils
 	/* @brief Splits a string and returns the sub-strings.
 
 	String str is split into sub-strings using the characters specified
-	in delimiters and the sub-strings are are returned in the tokens constainer.
+	in delimiters and the sub-strings are are returned in the tokens container.
 	If trimEmpty is specified as true, empty records are removed from
 	tokens before it is returned
 	*/
@@ -84,7 +84,7 @@ namespace pest_utils
 	characters are left over after the conversion and failIfLeftoverChars is set
 	to true, a PestConversionError exception is thrown.
 
-	The tepmplatized return type must be included in the fuction call.  The following example shows
+	The tepmplatized return type must be included in the function call.  The following example shows
 	how to call this function to convert a string to an integer
 	convert_cp<int>("10")
 	*/
@@ -99,9 +99,9 @@ namespace pest_utils
 
 	/* @brief Strip leading and/or trailing characters from a string
 
-		The characters contained in arguement delimiters are stripped from
+		The characters contained in argument delimiters are stripped from
 		string s.  op can be specified as "front", "back" or "both" to control
-		whether the characters are stripped from the begining, end or both sides
+		whether the characters are stripped from the beginning, end or both sides
 		of string s.
 	*/
 
@@ -112,9 +112,9 @@ namespace pest_utils
 
 	/* @brief Strip leading and/or trailing characters from a string
 
-		The characters contained in arguement delimiters are stripped from
+		The characters contained in argument delimiters are stripped from
 		string s and the updated string is returned without modifying s.  op can be specified as "front", "back" or "both" to control
-		whether the characters are stripped from the begining, end or both sides
+		whether the characters are stripped from the beginning, end or both sides
 		of string s.
 	*/
 	string strip_cp(const string &s, const string &op="both",
@@ -148,7 +148,7 @@ namespace pest_utils
 	*/
 	string lower_cp(const string &s);
 
-	/* @brief Return the base filename (filename without the "." extention).
+	/* @brief Return the base filename (filename without the "." extension).
 	*/
 	string get_base_filename(const string &s);
 
@@ -164,7 +164,7 @@ namespace pest_utils
 	string get_filename_without_ext(const string &filename);
 	/* @brief Given a combined path and filename return just the filename.
 
-		Given path the combined path and filname complete_path, return just the filename.
+		Given path the combined path and filename complete_path, return just the filename.
 	*/
 	string get_filename_ext(const string &filename);
 
@@ -172,7 +172,7 @@ namespace pest_utils
 
 	/* @brief Given a combined path and filename return just the pathname.
 
-		Given path the combined path and filname complete_path, return just the pathname.
+		Given path the combined path and filename complete_path, return just the pathname.
 	*/
 	string get_pathname(const string &complete_path);
 
@@ -299,12 +299,19 @@ private:
 //
 
 void read_binary_matrix_header(const string& filename, int& tmp1, int& tmp2, int& tmp3);
+void read_binary_matrix_header(ifstream& in, int& tmp1, int& tmp2, int& tmp3);
+vector<string> read_dense_binary_remaining_row_names(ifstream& in,const vector<string>& col_names);
+vector<string> read_dense_binary_col_names(ifstream& in,int n_col);
+bool is_dense_binary_matrix(int tmp1, int tmp2, int tmp3);
+bool read_dense_binary_records(ifstream& in,int n_records, int n_col,vector<string>& row_names, vector<vector<double>>& rec_vecs);
 void read_dense_binary(const string& filename, vector<string>& row_names, vector<string>& col_names, Eigen::MatrixXd& matrix);
 bool read_binary(const string &filename, vector<string> &row_names, vector<string> &col_names, Eigen::SparseMatrix<double> &matrix);
 
 bool read_binary(const string &filename, vector<string> &row_names, vector<string> &col_names, Eigen::MatrixXd &matrix);
 
-
+void prep_save_dense_binary(ofstream& out,const vector<string>& col_names);
+void save_dense_binary(ofstream& out,const vector<string>& row_names,Eigen::MatrixXd& data);
+void save_dense_binary(ofstream& out,const string& row_name,Eigen::VectorXd& data);
 void save_binary(const string &filename, const vector<string> &row_names, const vector<string> &col_names, const Eigen::SparseMatrix<double> &matrix);
 void save_binary_extfmt(const string &filename,const  vector<string> &row_names, const vector<string> &col_names, const Eigen::SparseMatrix<double> &matrix);
 void save_binary_orgfmt(const string &filename, const vector<string> &row_names, const vector<string> &col_names, const Eigen::SparseMatrix<double> &matrix);

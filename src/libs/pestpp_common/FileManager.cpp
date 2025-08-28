@@ -61,7 +61,7 @@ void  FileManager::open_default_files(bool restart)
 
 FileManager::~FileManager(void)
 {
-	/*for (auto &i : ofile_map)
+	for (auto &i : ofile_map)
 	{
 		if(i.second->is_open()) i.second->close();
 		delete i.second;
@@ -75,7 +75,7 @@ FileManager::~FileManager(void)
 	{
 		if(i.second->is_open()) i.second->close();
 		delete i.second;
-	}*/
+	}
 }
 
 string FileManager::build_filename(const string &ext, bool include_dir)
@@ -174,7 +174,7 @@ fstream &FileManager::open_iofile_absolute(const string &tag, const string &file
 	{
 		// a file needs to exist before it can be opened it with read and write
 		// permission.   So open it with write permission to crteate it, close
-		// and then reopen it with read and write permisssion.
+		// and then reopen it with read and write permission.
 		f_new.open(filename, ios_base::out | ios_base::binary);
 		f_new.close();
 		f_new.open(filename, mode);

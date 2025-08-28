@@ -123,8 +123,10 @@ int main(int argc, char* argv[])
 					yam_agent.process_ctl_file(ctl_file);
 
 				}
-				catch (PestError e)
+				catch (exception &e)
 				{
+                    frec << "Error processing control file: " << ctl_file << endl << endl;
+                    frec << e.what() << endl << endl;
 					cerr << "Error processing control file: " << ctl_file << endl << endl;
 					cerr << e.what() << endl << endl;
 					throw(e);
@@ -197,20 +199,20 @@ int main(int argc, char* argv[])
 			pest_scenario.assign_da_cycles(fout_rec);
 			performance_log.log_event("finished processing control file");
 		}
-		catch (PestError e)
+		catch (exception &e)
 		{
-			cerr << "Error prococessing control file: " << filename << endl << endl;
+			cerr << "Error processing control file: " << filename << endl << endl;
 			cerr << e.what() << endl << endl;
-			fout_rec << "Error prococessing control file: " << filename << endl << endl;
+			fout_rec << "Error processing control file: " << filename << endl << endl;
 			fout_rec << e.what() << endl << endl;
-			fout_rec.close();
+
 			throw(e);
 		}
 		pest_scenario.check_inputs(fout_rec);
         stringstream ss;
 
 
-		//Initialize OutputFileWriter to handle IO of suplementary files (.par, .par, .svd)
+		//Initialize OutputFileWriter to handle IO of supplementary files (.par, .par, .svd)
 		//bool save_eign = pest_scenario.get_svd_info().eigwrite > 0;
 		pest_scenario.get_pestpp_options_ptr()->set_iter_summary_flag(false);
 		//pest_scenario.get_pestpp_options_ptr()->set_use_da(true);
@@ -251,7 +253,7 @@ int main(int argc, char* argv[])
 		vector <int> cycles_in_tables;
 		map<int, map<string, double>> par_cycle_info = process_da_par_cycle_table(pest_scenario, cycles_in_tables, fout_rec);
 		// process da obs cycle table
-		set<string> obs_in_tbl; //we need this so we can set weights to zero in childpest of a value isnt listed for a given cycle
+		set<string> obs_in_tbl; //we need this so we can set weights to zero in childpest of a value isn't listed for a given cycle
 		map<int, map<string, double>> obs_cycle_info = process_da_obs_cycle_table(pest_scenario, cycles_in_tables, fout_rec, obs_in_tbl);
 		//process weights table
 		set<string> weights_in_tbl;
@@ -370,7 +372,7 @@ int main(int argc, char* argv[])
                 }
 
 
-				if (obs_cycle_info.find(*icycle) != obs_cycle_info.end())
+				if ((obs_cycle_info.find(*icycle) != obs_cycle_info.end()) || (weight_cycle_info.find(*icycle) != weight_cycle_info.end()))
 				{
 					performance_log.log_event("updating obs using da obs cycle table info");
 					map<string, double> cycle_map = obs_cycle_info[*icycle];
@@ -388,15 +390,22 @@ int main(int argc, char* argv[])
 						}
 						else
 						{
-							childPest.get_ctl_observations_4_mod().update_rec(tbl_obs_name, cycle_map[tbl_obs_name]);
-							//check if this obs is in this cycle's weight info
-							if (weight_cycle_map.find(tbl_obs_name) != weight_cycle_map.end())
-							{
-								oi.set_weight(tbl_obs_name, weight_cycle_map[tbl_obs_name]);
-								//pest_scenario.get_observation_info_ptr()->set_weight(tbl_obs_name, weight_cycle_map[tbl_obs_name]);
-							}
+							childPest.get_ctl_observations_4_mod().update_rec(tbl_obs_name, cycle_map[tbl_obs_name]);	
 						}
 					}
+					for (auto tbl_obs_name : weights_in_tbl)
+					{
+						if (weight_cycle_map.find(tbl_obs_name) == weight_cycle_map.end())
+						{
+							oi.set_weight(tbl_obs_name, 0.0);
+						}
+						else
+						{	
+							oi.set_weight(tbl_obs_name, weight_cycle_map[tbl_obs_name]);
+						}
+					}
+
+
 					childPest.set_observation_info(oi);
 
 				}
@@ -484,7 +493,10 @@ int main(int argc, char* argv[])
 				pest_scenario.get_pestpp_options().get_overdue_giveup_minutes(),
 				pest_scenario.get_pestpp_options().get_panther_echo(),
 				pest_scenario.get_ctl_ordered_par_names(),
-				pest_scenario.get_ctl_ordered_obs_names());
+				pest_scenario.get_ctl_ordered_obs_names(),
+                pest_scenario.get_pestpp_options().get_panther_timeout_milliseconds(),
+                pest_scenario.get_pestpp_options().get_panther_echo_interval_milliseconds(),
+                pest_scenario.get_pestpp_options().get_panther_persistent_workers());
 			run_manager_ptr->initialize(pest_scenario.get_ctl_parameters(), pest_scenario.get_ctl_observations());
 		}
 		else
@@ -504,6 +516,7 @@ int main(int argc, char* argv[])
 				pest_scenario.get_pestpp_options().get_additional_ins_delimiters(),
 				pest_scenario.get_pestpp_options().get_num_tpl_ins_threads(),
 				pest_scenario.get_pestpp_options().get_tpl_force_decimal());
+			run_manager_ptr->initialize(pest_scenario.get_ctl_parameters(), pest_scenario.get_ctl_observations());
 		}
 		
 		//generate a parent ensemble which includes all parameters across all cycles
@@ -619,7 +632,8 @@ int main(int argc, char* argv[])
 			}
 			//check for entries in the obs cycle table
 			//cout << childPest.get_ctl_observations().get_rec("GAGE_1") << ", " << pest_scenario.get_observation_info_ptr()->get_weight("GAGE_1") << endl;
-			if (obs_cycle_info.find(*icycle) != obs_cycle_info.end())
+			if ((obs_cycle_info.find(*icycle) != obs_cycle_info.end()) || (false))
+
 			{
 				performance_log.log_event("updating obs using da obs cycle table info");
 				map<string, double> cycle_map = obs_cycle_info[*icycle];
@@ -665,7 +679,7 @@ int main(int argc, char* argv[])
 			for (auto par : par1)
 
 			{
-				// ayman:  base_trans_seq above was copied from parent pest without any changes; the following statement temporarly fix
+				// ayman:  base_trans_seq above was copied from parent pest without any changes; the following statement temporary fix
 				// the issue; permenat solution should occur during the creation of childpest
 //				if ((pi.get_parameter_rec_ptr(par.first)->cycle == *icycle) ||
 //					(pi.get_parameter_rec_ptr(par.first)->cycle < 0))
@@ -840,7 +854,7 @@ int main(int argc, char* argv[])
 			if (use_existing)
             {
 			    ss.str("");
-			    ss << "...parameters and observations are consistent with previous cycle, reusing exsisting simulated outputs" << endl;
+			    ss << "...parameters and observations are consistent with previous cycle, reusing existing simulated outputs" << endl;
 			    cout << ss.str();
 			    fout_rec << ss.str();
             }
@@ -960,7 +974,7 @@ int main(int argc, char* argv[])
 
 			file_manager.close_all_files_containing(".phi.");
 
-			//transfer the best (current) simulated final states to the inital states pars in the pe for the cycle
+			//transfer the best (current) simulated final states to the initial states pars in the pe for the cycle
 			//is the place to do this?
 			if (pest_scenario.get_pestpp_options().get_da_use_simulated_states()) {
                 da.transfer_dynamic_state_from_oe_to_initial_pe(curr_pe, curr_oe);
@@ -1000,7 +1014,11 @@ int main(int argc, char* argv[])
 
                 }
             }
-
+            if (cmdline.runmanagertype == CmdLine::RunManagerType::SERIAL)
+            {
+                delete run_manager_ptr;
+            }
+            //childPest.get_base_group_info_ptr_4_mod()->free_mem();
 
 		} // end cycle loop
 

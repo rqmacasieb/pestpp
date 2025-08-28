@@ -272,7 +272,7 @@ bool Jacobian_1to1::process_runs(ParamTransformSeq &par_transform,
 
 		
 
-	// process the parameter pertubation runs
+	// process the parameter perturbation runs
 	int nruns = run_manager.get_nruns();
 	base_numeric_par_names.clear();
 	int icol = 0;
@@ -355,9 +355,9 @@ bool Jacobian_1to1::get_derivative_parameters(const string &par_name, double par
 		vector<double> &delta_numeric_par_vec, bool phiredswh_flag)
 {
 	bool success = false;
-	const ParameterGroupRec *g_rec = group_info.get_group_rec_ptr(par_name);
+	const ParameterGroupRec g_rec = group_info.get_group_rec(par_name);
 
-	if (g_rec->forcen != "ALWAYS_2"  && (g_rec->forcen == "ALWAYS_3" || phiredswh_flag == true) ) {
+	if (g_rec.forcen != "ALWAYS_2"  && (g_rec.forcen == "ALWAYS_3" || phiredswh_flag == true) ) {
 		// Central Difference
 		vector<double> new_par_vec;
 		vector<Parameters> dir_numeric_pars_vec;
@@ -394,7 +394,8 @@ bool Jacobian_1to1::forward_diff(const string &par_name, double base_derivative_
 
 	// perturb derivative parameters
 	double incr = derivative_inc(par_name, group_info, base_derivative_val, false);
-	if (incr == 0.0) return false;
+	if (incr == 0.0)
+        return false;
 	new_par_val = new_par[par_name] = base_derivative_val + incr;
 	// try forward derivative
 	out_of_bound_forward = out_of_bounds(new_par, par_info_ptr);

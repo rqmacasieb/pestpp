@@ -281,7 +281,8 @@ void OutputFileWriter::scenario_report(std::ostream &os, bool report_mode)
 	os << setw(0) << "    Number of parameters = " << pest_scenario.get_ctl_ordered_par_names().size() << endl;
 	os << setw(0) << "    Number of adjustable parameters = " << pest_scenario.get_n_adj_par() << endl;
 	os << setw(0) << "    Number of observations = " << pest_scenario.get_ctl_ordered_obs_names().size() << endl;
-	os << setw(0) << "    Number of prior estimates = " << pest_scenario.get_ctl_ordered_pi_names().size() << endl << endl;
+    os << setw(0) << "    Number of non-zero weighted observations = " << pest_scenario.get_ctl_ordered_nz_obs_names().size() << endl;
+    os << setw(0) << "    Number of prior estimates = " << pest_scenario.get_ctl_ordered_pi_names().size() << endl << endl;
 
 	os << pest_scenario.get_control_info() << endl;
 	pest_scenario.get_pestpp_options().summary(os);
@@ -353,7 +354,7 @@ void OutputFileWriter::scenario_io_report(std::ostream &os)
 
 void OutputFileWriter::scenario_pargroup_report(std::ostream &os)
 {
-	const ParameterGroupRec *grp_rec;
+	ParameterGroupRec grp_rec;
 	int grp_len = 12;
 	for (auto& par_name : pest_scenario.get_ctl_ordered_par_group_names())
 		grp_len = max((int)par_name.size(), grp_len);
@@ -364,8 +365,8 @@ void OutputFileWriter::scenario_pargroup_report(std::ostream &os)
 	for (auto &grp_name : pest_scenario.get_ctl_ordered_par_group_names())
 	{
 		grp_rec = pest_scenario.get_base_group_info().get_group_by_groupname(grp_name);
-		os << left << setw(grp_len) << lower_cp(grp_rec->name) << right << setw(15) << grp_rec->inctyp << setw(25) << grp_rec->derinc;
-		os << setw(25) << grp_rec->derinclb << setw(15) << grp_rec->forcen << setw(25) << grp_rec->derincmul << endl;
+		os << left << setw(grp_len) << lower_cp(grp_rec.name) << right << setw(15) << grp_rec.inctyp << setw(25) << grp_rec.derinc;
+		os << setw(25) << grp_rec.derinclb << setw(15) << grp_rec.forcen << setw(25) << grp_rec.derincmul << endl;
 	}
 	os << endl << endl;
 }
@@ -414,17 +415,23 @@ void OutputFileWriter::scenario_par_report(std::ostream &os)
 	os << endl << endl;
 }
 
-void OutputFileWriter::scenario_obs_csv(ostream& os)
+void OutputFileWriter::scenario_obs_csv(ostream& os, map<string,double> alt_weights)
 {
 	if (os.bad())
 		throw runtime_error("OutputFileWriter::scenario_obs_csv(): os is bad");
 	os << "name,value,group,weight" << endl;
 	const ObservationRec* obs_rec;
 	const Observations& obs = pest_scenario.get_ctl_observations();
+    double weight;
 	for (auto& obs_name : pest_scenario.get_ctl_ordered_obs_names())
 	{
 		obs_rec = pest_scenario.get_ctl_observation_info().get_observation_rec_ptr(obs_name);
-		os << lower_cp(obs_name) << "," << obs.get_rec(obs_name) << "," << lower_cp(obs_rec->group) << "," << obs_rec->weight << endl;
+        weight = obs_rec->weight;
+        if (alt_weights.find(obs_name) != alt_weights.end())
+        {
+            weight = alt_weights[obs_name];
+        }
+		os << lower_cp(obs_name) << "," << obs.get_rec(obs_name) << "," << lower_cp(obs_rec->group) << "," << weight << endl;
 	}
 }
 
@@ -506,20 +513,30 @@ void OutputFileWriter::par_report(std::ostream &os, int const iter, Parameters c
 	string max_rel_par = "N/A";
 
 	os << "    Iteration "<<iter<<" Parameter Upgrades (" << par_type << " Parameters) " << endl;
-	os << "      Parameter     Current       Previous       Factor       Relative" << endl;
-	os << "        Name         Value         Value         Change        Change" << endl;
-	os << "      ----------  ------------  ------------  ------------  ------------" << endl;
+//	os << "      Parameter     Current       Previous       Factor       Relative" << endl;
+//	os << "        Name         Value         Value         Change        Change" << endl;
+//	os << "      ----------  ------------  ------------  ------------  ------------" << endl;
 	vector<string> par_names;
 	if (lower_cp(par_type) == "control file")
-		par_names = pest_scenario.get_ctl_ordered_par_names();
+		par_names = pest_scenario.get_ctl_ordered_adj_par_names();
 	else
 	{
 		par_names = new_pars.get_keys();
 		sort(par_names.begin(), par_names.end());
 	}
+    const ParameterInfo* pinfo = pest_scenario.get_ctl_parameter_info_ptr_4_mod();
+
 	//for (const auto &ipar : new_ctl_pars)
-	for (auto &p_name : par_names)
-	{
+    int name_len = 20;
+	for (auto &p_name : par_names) {
+
+        name_len = max((int) p_name.size(), name_len);
+    }
+
+    os << setw(name_len) << left << "name" << setw(19) << right << " current value" << setw(19) << " previous value";
+    os << setw(19) << " factor change" << setw(19) << " relative change" << endl;
+    for (auto &p_name : par_names) {
+
 		Parameters::const_iterator pi = new_pars.find(p_name);
 		if (pi == new_pars.end()) continue;
 		p_new = new_pars.get_rec(p_name);
@@ -535,19 +552,18 @@ void OutputFileWriter::par_report(std::ostream &os, int const iter, Parameters c
 			max_rel_change = rel_change;
 			max_rel_par = p_name;
 		}
-		os << right;
-		os << "    " << setw(12) << lower_cp(p_name);
-		os << right;
-		os << "  " << setw(12) << p_new;
-		os << "  " << setw(12) << p_old;
-		if (have_fac)
-			os << "  " << setw(12) << fac_change;
+		os << setw(name_len) << left << p_name;
+        os << " " << setw(19) << right << p_new;
+        os << " " << setw(19) << right << p_old;
+
+        if (have_fac)
+			os << " " << setw(19) << right << fac_change;
 		else
-			os << "  " << setw(12) << "N/A";
+			os << " " << setw(19) << right << "N/A";
 		if (have_rel)
-			os << "  " << setw(12) << rel_change;
+			os << " " << setw(19) << right << rel_change;
 		else
-			os << "  " << setw(12) << "N/A";
+			os << " " << setw(19) << right << "N/A";
 		os << endl;
 	}
 	os << "       Maximum changes in \"" << par_type << "\" parameters:" << endl;
@@ -634,7 +650,7 @@ void OutputFileWriter::phi_report(std::ostream &os, int const iter, int const nr
 }
 
 
-void OutputFileWriter::obs_report(ostream &os, const Observations &obs, const Observations &sim, ObservationInfo &oi)
+void OutputFileWriter::obs_report(ostream &os, const Observations &obs, const Observations &sim, ObservationInfo &oi, map<string,double> alt_weights)
 {
 	vector<string> obs_name_vec = pest_scenario.get_ctl_ordered_obs_names();
 	int nsize = 20;
@@ -649,10 +665,16 @@ void OutputFileWriter::obs_report(ostream &os, const Observations &obs, const Ob
 	//ObservationInfo oi = pest_scenario.get_ctl_observation_info();
 	//for(vector<string>::const_iterator b = obs_name_vec.begin(),
 	//	e = obs_name_vec.end(); b!=e; ++b)
+    double weight;
 	if (obs_name_vec.size() < 100000)
 	{
 		for (auto& b : obs_name_vec)
 		{
+            weight = oi.get_observation_rec_ptr(b)->weight;
+            if (alt_weights.find(b) != alt_weights.end())
+            {
+                weight = alt_weights.at(b);
+            }
 			obs_val = obs.get_rec(b);
 			sim_val = sim.get_rec(b);
 			os << " " << setw(nsize) << lower_cp(b)
@@ -660,13 +682,18 @@ void OutputFileWriter::obs_report(ostream &os, const Observations &obs, const Ob
 				<< " " << showpoint << setw(20) << obs_val
 				<< " " << showpoint << setw(20) << sim_val
 				<< " " << showpoint << setw(20) << obs_val - sim_val
-				<< " " << showpoint << setw(20) << oi.get_observation_rec_ptr(b)->weight << endl;
+				<< " " << showpoint << setw(20) << weight << endl;
 		}
 	}
 	else
 	{
 		for (auto& b : obs_name_vec)
 		{
+            weight = oi.get_observation_rec_ptr(b)->weight;
+            if (alt_weights.find(b) != alt_weights.end())
+            {
+                weight = alt_weights.at(b);
+            }
 			obs_val = obs.get_rec(b);
 			sim_val = sim.get_rec(b);
 			os << " " << lower_cp(b) 
@@ -674,7 +701,7 @@ void OutputFileWriter::obs_report(ostream &os, const Observations &obs, const Ob
 				<< " " << obs_val
 				<< " " << sim_val
 				<< " " << obs_val - sim_val
-				<< " " << oi.get_observation_rec_ptr(b)->weight << endl;
+				<< " " << weight << endl;
 		}
 	}
 
@@ -725,7 +752,7 @@ void OutputFileWriter::write_opt_constraint_rei(std::ofstream &fout, int iter_no
 
 
 void OutputFileWriter::write_rei(ofstream &fout, int iter_no, const Observations &obs, const Observations &sim,
-	const ObjectiveFunc &obj_func, const Parameters &pars)
+	const ObjectiveFunc &obj_func, const Parameters &pars, map<string,double> alt_weights)
 {
 	fout << setiosflags(ios::left);
 	fout.unsetf(ios::floatfield);
@@ -733,7 +760,7 @@ void OutputFileWriter::write_rei(ofstream &fout, int iter_no, const Observations
 	fout << " MODEL OUTPUTS AT END OF OPTIMISATION ITERATION NO. " << iter_no << ":-" << endl;
 	fout << endl << endl;
 	ObservationInfo oi = pest_scenario.get_ctl_observation_info();
-	obs_report(fout, obs, sim, oi);
+	obs_report(fout, obs, sim, oi,alt_weights);
 	//process prior information
 	const PriorInformation *prior_info_ptr = pest_scenario.get_prior_info_ptr();
 	const PriorInformationRec *pi_rec_ptr;
@@ -825,7 +852,7 @@ void OutputFileWriter::append_sen(std::ostream &fout, int iter_no, const Jacobia
 	Parameters ctl_pars = par_transform.numeric2ctl_cp(pars);
 	if (pars.size() == 0)
 	{
-		fout << "parameter values are not avaialble to compute CSS" << endl;
+		fout << "parameter values are not available to compute CSS" << endl;
 		fout << endl << endl;
 	}
 	else
@@ -961,7 +988,7 @@ void OutputFileWriter::write_jco(bool isBaseIter, string ext, Jacobian &jco)
 	if (jco.get_matrix_ptr()->nonZeros() == 0)
 	{
 		stringstream ss;
-		ss << "WARNING: jacobian matrix has no non-zeros - the parameter pertubations " << endl;
+		ss << "WARNING: jacobian matrix has no non-zeros - the parameter perturbations " << endl;
 		ss << "         have no effect on the control file observations." << endl;
 		ss << "         This usually means something is not setup correctly." << endl;
 		cout << ss.str();

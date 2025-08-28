@@ -65,7 +65,7 @@ int main(int argc, char* argv[])
         int flag = remove(rns_file.c_str());
         //w_sleep(2000);
         //by default use the serial run manager.  This will be changed later if another
-        //run manger is specified on the command line.
+        //run manager is specified on the command line.
 
         if (cmdline.runmanagertype == CmdLine::RunManagerType::PANTHER_WORKER) {
             try {
@@ -81,7 +81,9 @@ int main(int argc, char* argv[])
                     yam_agent.process_ctl_file(ctl_file);
 
                 }
-                catch (PestError e) {
+                catch (exception &e) {
+                    frec << "Error processing control file: " << ctl_file << endl << endl;
+                    frec << e.what() << endl << endl;
                     cerr << "Error processing control file: " << ctl_file << endl << endl;
                     cerr << e.what() << endl << endl;
                     throw (e);
@@ -134,7 +136,7 @@ int main(int argc, char* argv[])
         if (!restart_flag || save_restart_rec_header) {
             fout_rec << "             pestpp-ies - a GLM iterative Ensemble Smoother" << endl
                      << "                      for PEST(++) datasets " << endl << endl;
-            fout_rec << "                 by the PEST++ developement team" << endl << endl << endl;
+            fout_rec << "                 by the PEST++ development team" << endl << endl << endl;
             fout_rec << endl;
             fout_rec << endl << endl << "version: " << version << endl;
             fout_rec << "binary compiled on " << __DATE__ << " at " << __TIME__ << endl << endl;
@@ -154,8 +156,18 @@ int main(int argc, char* argv[])
         Pest pest_scenario;
         //try {
         performance_log.log_event("starting to process control file");
-        pest_scenario.process_ctl_file(file_manager.open_ifile_ext("pst"), file_manager.build_filename("pst"),
-                                       fout_rec);
+        try {
+            pest_scenario.process_ctl_file(file_manager.open_ifile_ext("pst"), file_manager.build_filename("pst"),
+                                           fout_rec);
+        }
+        catch (exception &e)
+        {
+            fout_rec << "Error processing control file: " << file_manager.build_filename("pst") << endl << endl;
+            fout_rec << e.what() << endl << endl;
+            cerr << "Error processing control file: " << file_manager.build_filename("pst") << endl << endl;
+            cerr << e.what() << endl << endl;
+            throw(e);
+        }
         file_manager.close_file("pst");
         performance_log.log_event("finished processing control file");
         /*}
@@ -171,7 +183,7 @@ int main(int argc, char* argv[])
         //pest_scenario.clear_ext_files();
         pest_scenario.check_inputs(fout_rec);
 
-        //Initialize OutputFileWriter to handle IO of suplementary files (.par, .par, .svd)
+        //Initialize OutputFileWriter to handle IO of supplementary files (.par, .par, .svd)
         //bool save_eign = pest_scenario.get_svd_info().eigwrite > 0;
         pest_scenario.get_pestpp_options_ptr()->set_iter_summary_flag(false);
         OutputFileWriter output_file_writer(file_manager, pest_scenario, restart_flag);
@@ -201,10 +213,6 @@ int main(int argc, char* argv[])
             fout_rec << "...resetting overdue_resched_fac to 1.15" << endl;
         }
 
-        if (pest_scenario.get_pestpp_options().get_debug_parse_only()) {
-            cout << endl << endl << "DEBUG_PARSE_ONLY is true, exiting..." << endl << endl;
-            exit(0);
-        }
 
         RunManagerAbstract *run_manager_ptr;
 
@@ -223,7 +231,11 @@ int main(int argc, char* argv[])
                     pest_scenario.get_pestpp_options().get_overdue_reched_fac(),
                     pest_scenario.get_pestpp_options().get_overdue_giveup_fac(),
                     pest_scenario.get_pestpp_options().get_overdue_giveup_minutes(),
-                    pest_scenario.get_pestpp_options().get_panther_echo());
+                    pest_scenario.get_pestpp_options().get_panther_echo(),
+                    vector<string>{}, vector<string>{},
+                    pest_scenario.get_pestpp_options().get_panther_timeout_milliseconds(),
+                    pest_scenario.get_pestpp_options().get_panther_echo_interval_milliseconds(),
+                    pest_scenario.get_pestpp_options().get_panther_persistent_workers());
         } else {
             performance_log.log_event("starting basic model IO error checking");
             cout << "checking model IO files...";
@@ -239,7 +251,8 @@ int main(int argc, char* argv[])
                                                    pest_scenario.get_pestpp_options().get_fill_tpl_zeros(),
                                                    pest_scenario.get_pestpp_options().get_additional_ins_delimiters(),
                                                    pest_scenario.get_pestpp_options().get_num_tpl_ins_threads(),
-                                                   pest_scenario.get_pestpp_options().get_tpl_force_decimal());
+                                                   pest_scenario.get_pestpp_options().get_tpl_force_decimal(),
+                                                   pest_scenario.get_pestpp_options().get_panther_echo());
         }
 
         const ParamTransformSeq &base_trans_seq = pest_scenario.get_base_par_tran_seq();
@@ -256,6 +269,11 @@ int main(int argc, char* argv[])
 
         IterEnsembleSmoother ies(pest_scenario, file_manager, output_file_writer, &performance_log, run_manager_ptr);
         ies.initialize();
+        if (pest_scenario.get_pestpp_options().get_debug_parse_only()) {
+            cout << endl << endl << "DEBUG_PARSE_ONLY is true, exiting..." << endl << endl;
+            exit(0);
+        }
+
         int q = pest_utils::quit_file_found();
         if ((q == 1) || (q == 2)) {
             cout << "...'pest.stp' found, quitting" << endl;
@@ -307,6 +325,7 @@ int main(int argc, char* argv[])
 	catch (exception &e)
 	{
 		cout << "Error condition prevents further execution: " << endl << e.what() << endl;
+
 		//cout << "press enter to continue" << endl;
 		//char buf[256];
 		//OperSys::gets_s(buf, sizeof(buf));

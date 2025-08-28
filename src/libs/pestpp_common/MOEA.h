@@ -15,6 +15,7 @@
 #include "Ensemble.h"
 #include "constraints.h"
 #include "EnsembleMethodUtils.h"
+#include "RedSVD-h.h"
 
 
 const string POP_SUM_TAG = "pareto.summary.csv";
@@ -28,6 +29,7 @@ const double CROWDING_EXTREME = 1.0e+30;
 const double FLOAT_EPSILON = 1.0e-10;
 enum MouGenType { DE, SBX, PM, PSO, SMP };
 enum MouEnvType { NSGA, SPEA, NSGA_PPD }; //added NSGA_PPD for probabilistic Pareto dominance
+
 enum MouMateType { RANDOM, TOURNAMENT };
 
 class ParetoObjectives
@@ -44,10 +46,10 @@ public:
 	void set_prob_pareto(bool ppd) { prob_pareto = ppd; }
 	void set_hypervolume_partitions(map<string, map<string, double>> _hv_parts);
 	void get_ehvi(ObservationEnsemble& op, ParameterEnsemble& dp);
-	void update_ppd_criteria(ObservationEnsemble& op, ParameterEnsemble& dp);
 
 	//this must be called at least once before the diversity metrixs can be called...
-	void set_pointers(vector<string>& _obj_names, vector<string>& _obs_obj_names, vector<string>& _obs_obj_sd_names, vector<string>& _pi_obj_names, vector<string>& _pi_obj_sd_names, map<string, double>& _obj_dir_mult)
+	void set_pointers(vector<string>& _obj_names, vector<string>& _obs_obj_names, vector<string>& _obs_obj_sd_names, vector<string>& _pi_obj_names,
+                      vector<string>& _pi_obj_sd_names, map<string, double>& _obj_dir_mult,map<string,string>& _ppd_obj_to_sd)
 	{
 		obj_names_ptr = &_obj_names;
 		obs_obj_names_ptr = &_obs_obj_names; 
@@ -58,6 +60,7 @@ public:
 		prep_pareto_summary_file(POP_SUM_TAG);
 		prep_pareto_summary_file(ARC_SUM_TAG);
 		prep_pareto_summary_file(ARC_TRIM_SUM_TAG);
+        ppd_obj_to_sd_ptr = &_ppd_obj_to_sd;
 	}
 	
 	void update(ObservationEnsemble& oe, ParameterEnsemble& dp, Constraints* constraints_ptr = nullptr);
@@ -77,7 +80,6 @@ public:
 	//sort specific members
 	map<string, double> get_cuboid_crowding_distance(vector<string>& members);
 	map<string, double> get_cluster_crowding_fitness(vector<string>& members);
-	void prep_expected_distance_lookup_table(ObservationEnsemble& op, ParameterEnsemble& dp);
 	map<string, double> get_ehvi(vector<string>& members);
 	map<string, double> get_mopso_fitness(vector<string> members, ObservationEnsemble& op, ParameterEnsemble& dp);
 
@@ -101,7 +103,6 @@ private:
 	bool first_equals_second(map<string, double>& first, map<string, double>& second);
 
 	map<int, vector<string>> sort_members_by_dominance_into_fronts(map<string, map<string, double>>& _member_struct);
-	map<int, vector<string>> sort_members_by_dominance_into_prob_fronts(map<int, vector<string>>& front_map, map<string, map<string, double>>& _member_struct);
 	map<string, double> get_mopso_fitness(vector<string> members, map<string, map<string, double>>& _member_struct);
 	pair<map<string, double>, map<string, double>> get_spea2_fitness(map<string, map<string, double>>& _member_struct);
 
@@ -131,12 +132,12 @@ private:
 	vector<string>* pi_obj_names_ptr;
 	vector<string>* pi_obj_sd_names_ptr;
 	map<string, double>* obj_dir_mult_ptr;
+    map<string,string>* ppd_obj_to_sd_ptr;
 	set<string> duplicates;
 
 	map<string, map<string, double>> feas_member_struct;
 	map<int, vector<string>> front_map;
-	map<int, vector<string>> prob_front_map;
-	map<string, double> crowd_map, expected_crowd_map, var_crowd_map, fitness_map, probnondom_map, min_sd, nn_map;
+	map<string, double> crowd_map, fitness_map,  min_sd, nn_map;
 	map<string, int> member_front_map;
 	map<string, double> member_cvar;
 	map<string, double> infeas;
@@ -148,7 +149,6 @@ private:
 	//PPD-related stuff
 	double dominance_probability(map<string, double>& first, map<string, double>& second);
 	double dominance_prob_adhoc(map<string, double>& first, map<string, double>& second);
-	double nondominance_probability(map<string, double>& first, map<string, double>& second);
 	bool prob_pareto, ppd_sort;
 	double ppd_beta;
 	vector<double> ppd_range;
@@ -157,7 +157,7 @@ private:
 	double std_norm_df(double x, double mu, double sd, bool cumdf);
 	double psi_function(double aa, double bb, double mu, double sd);
 	map<string, double> ehvi_member_map;
-	map<string, map<string, double>> incumbent_front_extreme, expdist_lookup, fit_lookup;
+	map<string, map<string, double>> incumbent_front_extreme, fit_lookup;
 	map<int, vector<double>> hypervolume_partitions;
 	double EHVI;
 	int iter;
@@ -190,6 +190,7 @@ private:
 	int archive_size, infill_size;
 	string population_dv_file, population_obs_restart_file;
 	string dv_pop_file_tag = "dv_pop";
+	string pi_pop_file_tag = "pi_pop";
 	string obs_pop_file_tag = "obs_pop";
 	string lineage_tag = "lineage.csv";
 	chancePoints chancepoints;
@@ -197,6 +198,7 @@ private:
 	std::mt19937 rand_gen;
 	vector<string> obj_names, obs_obj_names, pi_obj_names, obs_obj_sd_names, pi_obj_sd_names;
 	vector<string> dv_names;
+    map<string,string> ppd_obj_to_sd;
 	map<string, double> obj_dir_mult;
 	int n_adaptive_dvs;
 	map<string, map<string, double>> previous_obj_summary, previous_dv_summary;
@@ -209,7 +211,7 @@ private:
 	vector<double> inertia_info, cog_const_range, social_const_range;
 	double curr_omega;
 	map<string, double> pso_vmax;
-	string pso_dv_bound_restoration;
+	string pso_dv_bound_handling;
 
 	ParetoObjectives objectives;
 	Constraints constraints;
@@ -265,18 +267,20 @@ private:
 	ParameterEnsemble simplex_cceua_kn(ParameterEnsemble s, int k, int optbounds);																																		
     ParameterEnsemble generate_simplex_population(int num_members, ParameterEnsemble& _dp, ObservationEnsemble& _op);
 
-	ParameterEnsemble get_updated_pso_velocity(ParameterEnsemble& _dp, vector<string>& gbest_solutions);
+    ParameterEnsemble generate_empcov_population(int num_members, ParameterEnsemble& _dp, ObservationEnsemble& _op);
+	pair<ParameterEnsemble, ParameterEnsemble> get_updated_pso_velocity(ParameterEnsemble& _dp, vector<string>& gbest_solutions);
 
 	vector<string> get_pso_gbest_solutions(int num_reals, ParameterEnsemble& _dp, ObservationEnsemble& _op);
 	void update_pso_pbest(ParameterEnsemble& _dp, ObservationEnsemble& _op);
 
-	map<string, string> current_pso_lineage_map;
+	map<string, string> current_pso_lineage_map, current_empcov_lineage_map;
 
 	vector<int> selection(int num_to_select, ParameterEnsemble& _dp, MouMateType& matetype);
 
 	string get_new_member_name(string tag = string());
 
-	void save_populations(ParameterEnsemble& _dp, ObservationEnsemble& _op, string tag = string());
+	Ensemble save_pi_constraints(ParameterEnsemble &_dp, vector<string> &pinames);
+	void save_populations(ParameterEnsemble& _dp, ObservationEnsemble& _op, string tag = string(), bool force_save=false);
 	void gauss_mutation_ip(ParameterEnsemble& _dp);
 	pair<Eigen::VectorXd, Eigen::VectorXd> sbx(double probability, double eta_m, int idx1, int idx2);
 	pair<Eigen::VectorXd, Eigen::VectorXd> sbx_new(double crossover_probability, double di, Eigen::VectorXd& parent1,

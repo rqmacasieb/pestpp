@@ -82,7 +82,7 @@ void sequentialLP::initial_report()
 	f_rec << "-->objective function sense (direction): " << optobjfunc.get_obj_sense() << endl;
 
 
-	f_rec << "-->number of decision variable: " << num_dec_vars() << endl;
+	f_rec << "-->number of decision variables: " << num_dec_vars() << endl;
 	f_rec << "-->number of observation constraints: " << constraints.num_obs_constraints() << endl;
 	f_rec << "-->number of prior information constraints: " << constraints.num_pi_constraints() << endl;
 	if (iter_derinc_fac != 1.0)
@@ -101,7 +101,7 @@ void sequentialLP::initial_report()
 		f_rec << "-->skipping final, optimal model run" << endl;
 		if ((!bj.empty()) && (pest_scenario.get_control_info().noptmax == 1))
 		{
-			f_rec << "-->super secrect option to skip final run and upgrade run activated..." << endl;
+			f_rec << "-->super secret option to skip final run and upgrade run activated..." << endl;
 			super_secret_option = true;
 		}
 
@@ -224,7 +224,7 @@ pair<double,double> sequentialLP::postsolve_decision_var_report(Parameters &upgr
 	}
 	stringstream ss;
 	ss << slp_iter << ".par";
-
+    par_trans.active_ctl2ctl_ip(actual_pars);
 	of_wr.write_par(file_mgr_ptr->open_ofile_ext(ss.str()),actual_pars,*par_trans.get_offset_ptr(),*par_trans.get_scale_ptr());
 	file_mgr_ptr->close_file(ss.str());
 	of_wr.write_par(file_mgr_ptr->open_ofile_ext("par"), actual_pars, *par_trans.get_offset_ptr(), *par_trans.get_scale_ptr());
@@ -286,6 +286,7 @@ void sequentialLP::initialize_and_check()
 	vector<string> ext_var_groups = pest_scenario.get_pestpp_options().get_opt_ext_var_groups();
 	dec_var_groups.insert(dec_var_groups.begin(), ext_var_groups.begin(), ext_var_groups.end());
 	dv_names.clear();
+	ParameterGroupInfo pinfo = pest_scenario.get_base_group_info();
 	//if the ++opt_dec_var_groups arg was passed
 	if (dec_var_groups.size() != 0)
 	{
@@ -326,12 +327,65 @@ void sequentialLP::initialize_and_check()
 
 	//if any decision vars have a transformation that is not allowed
 	vector<string> problem_trans;
-	for (auto &name : dv_names)
-		if (pest_scenario.get_ctl_parameter_info().get_parameter_rec_ptr(name)->tranform_type != ParameterRec::TRAN_TYPE::NONE)
-			problem_trans.push_back(name);
-	if (problem_trans.size() > 0)
-		throw_sequentialLP_error("the following decision variables don't have 'none' type parameter transformation: ", problem_trans);
+	vector<string> temp_dv_names;
+	vector<string> tied_dv_names;
+	map<string,double> grp_derinc;
+	string group;
+	int group_len_max = 20;
 
+	//this should just skip over fixed dvs
+	for (auto &name : dv_names)
+	{
+		if (pest_scenario.get_ctl_parameter_info().get_parameter_rec_ptr(name)->tranform_type == ParameterRec::TRAN_TYPE::NONE)
+			temp_dv_names.push_back(name);
+		else if (pest_scenario.get_ctl_parameter_info().get_parameter_rec_ptr(name)->tranform_type == ParameterRec::TRAN_TYPE::TIED)
+			tied_dv_names.push_back(name);
+		else if (pest_scenario.get_ctl_parameter_info().get_parameter_rec_ptr(name)->tranform_type == ParameterRec::TRAN_TYPE::LOG)
+			problem_trans.push_back(name);
+
+		group = pinfo.get_group_name(name);
+		grp_derinc[group] = pinfo.get_group_rec(name).derinc;
+		group_len_max = max(group_len_max,(int)group.size());
+	}
+
+	f_rec << endl << "   --- DERINC summary ---   " << endl;
+	f_rec << setw(group_len_max) << left << "group name" << setw(20) << right << "derinc" << endl;
+	bool warn_derinc = false;
+	for (auto& item : grp_derinc) {
+		f_rec << setw(group_len_max) << left <<  item.first << setw(20) << right << setprecision(10) << item.second << endl;
+		if ((item.second<=0.05) && (pinfo.get_group_by_groupname(item.first).inctyp != "ABSOLUTE"))
+		{
+			warn_derinc = true;
+		}
+	}
+	f_rec << endl;
+	if (warn_derinc) {
+		cout << "WARNING: at least one decision variable group has a very small 'derinc' value, PESTPP-OPT needs larger perturbation values" << endl;
+		f_rec << "WARNING: at least one decision variable group has a very small 'derinc' value, PESTPP-OPT needs larger perturbation values" << endl;
+	}
+    if (!problem_trans.empty())
+		throw_sequentialLP_error("the following decision variables have 'log' type parameter transformation: ", problem_trans);
+    if (!tied_dv_names.empty())
+    {
+        set<string> sdv_names(temp_dv_names.begin(),temp_dv_names.end());
+        auto send = sdv_names.end();
+        problem_trans.clear();
+        string tied_name;
+        map<string,pair<string,double>> tied_info = pest_scenario.get_base_par_tran_seq().get_tied_ptr()->get_items();
+        for (auto& name : tied_dv_names)
+        {
+
+            if (sdv_names.find(tied_info[name].first) == send)
+                problem_trans.push_back(name);
+        }
+        if (!problem_trans.empty())
+        {
+            throw_sequentialLP_error("the following 'tied' decision variables are not tied to a decision variable: ", problem_trans);
+        }
+
+    }
+    dv_names = temp_dv_names;
+    temp_dv_names.clear();
 	current_constraints_sim = pest_scenario.get_ctl_observations();
 
  	constraints.initialize(dv_names, COIN_DBL_MAX);
@@ -481,10 +535,27 @@ void sequentialLP::iter_solve()
 	//convert Jacobian_1to1 to CoinPackedMatrix
 	cout << "  ---  forming LP model  --- " << endl;
 	CoinPackedMatrix matrix = jacobian_to_coinpackedmatrix();
-
+    stringstream ss;
 	build_dec_var_bounds();
+    bool use_stack_anamolies = true;
+    if ((constraints.get_use_chance()) && (!constraints.get_use_fosm()))
+    {
+        if (constraints.should_update_chance(slp_iter))
+        {
+            ss.str("");
+            ss << "...using direct stack simulated results in chance calculations";
+            use_stack_anamolies = false;
+        }
+        else
+        {
+            ss.str("");
+            ss << "...using stack anomalies and current simulated constraint values in chance calculations";
+        }
+        f_rec << ss.str() << endl;
+        cout << ss.str() << endl;
 
-	pair<vector<double>, vector<double>> bounds = constraints.get_constraint_bound_vectors(current_pars, current_constraints_sim);
+    }
+    pair<vector<double>, vector<double>> bounds = constraints.get_constraint_bound_vectors(current_pars, current_constraints_sim,use_stack_anamolies);
 	constraints.presolve_report(slp_iter,current_pars, current_constraints_sim);
 	//load the linear simplex model
 	//model.loadProblem(matrix, dec_var_lb, dec_var_ub, ctl_ord_obj_func_coefs, constraint_lb, constraint_ub);
@@ -502,7 +573,7 @@ void sequentialLP::iter_solve()
 	//if maximum ++opt_coin_loglev, then also write iteration specific mps files
 	if (pest_scenario.get_pestpp_options().get_opt_coin_log())
 	{
-		stringstream ss;
+		ss.str("");
 		ss << slp_iter << ".mps";
 		string mps_name = file_mgr_ptr->build_filename(ss.str());
 		model.writeMps(mps_name.c_str(),0,1);
@@ -659,6 +730,9 @@ CoinPackedMatrix sequentialLP::jacobian_to_coinpackedmatrix()
 void sequentialLP::solve()
 {
 	ofstream &f_rec = file_mgr_ptr->rec_ofstream();
+	ofstream &f_obj = file_mgr_ptr->open_ofile_ext("slp.iobj.csv");
+
+	f_obj << "iteration,objective_function" << endl;
 
 	slp_iter = 1;
 	while (true)
@@ -673,6 +747,10 @@ void sequentialLP::solve()
 		iter_presolve();
         iter_solve();
         iter_postsolve();
+		if (iter_obj_values.size() > 0)
+		{
+			f_obj << slp_iter << "," << iter_obj_values.at(iter_obj_values.size()-1) << endl;
+		}
 		if (terminate) break;
 		slp_iter++;
 		if (slp_iter > pest_scenario.get_control_info().noptmax)
@@ -686,6 +764,8 @@ void sequentialLP::solve()
 
         }
 	}
+	f_obj.close();
+
 	f_rec << endl << "  ---  objective function sequence  ---   " << endl << setw(10) << "iteration" << setw(15) << "obj func" << endl;
 	int i = 0;
 	for (auto &obj : iter_obj_values)
@@ -958,11 +1038,11 @@ bool sequentialLP::make_upgrade_run(Parameters &upgrade_pars, Observations &upgr
 {
 
 	cout << "  ---  running the model once with optimal decision variables  ---  " << endl;
-	int run_id = run_mgr_ptr->add_run(par_trans.ctl2model_cp(upgrade_pars));
+	int run_id = run_mgr_ptr->add_run(par_trans.active_ctl2model_cp(upgrade_pars));
 	run_mgr_ptr->run();
 	bool success = run_mgr_ptr->get_run(run_id, upgrade_pars, upgrade_obs);
 	if (success)
-		par_trans.model2ctl_ip(upgrade_pars);
+		par_trans.model2active_ctl_ip(upgrade_pars);
 	return success;
 }
 
@@ -1044,7 +1124,7 @@ void sequentialLP::iter_presolve()
 		}
 		else
 		{
-			//make the intial base run
+			//make the initial base run
 			cout << "  ---  running the model once with initial decision variables  ---  " << endl;
 			int run_id = run_mgr_ptr->add_run(par_trans.ctl2model_cp(current_pars));
 			//this would be only for stack runs since the fosm runs should have been in the jco
@@ -1091,21 +1171,21 @@ void sequentialLP::iter_presolve()
 			vector<string> act_dv_grps;
 			ParameterGroupInfo* pinfo = pest_scenario.get_base_group_info_ptr();
 
-			const ParameterGroupRec *gr_ptr;
+			ParameterGroupRec gr_ptr;
 			for (auto &name : dv_names)
 			{
-				gr_ptr = pinfo->get_group_rec_ptr(name);
-				if (find(act_dv_grps.begin(), act_dv_grps.end(), gr_ptr->name) == act_dv_grps.end())
-					act_dv_grps.push_back(gr_ptr->name);
+				gr_ptr = pinfo->get_group_rec(name);
+				if (find(act_dv_grps.begin(), act_dv_grps.end(), gr_ptr.name) == act_dv_grps.end())
+					act_dv_grps.push_back(gr_ptr.name);
 			}
 			double org_derinc, new_derinc;
 			ofstream &frec = file_mgr_ptr->rec_ofstream();
 			frec << setw(20) << left << "group_name" << setw(20) << left << "old_derinc" << setw(20) << left << "new_derinc" << endl;
 			for (auto &name : act_dv_grps)
 			{
-				org_derinc = pinfo->get_group_by_groupname_4_mod(name)->derinc;
+				org_derinc = pinfo->get_group_by_groupname(name).derinc;
 				new_derinc = org_derinc * iter_derinc_fac;
-				pinfo->get_group_by_groupname_4_mod(name)->derinc = new_derinc;
+				pinfo->get_group_ptr_by_groupname_4_mod(name)->derinc = new_derinc;
 				frec << setw(20) << left << name << setw(20) << left << org_derinc << setw(20) << left << new_derinc << endl;
 			}
 		}
@@ -1120,7 +1200,7 @@ void sequentialLP::iter_presolve()
 		if (!success)
 		{
 			const set<string> failed = jco.get_failed_parameter_names();
-			throw_sequentialLP_error("failed to calc derviatives for the following decision vars: ", failed);
+			throw_sequentialLP_error("failed to calc derivatives for the following decision vars: ", failed);
 		}
 
 		if ((constraints.should_update_chance(slp_iter-1)) && (!constraints.get_use_fosm()))
@@ -1143,7 +1223,7 @@ void sequentialLP::iter_presolve()
 		stringstream ss;
 		ss << slp_iter << ".jcb";
 		string rspmat_file = file_mgr_ptr->build_filename(ss.str());
-		f_rec << endl << "saving iteration " << slp_iter << " reponse matrix to file: " << rspmat_file << endl;
+		f_rec << endl << "saving iteration " << slp_iter << " response matrix to file: " << rspmat_file << endl;
 		jco.save(ss.str());
 
 		//check for failed runs
