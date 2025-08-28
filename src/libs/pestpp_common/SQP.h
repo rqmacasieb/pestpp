@@ -196,6 +196,9 @@ private:
 	Constraints constraints;
 
 	bool oe_drawn, dv_drawn;
+	set<int> selected_dv_indices; 
+	set<int> unselected_dv_indices;  
+	bool sampling_tracking_initialized;
 
 	bool use_ensemble_grad;
 	bool is_blocking_constraint = false;
@@ -219,9 +222,10 @@ private:
 	bool solve_new_ensemble();
 
 	bool seek_feasible();
-	bool line_search(Eigen::VectorXd& search_d, const Parameters& _current_dv_values, Eigen::VectorXd& grad);
+
+	bool line_search(Eigen::VectorXd& search_d, const Parameters& _current_dv_values, Eigen::VectorXd& grad, ParameterEnsemble* dvs_subset = nullptr);
 	bool iterative_partial_step(const string& _blocking_constraint);
-	double pick_candidate_and_update_current(ParameterEnsemble& dv_candidates, ObservationEnsemble& _oe, map<string,double>& sf_map);
+	bool pick_candidate_and_update_current(ParameterEnsemble& dv_candidates, ObservationEnsemble& _oe, map<string,double>& sf_map);
 	bool pick_upgrade_and_update_current(ParameterEnsemble& dv_candidates, ObservationEnsemble& _oe);
 	bool pick_partial_step(ParameterEnsemble& dv_candidates, ObservationEnsemble& _oe, map<string, double>& sf_map);
 	bool check_wolfe_conditions(Parameters& trial_dv_values, Observations& trial_obs, const Eigen::VectorXd& search_d, 

@@ -925,7 +925,10 @@ void SeqQuadProgram::initialize()
 	//check that if using fd, chance points == single
 	use_ensemble_grad = false;
 	if (ppo->get_sqp_num_reals() > 0)
+	{
 		use_ensemble_grad = true;
+		sampling_tracking_initialized = false;
+	}
 	sanity_checks();
 
 	bool echo = false;
@@ -2749,7 +2752,7 @@ bool SeqQuadProgram::iterative_partial_step(const string& _blocking_constraint)
 	}
 }
 
-bool SeqQuadProgram::line_search(Eigen::VectorXd& search_d, const Parameters& _current_dv_values, Eigen::VectorXd& grad)
+bool SeqQuadProgram::line_search(Eigen::VectorXd& search_d, const Parameters& _current_dv_values, Eigen::VectorXd& grad, ParameterEnsemble* dvs_subset)
 {
 	double initial_obj = get_obj_value(current_ctl_dv_values, current_obs);
 	double initial_slope = grad.dot(search_d);
@@ -2810,8 +2813,10 @@ bool SeqQuadProgram::line_search(Eigen::VectorXd& search_d, const Parameters& _c
 	ParameterEnsemble dv_candidates(&pest_scenario, &rand_gen);
 	dv_candidates.set_trans_status(ParameterEnsemble::transStatus::NUM);
 
+	map<double, vector<string>> sv_real_map;
 	vector<string> real_names;
 	vector<double> scale_vals;
+	
 	scale_vals.clear();
 	for (auto& sf : pest_scenario.get_pestpp_options().get_sqp_alpha_mults())
 	{
@@ -2833,12 +2838,26 @@ bool SeqQuadProgram::line_search(Eigen::VectorXd& search_d, const Parameters& _c
 	}
 	else if (use_ensemble_grad)
 	{
-		for (auto sv : scale_vals) 
+		if (dvs_subset != nullptr) 
 		{
-			ss.str("");
-			ss << "dv_cand_base_sv:" << left << setw(8) << setprecision(3) << sv;
-			real_names.push_back(ss.str());
+			ParameterEnsemble d;
+			d.reserve(vector<string>{ "BASE" }, pest_scenario.get_ctl_ordered_par_names());
+			d.add_2_row_ip("BASE", dv.get_real_vector("BASE"));
+			dvs_subset->append_other_rows(d);
+
+			for (auto& real_name : dvs_subset->get_real_names()) 
+			{
+				for (auto sv : scale_vals) 
+				{
+					ss.str("");
+					ss << "dv_cand_" << real_name << "_sv:" << left << setw(8) << setprecision(3) << sv;
+					real_names.push_back(ss.str());
+					sv_real_map[sv].push_back(ss.str());
+				}
+			}
 		}
+		else
+			throw_sqp_error("use_ensemble_grad is true but subset dv ensemble is null");
 	}
 	else 
 	{
@@ -2850,7 +2869,7 @@ bool SeqQuadProgram::line_search(Eigen::VectorXd& search_d, const Parameters& _c
 		}
 	}
 	dv_candidates.reserve(real_names, dv_names);
-	int ii = 0;
+
 	vector<double> used_scale_vals;
 	map<string, double> real_sf_map;
 	for (int i = 0;i < scale_vals.size();i++)
@@ -2861,28 +2880,41 @@ bool SeqQuadProgram::line_search(Eigen::VectorXd& search_d, const Parameters& _c
 		message(1, "starting lambda calcs for scaling factor", scale_val);
 		message(2, "see .log file for more details");
 
-		if ((use_ensemble_grad) && (SOLVE_EACH_REAL))
+		Eigen::VectorXd scale_search_d = search_d * scale_val;
+		if (scale_search_d.squaredNorm() < 1.0 - 10)
+			message(1, "very short upgrade for scale value", scale_val);
+
+		if ((use_ensemble_grad) && (dvs_subset != nullptr))
 		{
-			Parameters real_grad, num_candidate = current_ctl_dv_values;
+			Parameters num_candidate = current_ctl_dv_values;
 			pest_scenario.get_base_par_tran_seq().ctl2numeric_ip(num_candidate);
-			Eigen::VectorXd real, scale_search_d, cvals;
+			
 			dv.transform_ip(ParameterEnsemble::transStatus::NUM);
 
-			for (auto& real_name : dv.get_real_names())
+			for (auto& real_name : dvs_subset->get_real_names())
 			{
-				real_grad = calc_gradient_vector(current_ctl_dv_values, real_name);
 
-				real = dv.get_real_vector(real_name);
-				num_candidate.update_without_clear(dv.get_var_names(), real);
-				search_d = fancy_solve_routine(num_candidate, real_grad);
-				scale_search_d = search_d * scale_val;
-				cvals = num_candidate.get_data_eigen_vec(dv_names);
-				cvals.array() += scale_search_d.array();
+				ParameterEnsemble dv_upgrade(&pest_scenario, &rand_gen, dvs_subset->get_eigen().rowwise() + (scale_search_d / search_d.norm()).transpose(), dvs_subset->get_real_names(), dvs_subset->get_var_names());
+				vector<string> new_real_names = sv_real_map[scale_val];
+				dv_upgrade.set_real_names(new_real_names);
+				for (int i = 0; i < new_real_names.size(); i++)
+				{
+					dv_candidates.update_real_ip(new_real_names[i], dv_upgrade.get_real_vector(new_real_names[i]));
+					real_sf_map[new_real_names[i]] = scale_val;
+				}
+				
+				//string real = cand2dvs[real_name];
+				//Eigen::VectorXd _real = dv.get_real_vector(real);
+				//num_candidate.update_without_clear(dv.get_var_names(), _real);
+
+
+				//Eigen::VectorXd cvals = dv.get_real_vector(real);
+				//cvals.array() += scale_search_d.array();
 				//num_candidate.update_without_clear(dv_names, cvals);
-				//Eigen::VectorXd vec = num_candidate.get_data_eigen_vec(dv_names);
-				dv_candidates.update_real_ip(real_names[ii], cvals);
-				real_sf_map[real_names[ii]] = scale_val;
-				ii++;
+				//
+				//dv_candidates.update_real_ip(real_name, cvals);
+				
+				//ii++;
 				used_scale_vals.push_back(scale_val);
 
 
@@ -2890,10 +2922,6 @@ bool SeqQuadProgram::line_search(Eigen::VectorXd& search_d, const Parameters& _c
 		}
 		else {
 			Parameters num_candidate = _current_dv_values;
-
-			Eigen::VectorXd scale_search_d = search_d * scale_val;
-			if (scale_search_d.squaredNorm() < 1.0 - 10)
-				message(1, "very short upgrade for scale value", scale_val);
 
 			Eigen::VectorXd cvals = num_candidate.get_data_eigen_vec(dv_names);
 			cvals.array() += (scale_search_d/search_d.norm()).array();
@@ -2961,57 +2989,7 @@ bool SeqQuadProgram::line_search(Eigen::VectorXd& search_d, const Parameters& _c
 	ss << file_manager.get_base_filename() << "." << iter << ".oe_candidates.csv";
 	oe_candidates.to_csv(ss.str());
 
-	map<string, double> sf_map;
-	for (int i = 0;i < dv_candidates.get_real_names().size();i++)
-	{
-		sf_map[dv_candidates.get_real_names()[i]] = used_scale_vals[i];
-	}
-	double sf_accptd = pick_candidate_and_update_current(dv_candidates, oe_candidates, sf_map);
-
-	if ((use_ensemble_grad) && (sf_accptd != -999))
-	{
-		ParameterEnsemble dv_upgrade = dv;
-		
-		vector<map<int, int>> real_run_ids_lams;
-		int best_idx = -1;
-		double best_mean = 1.0e+300, mean;
-
-		Eigen::MatrixXd search_d_matrix = Eigen::MatrixXd::Ones(dv_upgrade.shape().first, 1) * ((search_d * sf_accptd)/ search_d.norm()).transpose();
-		dv_upgrade.set_eigen(*dv_upgrade.get_eigen_ptr() + search_d_matrix);
-		dv_upgrade.enforce_bounds(performance_log, false);
-
-		if (dv_upgrade.get_real_vector("BASE") != current_ctl_dv_values.get_data_eigen_vec(dv_names))
-			throw_sqp_error("BASE real in dv_upgrade is not equal to current_ctl_dv_values. Something is wrong in ensemble upgrade...");
-		dv_upgrade.drop_rows(vector<string>{"BASE"}, true);
-
-		ParameterEnsemble combined_dv_candidates = dv_candidates;
-		vector<string> upgrade_real_names = dv_upgrade.get_real_names();
-		for (auto& name : upgrade_real_names)
-		{	
-			string new_real_name = "dv_upgrade_" + name ;
-			combined_dv_candidates.append(new_real_name, dv_upgrade.get_real_vector(name));
-		}
-		ss.str("");
-		ss << file_manager.get_base_filename() << "." << iter << ".dv_candidates.csv";
-		combined_dv_candidates.to_csv(ss.str());
-
-		message(0, "running upgrade ensembles");
-		ObservationEnsemble oe_upgrade = run_candidate_ensemble(dv_upgrade);
-		ObservationEnsemble combined_oe_candidates = oe_candidates;
-		for (auto& name : upgrade_real_names)
-		{
-			string new_real_name = "oe_upgrade_" + name;
-			combined_oe_candidates.append(new_real_name, oe_upgrade.get_real_vector(name));
-		}
-		ss.str("");
-		ss << file_manager.get_base_filename() << "." << iter << ".oe_candidates.csv";
-		combined_oe_candidates.to_csv(ss.str());
-		
-		return pick_upgrade_and_update_current(dv_upgrade, oe_upgrade);
-	}
-
-
-	return (sf_accptd != -999);
+	return pick_candidate_and_update_current(dv_candidates, oe_candidates, real_sf_map);
 }
 
 bool SeqQuadProgram::check_wolfe_conditions(Parameters& trial_dv_values, Observations& trial_obs, const Eigen::VectorXd& search_d,
@@ -3357,13 +3335,19 @@ bool SeqQuadProgram::solve_new_ensemble()
 		message(1, s);
 	}
 
-	//if normal line search along search direction from the base does not work, consider using a subset of the ensemble
-	/*int local_subset_size = pest_scenario.get_pestpp_options().get_ies_subset_size();
+	performance_log->log_event("reordering variables in dv");
+	dv.reorder(vector<string>(), dv_names);
+	dv.transform_ip(ParameterEnsemble::transStatus::NUM);
+	ParameterEnsemble _dvs = dv;
+	_dvs.drop_rows(vector<string>{"BASE"}, true);
+
+	//use subset to determine optimal search direction
+	int local_subset_size = pest_scenario.get_pestpp_options().get_sqp_subset_size();
 	if (local_subset_size < 0)
 	{
 		ss.str("");
 
-		local_subset_size = (int)((double)dv.shape().first) * ((-1. * (double)local_subset_size) / 100.);
+		local_subset_size = (int)((double)_dvs.shape().first) * ((-1. * (double)local_subset_size) / 100.);
 
 		ss << "subset defined as a percentage of ensemble size, using " << local_subset_size;
 		ss << " realizations for subset" << endl;
@@ -3376,15 +3360,15 @@ bool SeqQuadProgram::solve_new_ensemble()
 			message(2, ss.str());
 		}
 	}
-	if ((use_subset) && (local_subset_size > dv.shape().first))
+	if ((use_subset) && (local_subset_size > _dvs.shape().first))
 	{
 		ss.str("");
-		ss << "subset size (" << local_subset_size << ") greater than ensemble size (" << dv.shape().first << ")";
+		ss << "subset size (" << local_subset_size << ") greater than ensemble size (" << _dvs.shape().first << ")";
 		frec << "  ---  " << ss.str() << endl;
 		cout << "  ---  " << ss.str() << endl;
-		frec << "  ...reducing subset size to " << dv.shape().first << endl;
-		cout << "  ...reducing subset size to " << dv.shape().first << endl;
-		local_subset_size = dv.shape().first;
+		frec << "  ...reducing subset size to " << _dvs.shape().first << endl;
+		cout << "  ...reducing subset size to " << _dvs.shape().first << endl;
+		local_subset_size = _dvs.shape().first;
 	}
 	else if (pest_scenario.get_pestpp_options().get_sqp_alpha_mults().size() == 1)
 	{
@@ -3392,22 +3376,56 @@ bool SeqQuadProgram::solve_new_ensemble()
 		ss << "only testing one scale factor, not using subset";
 		frec << "  ---  " << ss.str() << endl;
 		cout << "  ---  " << ss.str() << endl;
-		local_subset_size = dv.shape().first;
-	}*/
+		local_subset_size = _dvs.shape().first;
+	}
 
-
-	Parameters _current_num_dv_values = current_ctl_dv_values;  // make copy
+	Parameters base_dv_values = current_ctl_dv_values;  // make copy
 	ParamTransformSeq pts = pest_scenario.get_base_par_tran_seq();
-	pts.ctl2numeric_ip(_current_num_dv_values);
-	_current_num_dv_values = _current_num_dv_values.get_subset(dv_names.begin(), dv_names.end());
+	pts.ctl2numeric_ip(base_dv_values);
 
-	performance_log->log_event("reordering variables in dv");
-	dv.reorder(vector<string>(), dv_names);	
-	dv.transform_ip(ParameterEnsemble::transStatus::NUM);
+	ParameterEnsemble _avail_dvs = _dvs, _drawn_dvs(&pest_scenario, &rand_gen);
 		
-	//vector<double> mean_vec = dv.get_mean_stl_var_vector();
-	//_current_num_dv_values.update(dv_names, mean_vec);
-	
+	if (!sampling_tracking_initialized)
+	{
+		unselected_dv_indices.clear();
+		selected_dv_indices.clear();
+		for (int i = 0; i < _dvs.shape().first; i++)
+			unselected_dv_indices.insert(i);
+		
+		sampling_tracking_initialized = true;
+	}
+
+	string how = pest_scenario.get_pestpp_options().get_ies_subset_how();
+
+	if (unselected_dv_indices.empty() || local_subset_size > unselected_dv_indices.size())
+	{
+		unselected_dv_indices.clear();
+		selected_dv_indices.clear();
+		for (int i = 0; i < _dvs.shape().first; i++)
+			unselected_dv_indices.insert(i);
+	}
+
+	vector<int> subset_idxs = get_subset_idxs(_dvs.shape().first, local_subset_size);
+
+	for (int idx : subset_idxs)
+	{
+		unselected_dv_indices.erase(idx);
+		selected_dv_indices.insert(idx);
+
+		string par_name = _dvs.get_real_names()[idx];
+
+		ParameterEnsemble t;
+		t.reserve(vector<string>{ par_name }, pest_scenario.get_ctl_ordered_par_names());
+		t.add_2_row_ip(par_name, _dvs.get_real_vector(par_name));
+
+		if (_drawn_dvs.shape().first == 0) 
+			_drawn_dvs = t;
+		else
+			_drawn_dvs.append_other_rows(t);
+		
+		_avail_dvs.drop_rows({ par_name }, true);
+	}
+
 	map <string, pair<Mat, bool>> constraint_mat_en;
 	Parameters dv_vals = current_ctl_dv_values;
 	Observations obs_vals = current_obs;
@@ -3441,7 +3459,7 @@ bool SeqQuadProgram::solve_new_ensemble()
 		constraint_jco = constraint_mat.first.e_ptr()->toDense(); //TODO: revisit for ensemble implementation
 		infeas_cand_obs.clear();
 		infeas_cand_dv_values.clear();
-		pair<Eigen::VectorXd, Eigen::VectorXd> x = calc_search_direction_vector(_current_num_dv_values, grad);
+		pair<Eigen::VectorXd, Eigen::VectorXd> x = calc_search_direction_vector(base_dv_values, grad);
 		search_d = x.first;
 		lm = x.second;
 
@@ -3487,7 +3505,7 @@ bool SeqQuadProgram::solve_new_ensemble()
 		//trial_obs = current_obs;
 		//successful = trust_region_step(current_ctl_dv_values, grad); //should consider switching to trust region at some point?
 		is_blocking_constraint = false;
-		successful = line_search(search_d, _current_num_dv_values, grad);
+		successful = line_search(search_d, base_dv_values, grad, &_drawn_dvs);
 		string blocking_constraint = "";
 		if (successful)
 		{
@@ -3931,7 +3949,7 @@ bool SeqQuadProgram::pick_upgrade_and_update_current(ParameterEnsemble& dv_candi
 	return (accept_idxs.size() > 0);
 }
 
-double SeqQuadProgram::pick_candidate_and_update_current(ParameterEnsemble& dv_candidates, ObservationEnsemble& _oe, map<string,double>& sf_map)
+bool SeqQuadProgram::pick_candidate_and_update_current(ParameterEnsemble& dv_candidates, ObservationEnsemble& _oe, map<string,double>& sf_map)
 {
 	message(0, " current best phi:", last_best);
 	stringstream ss;
@@ -4220,7 +4238,7 @@ double SeqQuadProgram::pick_candidate_and_update_current(ParameterEnsemble& dv_c
 		if (last_viol == 0)
 			best_feas_phis.push_back(oext);
 
-        return sf_map.at(real_names[idx]);
+		return true;
 		
 	}
 	else
@@ -4244,7 +4262,7 @@ double SeqQuadProgram::pick_candidate_and_update_current(ParameterEnsemble& dv_c
         }
         //BASE_SCALE_FACTOR = BASE_SCALE_FACTOR * SF_DEC_FAC;
         
-		return -999;
+		return false;
 	}
 }
 
