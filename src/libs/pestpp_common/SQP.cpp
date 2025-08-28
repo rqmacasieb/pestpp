@@ -564,7 +564,7 @@ void SeqQuadProgram::initialize_objfunc()
 				throw_sqp_error("unrecognized ++opt_objective_function arg (tried file name, obs name, prior info name): " + obj_func_str);
 			else
 			{
-				message(1, "loading objective function coefficents from ascii file ", obj_func_str);
+				message(1, "loading objective function coefficients from ascii file ", obj_func_str);
 				obj_func_coef_map = pest_utils::read_twocol_ascii_to_map(obj_func_str);
 				ParameterInfo pi = pest_scenario.get_ctl_parameter_info();
 				for (auto& name : dv_names)
@@ -1061,7 +1061,7 @@ void SeqQuadProgram::prep_4_fd_grad()
 		string res_filename = pest_scenario.get_pestpp_options().get_hotstart_resfile();
 		if (res_filename.size() == 0)
 		{
-			//make the intial base run
+			//make the initial base run
 			cout << "  ---  running the model once with initial decision variables  ---  " << endl;
 			ParamTransformSeq pts = pest_scenario.get_base_par_tran_seq();
 			int run_id = run_mgr_ptr->add_run(pts.ctl2model_cp(current_ctl_dv_values));
@@ -1134,13 +1134,13 @@ void SeqQuadProgram::run_jacobian(Parameters& _current_ctl_dv_vals, Observations
 	}
 	//todo: mod queue chance runs for FD grad
 	queue_chance_runs();
-	message(2, "starting finite difference gradient pertubation runs");
+	message(2, "starting finite difference gradient perturbation runs");
 	jco.make_runs(*run_mgr_ptr);
 
 	success = jco.process_runs(par_trans,pgi,*run_mgr_ptr,pi,false,false);
 	if (!success)
 	{
-		throw_sqp_error("error processing finite difference gradient pertubation runs");
+		throw_sqp_error("error processing finite difference gradient perturbation runs");
 	}
 	//constraints.process_runs(run_mgr_ptr, iter);
 	if (init_obs)
@@ -2897,9 +2897,11 @@ bool SeqQuadProgram::line_search(Eigen::VectorXd& search_d, const Parameters& _c
 				ParameterEnsemble dv_upgrade(&pest_scenario, &rand_gen, dvs_subset->get_eigen().rowwise() + (scale_search_d / search_d.norm()).transpose(), dvs_subset->get_real_names(), dvs_subset->get_var_names());
 				vector<string> new_real_names = sv_real_map[scale_val];
 				dv_upgrade.set_real_names(new_real_names);
+                Eigen::VectorXd vec;
 				for (int i = 0; i < new_real_names.size(); i++)
 				{
-					dv_candidates.update_real_ip(new_real_names[i], dv_upgrade.get_real_vector(new_real_names[i]));
+                    vec = dv_upgrade.get_real_vector(new_real_names[i]);
+					dv_candidates.update_real_ip(new_real_names[i], vec );
 					real_sf_map[new_real_names[i]] = scale_val;
 				}
 				
@@ -3045,7 +3047,8 @@ pair<Eigen::VectorXd, Eigen::VectorXd> SeqQuadProgram::calc_search_direction_vec
 			}
 		}
 
-		if (!constraint_jco.rows() == 0 && !isfullrank(constraint_jco)) {
+		if ((constraint_jco.rows() > 0) && (!isfullrank(constraint_jco)))
+        {
 			message(0, "WARNING: constraint_jco is not full rank. Using complete orthogonal decomposition.");
 
 			Eigen::CompleteOrthogonalDecomposition<Eigen::MatrixXd> cod(constraint_jco);
@@ -3826,7 +3829,7 @@ Eigen::VectorXd SeqQuadProgram::get_obj_vector(ParameterEnsemble& _dv, Observati
 			real = _dv.get_real_vector(i);
 			pars.update_without_clear(vnames, real);
 			pts.numeric2ctl_ip(pars);
-			v = get_obj_value(pars, current_obs); //shouldnt be using current obs since this is dv-based obj
+			v = get_obj_value(pars, current_obs); //shouldn't be using current obs since this is dv-based obj
 			obj_vec[i] = v;
 			pts.ctl2numeric_ip(pars);
 		}
@@ -4580,7 +4583,7 @@ void SeqQuadProgram::save(ParameterEnsemble& _dv, ObservationEnsemble& _oe, bool
 //	}
 //	else
 //	{
-//		//throw runtime_error("unkonwn 'subset_how'");
+//		//throw runtime_error("unknown 'subset_how'");
 //		throw_sqp_error("unknown 'subset_how'");
 //	}
 //	stringstream ss;
