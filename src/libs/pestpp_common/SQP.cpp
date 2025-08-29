@@ -1982,7 +1982,7 @@ Parameters SeqQuadProgram::calc_gradient_vector(const Parameters& _current_dv_va
 			// start by computing mean-shifted dec var ensemble
 			Eigen::MatrixXd dv_anoms = dv.get_eigen_anomalies(vector<string>(), dv_names, "BASE"); 
 			dv_anoms.conservativeResize(dv_anoms.rows() - 1, dv_anoms.cols());
-			if (dv.shape().first > 1000)  // until we encounter
+			/*if (dv.shape().first > 1000)  // until we encounter
 			{
 				// lower rank - diag elements only
 				throw_sqp_error("TODO: use dv.get_diagonal_cov matrix()? need to check for consistency if so"); 
@@ -1992,7 +1992,7 @@ Parameters SeqQuadProgram::calc_gradient_vector(const Parameters& _current_dv_va
 				//parcov_diag.from_diagonal(parcov);
 				//parcov_inv = parcov_diag.get_matrix().diagonal();
 				//parcov_inv = parcov_inv.cwiseInverse();  // equivalent to pseudo inv?
-			}
+			}*/
 			Eigen::MatrixXd dv_cov_matrix = 1.0 / (dv.shape().first - 1.0) * (dv_anoms.transpose() * dv_anoms);
 			//message(1, "dv_cov:", dv_cov_matrix);
 			//parcov_inv = dv_cov_matrix.cwiseInverse();  // check equivalence to pseudo inv
@@ -3050,7 +3050,7 @@ pair<Eigen::VectorXd, Eigen::VectorXd> SeqQuadProgram::calc_search_direction_vec
 		if ((constraint_jco.rows() > 0) && (!isfullrank(constraint_jco)))
         {
 			message(0, "WARNING: constraint_jco is not full rank. Using complete orthogonal decomposition.");
-
+            //todo: swap this to redsvd and use control file truncation limits
 			Eigen::CompleteOrthogonalDecomposition<Eigen::MatrixXd> cod(constraint_jco);
 			double threshold = cod.threshold();
 			int effective_rank = cod.rank();
