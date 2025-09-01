@@ -1981,7 +1981,7 @@ Parameters SeqQuadProgram::calc_gradient_vector(const Parameters& _current_dv_va
 			//Eigen::MatrixXd parcov_inv;
 			// start by computing mean-shifted dec var ensemble
 			Eigen::MatrixXd dv_anoms = dv.get_eigen_anomalies(vector<string>(), dv_names, "BASE"); 
-			dv_anoms.conservativeResize(dv_anoms.rows() - 1, dv_anoms.cols());
+			//dv_anoms.conservativeResize(dv_anoms.rows() - 1, dv_anoms.cols());
 			/*if (dv.shape().first > 1000)  // until we encounter
 			{
 				// lower rank - diag elements only
@@ -2032,7 +2032,7 @@ Parameters SeqQuadProgram::calc_gradient_vector(const Parameters& _current_dv_va
 			Eigen::MatrixXd obj_anoms(dv.shape().first,1);
             if (use_obj_obs) {
                 obj_anoms = oe.get_eigen_anomalies(vector<string>(), vector<string>{obj_func_str},"BASE");
-				obj_anoms.conservativeResize(obj_anoms.rows() - 1, obj_anoms.cols());
+				//obj_anoms.conservativeResize(obj_anoms.rows() - 1, obj_anoms.cols());
             }
             else
             {
@@ -2122,7 +2122,7 @@ Parameters SeqQuadProgram::calc_gradient_vector(const Parameters& _current_dv_va
 	return pgrad;
 }
 
-pair<Eigen::VectorXd, Eigen::VectorXd> SeqQuadProgram::_kkt_null_space(Eigen::MatrixXd& G, Eigen::MatrixXd& constraint_jco, Eigen::VectorXd& constraint_diff, Eigen::VectorXd& curved_grad, vector<string>& cnames)
+pair<Eigen::VectorXd, Eigen::VectorXd> SeqQuadProgram::_kkt_null_space(Eigen::MatrixXd& G, Eigen::MatrixXd& constraint_jco, Eigen::VectorXd& constraint_diff, Eigen::VectorXd& curved_grad)
 {
 
 	Eigen::VectorXd search_d, lm;
@@ -2764,49 +2764,49 @@ bool SeqQuadProgram::line_search(Eigen::VectorXd& search_d, const Parameters& _c
 		return false;
 	}
 
-	//handle non-descent direction
-	if (initial_slope >= 0.1) 
-	{
-		message(1, "Warning: search direction is not a descent direction");
-		Covariance original_hessian = hessian;
-		
-		// First try: Modify Hessian to make it positive definite
-		bool modified_success = try_modify_hessian();
+	//TODO: REVISIT FOR ENSEMBLE handle non-descent direction
+	//if (initial_slope >= 0.1) 
+	//{
+	//	message(1, "Warning: search direction is not a descent direction");
+	//	Covariance original_hessian = hessian;
+	//	
+	//	// First try: Modify Hessian to make it positive definite
+	//	bool modified_success = try_modify_hessian();
 
-		if (modified_success) {
-			// Recompute search direction with modified Hessian
-			pair<Eigen::VectorXd, Eigen::VectorXd> x = calc_search_direction_vector(_current_dv_values, grad);
-			search_d = x.first;
-			initial_slope = grad.dot(search_d);
-		}
+	//	if (modified_success) {
+	//		// Recompute search direction with modified Hessian
+	//		pair<Eigen::VectorXd, Eigen::VectorXd> x = calc_search_direction_vector(_current_dv_values, grad);
+	//		search_d = x.first;
+	//		initial_slope = grad.dot(search_d);
+	//	}
 
-		// If modification fails or still gives non-descent direction
-		if (!modified_success || initial_slope >= 0) {
-			message(1, "Resetting Hessian to scaled identity matrix");
-			Eigen::SparseMatrix<double> h(dv_names.size(), dv_names.size());
-			h.setIdentity();
-			update_scaling(search_d, grad);
-			for (int i = 0; i < dv_names.size(); i++) {
-				h.coeffRef(i, i) *= diagonal_scaling(i);
-			}
-			
-			Covariance identity_hessian(dv_names, h);
-			hessian = identity_hessian;
-			pair<Eigen::VectorXd, Eigen::VectorXd> x = calc_search_direction_vector(_current_dv_values, grad);
-			search_d = x.first;
-			initial_slope = grad.dot(search_d);
+	//	// If modification fails or still gives non-descent direction
+	//	if (!modified_success || initial_slope >= 0) {
+	//		message(1, "Resetting Hessian to scaled identity matrix");
+	//		Eigen::SparseMatrix<double> h(dv_names.size(), dv_names.size());
+	//		h.setIdentity();
+	//		update_scaling(search_d, grad);
+	//		for (int i = 0; i < dv_names.size(); i++) {
+	//			h.coeffRef(i, i) *= diagonal_scaling(i);
+	//		}
+	//		
+	//		Covariance identity_hessian(dv_names, h);
+	//		hessian = identity_hessian;
+	//		pair<Eigen::VectorXd, Eigen::VectorXd> x = calc_search_direction_vector(_current_dv_values, grad);
+	//		search_d = x.first;
+	//		initial_slope = grad.dot(search_d);
 
-			// If still not descent, use pure steepest descent and restore original Hessian
-			if (initial_slope >= 0) {
-				message(1, "Using pure steepest descent and restoring original Hessian");
-				search_d = -grad;
-				initial_slope = grad.dot(search_d);
+	//		// If still not descent, use pure steepest descent and restore original Hessian
+	//		if (initial_slope >= 0) {
+	//			message(1, "Using pure steepest descent and restoring original Hessian");
+	//			search_d = -grad;
+	//			initial_slope = grad.dot(search_d);
 
-				hessian = original_hessian;
-				cout << endl << "hessian" << endl << hessian << endl;
-			}
-		}
-	}
+	//			hessian = original_hessian;
+	//			cout << endl << "hessian" << endl << hessian << endl;
+	//		}
+	//	}
+	//}
 
 
 	stringstream ss;
@@ -2841,9 +2841,12 @@ bool SeqQuadProgram::line_search(Eigen::VectorXd& search_d, const Parameters& _c
 		if (dvs_subset != nullptr) 
 		{
 			ParameterEnsemble d;
-			d.reserve(vector<string>{ "BASE" }, pest_scenario.get_ctl_ordered_par_names());
-			d.add_2_row_ip("BASE", dv.get_real_vector("BASE"));
-			dvs_subset->append_other_rows(d);
+			if (find(dvs_subset->get_real_names().begin(), dvs_subset->get_real_names().end(), "BASE") == dvs_subset->get_real_names().end())
+			{
+				d.reserve(vector<string>{ "BASE" }, pest_scenario.get_ctl_ordered_par_names());
+				d.add_2_row_ip("BASE", dv.get_real_vector("BASE"));
+				dvs_subset->append_other_rows(d);
+			}
 
 			for (auto& real_name : dvs_subset->get_real_names()) 
 			{
@@ -2904,22 +2907,7 @@ bool SeqQuadProgram::line_search(Eigen::VectorXd& search_d, const Parameters& _c
 					dv_candidates.update_real_ip(new_real_names[i], vec );
 					real_sf_map[new_real_names[i]] = scale_val;
 				}
-				
-				//string real = cand2dvs[real_name];
-				//Eigen::VectorXd _real = dv.get_real_vector(real);
-				//num_candidate.update_without_clear(dv.get_var_names(), _real);
-
-
-				//Eigen::VectorXd cvals = dv.get_real_vector(real);
-				//cvals.array() += scale_search_d.array();
-				//num_candidate.update_without_clear(dv_names, cvals);
-				//
-				//dv_candidates.update_real_ip(real_name, cvals);
-				
-				//ii++;
 				used_scale_vals.push_back(scale_val);
-
-
 			}
 		}
 		else {
@@ -3024,22 +3012,22 @@ double SeqQuadProgram::get_reference_obj()
 	return *max_element(previous_obj_values.begin(), previous_obj_values.end());
 }
 
-pair<Eigen::VectorXd, Eigen::VectorXd> SeqQuadProgram::calc_search_direction_vector(const Parameters& _current_dv_values, Eigen::VectorXd& grad_vector)
+pair<Eigen::VectorXd, Eigen::VectorXd> SeqQuadProgram::calc_search_direction_vector(Parameters& _current_dv_values, Observations& _current_obs_values, Eigen::VectorXd& grad_vector, vector<string>* _cnames)
 {
 	Eigen::VectorXd search_d, lm;
+	vector<string> Cnames = _cnames != nullptr ? *_cnames : this->cnames;
 	pair<Eigen::VectorXd, Eigen::VectorXd> x;
 
-	if (cnames.size() > 0)
+	if (Cnames.size() > 0)
 	{
-		message(0, "current working set:", cnames);
+		message(0, "current working set:", Cnames);
 
-		Eigen::VectorXd constraint_diff(cnames.size());
-		cout << endl << current_obs << endl;
-		pair<Eigen::VectorXd, Eigen::VectorXd> p = constraints.get_obs_resid_constraint_vectors(current_ctl_dv_values, current_obs, cnames);
+		Eigen::VectorXd constraint_diff(Cnames.size());
+		pair<Eigen::VectorXd, Eigen::VectorXd> p = constraints.get_obs_resid_constraint_vectors(_current_dv_values, _current_obs_values, Cnames);
 		constraint_diff = p.second;
 
-		for (int i = 0;i < cnames.size();i++) {
-			if (constraint_sense[cnames[i]] == "less_than")
+		for (int i = 0;i < Cnames.size();i++) {
+			if (constraint_sense[Cnames[i]] == "less_than")
 			{
 				if (use_ensemble_grad)
 					constraint_jco.row(i) *= -1;
@@ -3079,13 +3067,13 @@ pair<Eigen::VectorXd, Eigen::VectorXd> SeqQuadProgram::calc_search_direction_vec
 		eqp_solve_method = "null_space";
 		if (eqp_solve_method == "null_space")
 		{
-			x = _kkt_null_space(G, constraint_jco, constraint_diff, grad_vector, cnames);
+			x = _kkt_null_space(G, constraint_jco, constraint_diff, grad_vector);
 			search_d = x.first;
 			lm = x.second;
 		}
 		else if (eqp_solve_method == "direct")
 		{
-			x = _kkt_direct(G, constraint_jco, constraint_diff, c, cnames);
+			x = _kkt_direct(G, constraint_jco, constraint_diff, c, Cnames);
 			search_d = x.first;
 			lm = x.second;
 		}
@@ -3140,184 +3128,186 @@ Eigen::VectorXd SeqQuadProgram::fancy_solve_routine(const Parameters& _current_d
 
 bool SeqQuadProgram::solve_new()
 {
-	stringstream ss;
-	ofstream& frec = file_manager.rec_ofstream();
-	if ((use_ensemble_grad) && (dv.shape().first <= error_min_reals))
-	{
-		message(0, "too few active realizations:", oe.shape().first);
-		message(1, "need more than ", error_min_reals);
-		throw_sqp_error(string("too few active realizations, cannot continue"));
-	}
-	else if ((use_ensemble_grad) && (dv.shape().first < warn_min_reals))
-	{
-		ss.str("");
-		ss << "WARNING: less than " << warn_min_reals << " active realizations...might not be enough";
-		string s = ss.str();
-		message(1, s);
-	}
+	//stringstream ss;
+	//ofstream& frec = file_manager.rec_ofstream();
+	//if ((use_ensemble_grad) && (dv.shape().first <= error_min_reals))
+	//{
+	//	message(0, "too few active realizations:", oe.shape().first);
+	//	message(1, "need more than ", error_min_reals);
+	//	throw_sqp_error(string("too few active realizations, cannot continue"));
+	//}
+	//else if ((use_ensemble_grad) && (dv.shape().first < warn_min_reals))
+	//{
+	//	ss.str("");
+	//	ss << "WARNING: less than " << warn_min_reals << " active realizations...might not be enough";
+	//	string s = ss.str();
+	//	message(1, s);
+	//}
 
-	Parameters _current_num_dv_values = current_ctl_dv_values;  // make copy
-	ParamTransformSeq pts = pest_scenario.get_base_par_tran_seq();
-	pts.ctl2numeric_ip(_current_num_dv_values); 
-	_current_num_dv_values = _current_num_dv_values.get_subset(dv_names.begin(), dv_names.end()); 
+	//Parameters _current_num_dv_values = current_ctl_dv_values;  // make copy
+	//ParamTransformSeq pts = pest_scenario.get_base_par_tran_seq();
+	//pts.ctl2numeric_ip(_current_num_dv_values); 
+	//_current_num_dv_values = _current_num_dv_values.get_subset(dv_names.begin(), dv_names.end()); 
 
-	pair<Mat, bool> constraint_mat = get_constraint_mat(current_ctl_dv_values, current_obs,(working_set_tol));
-	current_constraint_mat = constraint_mat.first;
-	cnames = constraint_mat.first.get_row_names();
+	//pair<Mat, bool> constraint_mat = get_constraint_mat(current_ctl_dv_values, current_obs,(working_set_tol));
+	//current_constraint_mat = constraint_mat.first;
+	//cnames = constraint_mat.first.get_row_names();
 
-	//copy for BFGS later
-	prev_ctl_dv_values = current_ctl_dv_values; 
-	prev_constraint_mat = current_constraint_mat;
+	////copy for BFGS later
+	//prev_ctl_dv_values = current_ctl_dv_values; 
+	//prev_constraint_mat = current_constraint_mat;
 
-	Eigen::VectorXd search_d, lm;
-	Eigen::VectorXd grad = current_grad_vector.get_data_eigen_vec(dv_names);
-	bool successful = false;
-	Covariance old_hessian = hessian;
+	//Eigen::VectorXd search_d, lm;
+	//Eigen::VectorXd grad = current_grad_vector.get_data_eigen_vec(dv_names);
+	//bool successful = false;
+	//Covariance old_hessian = hessian;
 
-	int line_search_attempts = 0;
-	while (!successful && line_search_attempts < max_line_search_attempts)
-	{
-		constraint_jco = constraint_mat.first.e_ptr()->toDense();
-		infeas_cand_obs.clear();
-		infeas_cand_dv_values.clear();
-		pair<Eigen::VectorXd, Eigen::VectorXd> x = calc_search_direction_vector(_current_num_dv_values, grad);
-		search_d = x.first;
-		lm = x.second;
+	//int line_search_attempts = 0;
+	//while (!successful && line_search_attempts < max_line_search_attempts)
+	//{
+	//	constraint_jco = constraint_mat.first.e_ptr()->toDense();
+	//	infeas_cand_obs.clear();
+	//	infeas_cand_dv_values.clear();
+	//	pair<Eigen::VectorXd, Eigen::VectorXd> x = calc_search_direction_vector(_current_num_dv_values, grad);
+	//	search_d = x.first;
+	//	lm = x.second;
 
-		message(1, "constraint_jco:", constraint_jco); // tmp
-		message(1, "sd:", search_d.transpose());  // tmp
-		message(1, "sd_norm:", search_d.norm()); //tmp
-		message(1, "lm:", lm); //tmp
+	//	message(1, "constraint_jco:", constraint_jco); // tmp
+	//	message(1, "sd:", search_d.transpose());  // tmp
+	//	message(1, "sd_norm:", search_d.norm()); //tmp
+	//	message(1, "lm:", lm); //tmp
 
-		if (cnames.size() > 0)
-		{
-			//Algorithm 16.3 in Nocedal and Wright, pp. 472-473
-			bool search_d_approx_zero = false;
-			double tol = 0.0001;  // should be a carefully chosen tolerance
-			if (search_d.norm() < tol) {
-				search_d_approx_zero = true;
-			}
+	//	if (cnames.size() > 0)
+	//	{
+	//		//Algorithm 16.3 in Nocedal and Wright, pp. 472-473
+	//		bool search_d_approx_zero = false;
+	//		double tol = 0.0001;  // should be a carefully chosen tolerance
+	//		if (search_d.norm() < tol) {
+	//			search_d_approx_zero = true;
+	//		}
 
-			if (search_d_approx_zero)
-			{
-				pair<Mat, bool> constraint_mat = get_constraint_mat(current_ctl_dv_values, current_obs, (working_set_tol), &lm);
+	//		if (search_d_approx_zero)
+	//		{
+	//			pair<Mat, bool> constraint_mat = get_constraint_mat(current_ctl_dv_values, current_obs, (working_set_tol), &lm);
 
-				//if all multipliers non-negative, we're at optimal solution
-				if (constraint_mat.second) {
-					message(1, "optimal solution found - all Lagrange multipliers non-negative");
-					converged = true;
-					return true;
-				}
-			}
+	//			//if all multipliers non-negative, we're at optimal solution
+	//			if (constraint_mat.second) {
+	//				message(1, "optimal solution found - all Lagrange multipliers non-negative");
+	//				converged = true;
+	//				return true;
+	//			}
+	//		}
 
-			if ((lm.array() > 0).any())
-			{
-				pair<Mat, bool> constraint_mat = get_constraint_mat(current_ctl_dv_values, current_obs, (working_set_tol), &lm);
-				if (constraint_mat.first.get_row_names() != cnames) {
-					current_constraint_mat = constraint_mat.first;
-					cnames = constraint_mat.first.get_row_names();
-					message(1, "constraints dropped due to negative multipliers:", cnames);
-					continue;
-				}
-			}
-		}
+	//		if ((lm.array() > 0).any())
+	//		{
+	//			pair<Mat, bool> constraint_mat = get_constraint_mat(current_ctl_dv_values, current_obs, (working_set_tol), &lm);
+	//			if (constraint_mat.first.get_row_names() != cnames) {
+	//				current_constraint_mat = constraint_mat.first;
+	//				cnames = constraint_mat.first.get_row_names();
+	//				message(1, "constraints dropped due to negative multipliers:", cnames);
+	//				continue;
+	//			}
+	//		}
+	//	}
 
-		//trial_ctl_dv_values = current_ctl_dv_values;
-		//trial_obs = current_obs;
-		//successful = trust_region_step(current_ctl_dv_values, grad); //should consider switching to trust region at some point?
-		is_blocking_constraint = false;
-		successful = line_search(search_d, _current_num_dv_values, grad);
-		string blocking_constraint = "";
-		if (successful)
-		{
-			if (is_blocking_constraint)
-			{
-				map<string, double> violations;
-				if (infeas_cand_obs.size() != 0)
-					violations = constraints.get_unsatified_obs_constraints(infeas_cand_obs, 0.0);
+	//	//trial_ctl_dv_values = current_ctl_dv_values;
+	//	//trial_obs = current_obs;
+	//	//successful = trust_region_step(current_ctl_dv_values, grad); //should consider switching to trust region at some point?
+	//	is_blocking_constraint = false;
+	//	successful = line_search(search_d, _current_num_dv_values, grad);
+	//	string blocking_constraint = "";
+	//	if (successful)
+	//	{
+	//		if (is_blocking_constraint)
+	//		{
+	//			map<string, double> violations;
+	//			if (infeas_cand_obs.size() != 0)
+	//				violations = constraints.get_unsatified_obs_constraints(infeas_cand_obs, 0.0);
 
-				if (!violations.empty())
-				{
-					double max_violation = -1.0;
-					for (const auto& v : violations)
-					{
-						if (v.second > max_violation)
-						{
-							max_violation = v.second;
-							blocking_constraint = v.first;
-						}
-					}
+	//			if (!violations.empty())
+	//			{
+	//				double max_violation = -1.0;
+	//				for (const auto& v : violations)
+	//				{
+	//					if (v.second > max_violation)
+	//					{
+	//						max_violation = v.second;
+	//						blocking_constraint = v.first;
+	//					}
+	//				}
 
-					if (find(cnames.begin(), cnames.end(), blocking_constraint) == cnames.end())
-					{
-						message(1, "adding blocking constraint to working set:", blocking_constraint);
-						cnames.push_back(blocking_constraint);
-						pair<Mat, bool> new_constraint_mat = get_constraint_mat(current_ctl_dv_values, current_obs);
-						current_constraint_mat = new_constraint_mat.first;
-					}
-					else
-						blocking_constraint = "";
-				}
-			}
-		}
+	//				if (find(cnames.begin(), cnames.end(), blocking_constraint) == cnames.end())
+	//				{
+	//					message(1, "adding blocking constraint to working set:", blocking_constraint);
+	//					cnames.push_back(blocking_constraint);
+	//					pair<Mat, bool> new_constraint_mat = get_constraint_mat(current_ctl_dv_values, current_obs);
+	//					current_constraint_mat = new_constraint_mat.first;
+	//				}
+	//				else
+	//					blocking_constraint = "";
+	//			}
+	//		}
+	//	}
 
-		
-		if (blocking_constraint != "")
-		{
-			successful = false;
-			message(1, "performing binary search for constraint boundary with working set:", cnames);
-			if (pest_scenario.get_pestpp_options().get_sqp_solve_partial_step())
-			{
-				if (iterative_partial_step(blocking_constraint))
-				{
-					constraint_mat = get_constraint_mat(current_ctl_dv_values, current_obs, (working_set_tol));
-					current_constraint_mat = constraint_mat.first;
-					successful = true;
-					BASE_SCALE_FACTOR *= SF_INC_FAC;
-					break;
-				}
-				else
-					throw_sqp_error("Something is wrong with iterative partial step...");
-			}
-		}
+	//	
+	//	if (blocking_constraint != "")
+	//	{
+	//		successful = false;
+	//		message(1, "performing binary search for constraint boundary with working set:", cnames);
+	//		if (pest_scenario.get_pestpp_options().get_sqp_solve_partial_step())
+	//		{
+	//			if (iterative_partial_step(blocking_constraint))
+	//			{
+	//				constraint_mat = get_constraint_mat(current_ctl_dv_values, current_obs, (working_set_tol));
+	//				current_constraint_mat = constraint_mat.first;
+	//				successful = true;
+	//				BASE_SCALE_FACTOR *= SF_INC_FAC;
+	//				break;
+	//			}
+	//			else
+	//				throw_sqp_error("Something is wrong with iterative partial step...");
+	//		}
+	//	}
 
-		if (successful)
-		{
-			if ((search_d.norm() < 0.1) && (((lm.array() < 0).all()) || (lm.size() != 0)))
-				BASE_SCALE_FACTOR /= SF_INC_FAC;
-			else
-				BASE_SCALE_FACTOR *= SF_INC_FAC;
-		}
-		else
-		{
-			n_consec_failures++;
-			line_search_attempts++;
+	//	if (successful)
+	//	{
+	//		if ((search_d.norm() < 0.1) && (((lm.array() < 0).all()) || (lm.size() != 0)))
+	//			BASE_SCALE_FACTOR /= SF_INC_FAC;
+	//		else
+	//			BASE_SCALE_FACTOR *= SF_INC_FAC;
+	//	}
+	//	else
+	//	{
+	//		n_consec_failures++;
+	//		line_search_attempts++;
 
-			if (use_ensemble_grad)
-				BASE_SCALE_FACTOR /= SF_INC_FAC;
-			else
-				BASE_SCALE_FACTOR *= SF_DEC_FAC;
+	//		if (use_ensemble_grad)
+	//			BASE_SCALE_FACTOR /= SF_INC_FAC;
+	//		else
+	//			BASE_SCALE_FACTOR *= SF_DEC_FAC;
 
-			if (n_consec_failures >= max_consec_failures)
-			{
-				Eigen::SparseMatrix<double> h(dv_names.size(), dv_names.size());
-				h.setIdentity();
-				update_scaling(search_d, grad);
-				for (int i = 0; i < dv_names.size(); i++) {
-					h.coeffRef(i, i) *= diagonal_scaling(i);
-				}
+	//		if (n_consec_failures >= max_consec_failures)
+	//		{
+	//			Eigen::SparseMatrix<double> h(dv_names.size(), dv_names.size());
+	//			h.setIdentity();
+	//			update_scaling(search_d, grad);
+	//			for (int i = 0; i < dv_names.size(); i++) {
+	//				h.coeffRef(i, i) *= diagonal_scaling(i);
+	//			}
 
-				hessian = Covariance(dv_names, h);
-				n_consec_failures = 0;
-				BASE_SCALE_FACTOR *= SF_INC_FAC;
-			}
-				if (n_consec_failures >= max_consec_failures)
-					break;
-		}
+	//			hessian = Covariance(dv_names, h);
+	//			n_consec_failures = 0;
+	//			BASE_SCALE_FACTOR *= SF_INC_FAC;
+	//		}
+	//			if (n_consec_failures >= max_consec_failures)
+	//				break;
+	//	}
 
-	}
-	message(0, "new base scale factor: ", BASE_SCALE_FACTOR);
-	return successful;
+	//}
+	//message(0, "new base scale factor: ", BASE_SCALE_FACTOR);
+	//return successful;
+
+	return true;
 }
 
 bool SeqQuadProgram::solve_new_ensemble()
@@ -3424,52 +3414,87 @@ bool SeqQuadProgram::solve_new_ensemble()
 		if (_drawn_dvs.shape().first == 0) 
 			_drawn_dvs = t;
 		else
-			_drawn_dvs.append_other_rows(t);
+			_drawn_dvs.append_other_rows(t, true);
 		
 		_avail_dvs.drop_rows({ par_name }, true);
 	}
 
+	Covariance old_hessian = hessian;
 	map <string, pair<Mat, bool>> constraint_mat_en;
+	map<string, vector<string>> cnames_en;
+	map<string, Eigen::VectorXd> search_d_en, lm_en;
+	map<string, Eigen::MatrixXd> constraint_jco_en;
 	Parameters dv_vals = current_ctl_dv_values;
 	Observations obs_vals = current_obs;
+	Eigen::VectorXd grad = current_grad_vector.get_data_eigen_vec(dv_names);
+
 	for (auto d : dv.get_real_names())
 	{
 		Eigen::VectorXd real_dv_vec = dv.get_real_vector(d);
 		dv_vals.update_without_clear(dv_names, real_dv_vec);
 		Eigen::VectorXd real_obs_vec = oe.get_real_vector(d);
 		obs_vals.update_without_clear(oe.get_var_names(), real_obs_vec);
+		
 		constraint_mat_en[d] = get_constraint_mat(dv_vals, obs_vals, working_set_tol);
+		Mat current_cmat = constraint_mat_en[d].first;
+		cnames_en[d] = constraint_mat_en[d].first.get_row_names();
+		constraint_jco_en[d] = constraint_mat_en[d].first.e_ptr()->toDense();
+
+		pair<Eigen::VectorXd, Eigen::VectorXd> x = calc_search_direction_vector(dv_vals, obs_vals, grad, &cnames_en[d]);
+		search_d_en[d] = x.first;
+		lm_en[d] = x.second;
+
+
+		//TODO: confirm is this improves performance if done even when search_d is not approx zero
+		if ((lm_en[d].array() > 0).any())
+		{
+			constraint_mat_en[d] = get_constraint_mat(dv_vals, obs_vals, working_set_tol, &lm_en[d]);
+			if (constraint_mat_en[d].first.get_row_names() != cnames_en[d]) 
+			{
+				//current_constraint_mat = constraint_mat.first;
+				vector<string> prev_cnames = cnames_en[d];
+				cnames_en[d] = constraint_mat_en[d].first.get_row_names();
+				vector<string> dropped_cnames;
+				for (auto c : prev_cnames)
+				{
+					if (find(cnames_en[d].begin(), cnames_en[d].end(), c) == cnames.end())
+						dropped_cnames.push_back(c);
+				}
+				ss.str("");
+				ss << "constraints dropped for realization " << d << "due to negative multipliers: " << dropped_cnames;
+				ss << "recalculating search_d with new working set: " << cnames_en[d];
+				frec << "  ---  " << ss.str();
+
+				constraint_jco_en[d] = constraint_mat_en[d].first.e_ptr()->toDense();
+				pair<Eigen::VectorXd, Eigen::VectorXd> x = calc_search_direction_vector(dv_vals, obs_vals, grad, &cnames_en[d]);
+				search_d_en[d] = x.first;
+				lm_en[d] = x.second;
+			}
+		}
 	}
 
+	//message(1, "constraint_jco:", constraint_jco); // tmp
+	//message(1, "sd:", search_d_en["BASE"].transpose());  // tmp
+	//message(1, "sd_norm:", search_d.norm()); //tmp
+	//message(1, "lm:", lm_en["BASE"]); //tmp
+
+
 	pair<Mat, bool> constraint_mat = get_constraint_mat(current_ctl_dv_values, current_obs, (working_set_tol));
-	current_constraint_mat = constraint_mat.first;
-	cnames = constraint_mat.first.get_row_names();
+	current_constraint_mat = constraint_mat_en["BASE"].first;
+	cnames = constraint_mat_en["BASE"].first.get_row_names();
 
 	//copy for BFGS later -- revisit for ensemble
 	prev_ctl_dv_values = current_ctl_dv_values;
 	prev_constraint_mat = current_constraint_mat;
 
 	Eigen::VectorXd search_d, lm;
-	Eigen::VectorXd grad = current_grad_vector.get_data_eigen_vec(dv_names);
 	bool successful = false;
-	Covariance old_hessian = hessian;
-
 	int line_search_attempts = 0;
 	while (!successful && line_search_attempts < max_line_search_attempts)
 	{
-		//vector<int> subset_idxs = get_subset_idxs(dv.shape().first, local_subset_size);
-
-		constraint_jco = constraint_mat.first.e_ptr()->toDense(); //TODO: revisit for ensemble implementation
+		//constraint_jco = constraint_mat.first.e_ptr()->toDense();
 		infeas_cand_obs.clear();
 		infeas_cand_dv_values.clear();
-		pair<Eigen::VectorXd, Eigen::VectorXd> x = calc_search_direction_vector(base_dv_values, grad);
-		search_d = x.first;
-		lm = x.second;
-
-		message(1, "constraint_jco:", constraint_jco); // tmp
-		message(1, "sd:", search_d.transpose());  // tmp
-		message(1, "sd_norm:", search_d.norm()); //tmp
-		message(1, "lm:", lm); //tmp
 
 		if (cnames.size() > 0)
 		{
@@ -3483,8 +3508,6 @@ bool SeqQuadProgram::solve_new_ensemble()
 			if (search_d_approx_zero)
 			{
 				pair<Mat, bool> constraint_mat = get_constraint_mat(current_ctl_dv_values, current_obs, (working_set_tol), &lm);
-
-				//if all multipliers non-negative, we're at optimal solution
 				if (constraint_mat.second) {
 					message(1, "optimal solution found - all Lagrange multipliers non-negative");
 					converged = true;

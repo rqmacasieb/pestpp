@@ -253,10 +253,10 @@ private:
 
 	//Eigen::VectorXd calc_search_direction_vector(const Parameters& _current_dv_, Eigen::VectorXd &
 	// );
-	pair<Eigen::VectorXd, Eigen::VectorXd> calc_search_direction_vector(const Parameters& _current_dv_, Eigen::VectorXd& grad_vector);
+	pair<Eigen::VectorXd, Eigen::VectorXd> calc_search_direction_vector(Parameters& _current_dv_, Observations& _current_obs_values, Eigen::VectorXd& grad_vector, vector<string>* _cnames = nullptr);
 
 	pair<Eigen::VectorXd, Eigen::VectorXd> _kkt_direct(Eigen::MatrixXd& inv_hessian, Eigen::MatrixXd& constraint_jco, Eigen::VectorXd& constraint_diff, Eigen::VectorXd& curved_grad, vector<string>& cnames);
-	pair<Eigen::VectorXd, Eigen::VectorXd> _kkt_null_space(Eigen::MatrixXd& inv_hessian, Eigen::MatrixXd& constraint_jco, Eigen::VectorXd& constraint_diff, Eigen::VectorXd& curved_grad, vector<string>& cnames);
+	pair<Eigen::VectorXd, Eigen::VectorXd> _kkt_null_space(Eigen::MatrixXd& inv_hessian, Eigen::MatrixXd& constraint_jco, Eigen::VectorXd& constraint_diff, Eigen::VectorXd& curved_grad);
 
 	//Parameters fancy_solve_routine(double scale_val, const Parameters& _current_dv_);
 	Eigen::VectorXd fancy_solve_routine(const Parameters& _current_dv_, const Parameters& _grad_vector);
