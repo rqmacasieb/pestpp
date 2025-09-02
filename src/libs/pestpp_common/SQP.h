@@ -171,15 +171,15 @@ private:
 	string best_name;
 	bool use_subset;
 
-	Parameters current_ctl_dv_values, prev_ctl_dv_values, trial_ctl_dv_values, infeas_cand_dv_values, base_ctl_dv_values;
-	Observations current_obs, trial_obs, infeas_cand_obs, base_obs;
+	Parameters current_ctl_dv_values, prev_ctl_dv_values, trial_ctl_dv_values, infeas_cand_dv_values;
+	Observations current_obs, trial_obs, infeas_cand_obs;
 
-	Parameters current_grad_vector, prev_grad_vector, base_grad_vector;
+	Parameters current_grad_vector, prev_grad_vector;
 	map<int, Parameters> grad_vector_map;
 
-	Mat current_constraint_mat, prev_constraint_mat, base_constraint_mat;
+	Mat current_constraint_mat, prev_constraint_mat;
 	Eigen::MatrixXd constraint_jco, base_constraint_jco;
-	vector<string> cnames, base_cnames;
+	vector<string> cnames;
 
 	ParameterEnsemble dv, dv_base;
 	ObservationEnsemble oe, oe_base;
@@ -223,7 +223,7 @@ private:
 	bool seek_feasible();
 	bool line_search(Eigen::VectorXd& search_d, const Parameters& _current_dv_values, Eigen::VectorXd& grad);
 
-	bool line_search(map<string, Eigen::VectorXd>& search_d, const Parameters& _current_dv_values, Eigen::VectorXd& grad, ParameterEnsemble* dvs_subset = nullptr);
+	bool line_search(map<string, Eigen::VectorXd>& search_d, Eigen::VectorXd& grad, ParameterEnsemble* dvs_subset = nullptr);
 	bool iterative_partial_step(const string& _blocking_constraint);
 	bool pick_candidate_and_update_current(ParameterEnsemble& dv_candidates, ObservationEnsemble& _oe, map<string,double>& sf_map);
 	bool pick_upgrade_and_update_current(ParameterEnsemble& dv_candidates, ObservationEnsemble& _oe);
@@ -255,8 +255,8 @@ private:
 	// );
 	pair<Eigen::VectorXd, Eigen::VectorXd> calc_search_direction_vector(Parameters& _current_dv_, Observations& _current_obs_values, Eigen::VectorXd& grad_vector, Eigen::MatrixXd* _constraint_jco ,vector<string>* _cnames = nullptr);
 
-	pair<Eigen::VectorXd, Eigen::VectorXd> _kkt_direct(Eigen::MatrixXd& inv_hessian, Eigen::MatrixXd& constraint_jco, Eigen::VectorXd& constraint_diff, Eigen::VectorXd& curved_grad, vector<string>& cnames);
-	pair<Eigen::VectorXd, Eigen::VectorXd> _kkt_null_space(Eigen::MatrixXd& inv_hessian, Eigen::MatrixXd& constraint_jco, Eigen::VectorXd& constraint_diff, Eigen::VectorXd& curved_grad);
+	pair<Eigen::VectorXd, Eigen::VectorXd> _kkt_direct(Eigen::MatrixXd& inv_hessian, Eigen::MatrixXd& _constraint_jco, Eigen::VectorXd& constraint_diff, Eigen::VectorXd& curved_grad, vector<string>& cnames);
+	pair<Eigen::VectorXd, Eigen::VectorXd> _kkt_null_space(Eigen::MatrixXd& inv_hessian, Eigen::MatrixXd& _constraint_jco, Eigen::VectorXd& constraint_diff, Eigen::VectorXd& curved_grad);
 
 	//Parameters fancy_solve_routine(double scale_val, const Parameters& _current_dv_);
 	Eigen::VectorXd fancy_solve_routine(const Parameters& _current_dv_, const Parameters& _grad_vector);
