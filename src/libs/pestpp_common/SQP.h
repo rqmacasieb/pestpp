@@ -115,7 +115,7 @@ private:
     double SF_INC_FAC = 1.1;
     double BASE_SCALE_FACTOR = 1.0;
     double PAR_SIGMA_DEC_FAC = 0.9;
-    double PAR_SIGMA_INC_FAC = 1.1;
+    double PAR_SIGMA_INC_FAC = 1.3;
     bool SOLVE_EACH_REAL = false;
     double PHI_ACCEPT_FAC = 0.05;
     double par_sigma_max = 100;
@@ -225,8 +225,8 @@ private:
 
 	bool line_search(map<string, Eigen::VectorXd>& search_d, Eigen::VectorXd& grad, ParameterEnsemble* dvs_subset = nullptr);
 	bool iterative_partial_step(const string& _blocking_constraint);
-	bool pick_candidate_and_update_current(ParameterEnsemble& dv_candidates, ObservationEnsemble& _oe, map<string,double>& sf_map);
-	bool pick_upgrade_and_update_current(ParameterEnsemble& dv_candidates, ObservationEnsemble& _oe);
+	bool pick_candidate_and_update_current(ParameterEnsemble& dv_candidates, ObservationEnsemble& _oe, map<string,double>& sf_map, bool update_curr=true);
+	pair<bool, pair<Parameters, Observations>> pick_upgrade_and_update_current(ParameterEnsemble& dv_candidates, ObservationEnsemble& _oe);
 	bool pick_partial_step(ParameterEnsemble& dv_candidates, ObservationEnsemble& _oe, map<string, double>& sf_map);
 	bool check_wolfe_conditions(Parameters& trial_dv_values, Observations& trial_obs, const Eigen::VectorXd& search_d, 
 		const Eigen::VectorXd& grad, double scale, double initial_obj, double initial_slope);
