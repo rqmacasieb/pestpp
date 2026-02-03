@@ -20,7 +20,7 @@
 
 bool SqpFilter::accept(double obj_val, double violation_val, double violation_padded, Parameters p, Observations o, string rname, int iter, bool keep)
 {
-	FilterRec candidate{ obj_val, violation_val,iter, p, o, rname, violation_padded };
+	FilterRec candidate{ obj_val, violation_val, iter, p, o, rname, violation_padded };
 	if (obj_viol_pairs.size() == 0)
 	{
 		obj_viol_pairs.insert(candidate);
@@ -34,38 +34,36 @@ bool SqpFilter::accept(double obj_val, double violation_val, double violation_pa
 		candidate_with_tol.obj_val *= (1 - obj_tol);
 	candidate_with_tol.viol_val *= (1 + viol_tol);
 
-	bool accept = true;
-	for (auto& p : obj_viol_pairs)
-		if (!first_partially_dominates_second(candidate_with_tol, p))
+	bool is_dominated = false;
+	for (const auto& existing : obj_viol_pairs)
+	{
+		if (first_weakly_dominates_second(existing, candidate_with_tol))
 		{
-			accept = false;
+			is_dominated = true;
 			break;
 		}
-	if ((keep) && (accept))
+	}
+
+	if (!is_dominated && keep)
 	{
+		vector<multiset<FilterRec>::iterator> to_remove;
+		for (auto it = obj_viol_pairs.begin(); it != obj_viol_pairs.end(); ++it)
+		{
+			if (first_weakly_dominates_second(candidate_with_tol, *it))
+			{
+				to_remove.push_back(it);
+			}
+		}
+
+		for (auto it = to_remove.rbegin(); it != to_remove.rend(); ++it)
+		{
+			obj_viol_pairs.erase(*it);
+		}
+
 		obj_viol_pairs.insert(candidate);
+		return true;
 	}
-	return accept;
-
-}
-
-
-bool SqpFilter::first_partially_dominates_second(const FilterRec& first, const FilterRec& second)
-{
-	if (minimize)
-	{
-		if ((first.obj_val < second.obj_val) || (first.viol_val < second.viol_val))
-			return true;
-		else
-			return false;
-	}
-	else
-	{
-		if ((first.obj_val > second.obj_val) || (first.viol_val < second.viol_val))
-			return true;
-		else
-			return false;
-	}
+	return !is_dominated;
 }
 
 bool SqpFilter::first_strictly_dominates_second(const FilterRec& first, const FilterRec& second)
@@ -84,6 +82,26 @@ bool SqpFilter::first_strictly_dominates_second(const FilterRec& first, const Fi
         else
             return false;
     }
+}
+
+bool SqpFilter::first_weakly_dominates_second(const FilterRec& first, const FilterRec& second)
+{
+	if (minimize)
+	{
+		bool obj_better_or_equal = (first.obj_val <= second.obj_val);
+		bool viol_better_or_equal = (first.viol_val <= second.viol_val);
+		bool at_least_one_strict = (first.obj_val < second.obj_val) || (first.viol_val < second.viol_val);
+
+		return obj_better_or_equal && viol_better_or_equal && at_least_one_strict;
+	}
+	else
+	{
+		bool obj_better_or_equal = (first.obj_val >= second.obj_val);
+		bool viol_better_or_equal = (first.viol_val <= second.viol_val);
+		bool at_least_one_strict = (first.obj_val > second.obj_val) || (first.viol_val < second.viol_val);
+
+		return obj_better_or_equal && viol_better_or_equal && at_least_one_strict;
+	}
 }
 
 void SqpFilter::report(ofstream& frec, int iter)
@@ -3244,38 +3262,60 @@ pair<Eigen::VectorXd, Eigen::VectorXd> SeqQuadProgram::_kkt_direct(const Eigen::
 
 pair<Mat, bool> SeqQuadProgram::get_constraint_mat(Parameters& _dv_vals, Observations& _obs_vals, double working_set_tol, const Eigen::VectorXd* lm, vector<string> curr_ws)
 {
-	if (use_ensemble_grad) 
+
+	Parameters decvar = _dv_vals.get_subset(dv_names.begin(), dv_names.end());
+
+	if (constraints.get_use_chance() && (pest_scenario.get_pestpp_options().get_sqp_risk() != 0.5))
 	{
-		Parameters decvar = _dv_vals.get_subset(dv_names.begin(), dv_names.end());
-
-		if (constraints.get_use_chance() && (pest_scenario.get_pestpp_options().get_sqp_risk() != 0.5))
+		Observations base_obs = _obs_vals;
+		if (oe.shape().first > 0)
 		{
-			Observations base_obs = _obs_vals;
-			if (oe.shape().first > 0)
-			{
-				vector<string> obs_names = oe.get_var_names();
-				Eigen::VectorXd base_vec = oe.get_real_vector(BASE_REAL_NAME);
-				base_obs.update_without_clear(obs_names, base_vec);
-			}
-
-			Observations shifted_obs = constraints.get_chance_shifted_constraints(base_obs, oe, sqp_risk);
-			vector<string> constraint_names = constraints.get_obs_constraint_names();
-			for (auto& name : constraint_names)
-			{
-				if (shifted_obs.find(name) != shifted_obs.end())
-				{
-					_obs_vals.update_rec(name, shifted_obs.get_rec(name));
-				}
-			}
+			vector<string> obs_names = oe.get_var_names();
+			Eigen::VectorXd base_vec = oe.get_real_vector(BASE_REAL_NAME);
+			base_obs.update_without_clear(obs_names, base_vec);
 		}
 
-		return constraints.get_working_set_constraint_matrix(decvar, _obs_vals, dv, oe, true, lm, curr_ws, (working_set_tol));
+		Observations shifted_obs = constraints.get_chance_shifted_constraints(base_obs, oe, sqp_risk);
+		vector<string> constraint_names = constraints.get_obs_constraint_names();
+		for (auto& name : constraint_names)
+		{
+			if (shifted_obs.find(name) != shifted_obs.end())
+			{
+				_obs_vals.update_rec(name, shifted_obs.get_rec(name));
+			}
+		}
 	}
-	else
+
+	return constraints.get_working_set_constraint_matrix(decvar, _obs_vals, dv, oe, true, lm, curr_ws, (working_set_tol));
+
+}
+
+pair<Mat, bool> SeqQuadProgram::get_constraint_jco(Parameters& _dv_vals, Observations& _obs_vals)
+{
+	Parameters decvar = _dv_vals.get_subset(dv_names.begin(), dv_names.end());
+
+	if (constraints.get_use_chance() && (pest_scenario.get_pestpp_options().get_sqp_risk() != 0.5))
 	{
-		message(2, "getting working set constraint matrix");
-		return constraints.get_working_set_constraint_matrix(_dv_vals, _obs_vals, jco, true, lm, (working_set_tol));
+		Observations base_obs = _obs_vals;
+		if (oe.shape().first > 0)
+		{
+			vector<string> obs_names = oe.get_var_names();
+			Eigen::VectorXd base_vec = oe.get_real_vector(BASE_REAL_NAME);
+			base_obs.update_without_clear(obs_names, base_vec);
+		}
+
+		Observations shifted_obs = constraints.get_chance_shifted_constraints(base_obs, oe, sqp_risk);
+		vector<string> constraint_names = constraints.get_obs_constraint_names();
+		for (auto& name : constraint_names)
+		{
+			if (shifted_obs.find(name) != shifted_obs.end())
+			{
+				_obs_vals.update_rec(name, shifted_obs.get_rec(name));
+			}
+		}
 	}
+	vector<string> all_constraint_names = constraints.get_obs_constraint_names();
+	return constraints.get_working_set_constraint_matrix(decvar, _obs_vals, dv, oe, true, nullptr, all_constraint_names, 0.0);
 }
 
 bool SeqQuadProgram::trust_region_step(Parameters& current_dv_values, Eigen::VectorXd grad)
@@ -4003,30 +4043,43 @@ FilterRec SeqQuadProgram::line_search(map<string, Eigen::VectorXd>& search_d_map
 			used_scale_vals.push_back(cname_sf_map.at(rname));
 		}
 	}
-	
-	message(0, "computing quadratic model predictions for candidates");
-	Eigen::VectorXd current_dv_vec = current_ctl_dv_values.get_data_eigen_vec(dv_names);
-	double current_obj = get_obj_value(current_ctl_dv_values, current_obs);
-	Eigen::VectorXd grad = current_grad_vector.get_data_eigen_vec(dv_names);
-	Eigen::VectorXd quad_obj_vec = get_quadratic_obj_vector(dv_candidates, grad, current_obj);
 
-	//dummy observation ensemble for quadratic filtering
-	//constraints might need observation values, so we may need to approximate
-	ObservationEnsemble dummy_oe(&pest_scenario, &rand_gen);
-	dummy_oe.reserve(dv_candidates.get_real_names(), pest_scenario.get_ctl_ordered_obs_names());
+	ObservationEnsemble approx_oe(&pest_scenario, &rand_gen);
+	approx_oe.reserve(dv_candidates.get_real_names(), oe.get_var_names());
 
-	message(0, "filtering candidates using quadratic model predictions");
-	auto quad_pick = pick_from_filter(dv_candidates, dummy_oe, recalc, &quad_obj_vec);
-	SqpFilter quad_filter = get<1>(quad_pick);
-	vector<FilterRec> quad_accepted = quad_filter.get_filter_members();
+	message(1, "computing QP/LP model predictions for candidates");
+	get_approx_objective(dv_candidates, approx_oe, grad, current_obj_ens, dvs_subset, ls_parent_map);
+	vector<string> constraint_names = constraints.get_obs_constraint_names();
+	get_approx_constraints(dv_candidates, approx_oe, ls_parent_map, dvs_subset, constraint_names);
+
+
+	ss.str("");
+	ss << file_manager.get_base_filename() << "." << iter << ".est.oec.csv";
+	approx_oe.to_csv(ss.str());
+
+	message(1, "filtering candidates using estimated objectives and constraints");
+	auto filtered = pick_from_filter(dv_candidates, approx_oe, recalc, &approx_oe);
+	SqpFilter filtered_preds  = get<1>(filtered);
+	vector<FilterRec> accepted_preds = filtered_preds.get_filter_members();
+
+	set<string> parent_names;
+	parent_names.insert(dv_real_names.begin(), dv_real_names.end());
+	vector<FilterRec> filtered_ls;
+	for (const auto& fr : accepted_preds)
+	{
+		if (parent_names.find(fr.real_name) == parent_names.end())
+		{
+			filtered_ls.push_back(fr);
+		}
+	}
 
 	vector<string> accepted_names;
-	for (const auto& fr : quad_accepted)
+	for (const auto& fr : filtered_ls)
 	{
 		accepted_names.push_back(fr.real_name);
 	}
 	ss.str("");
-	ss << "quadratic model filter accepted " << accepted_names.size() << " candidates out of " << dv_candidates.shape().first;
+	ss << "queueing runs for " << accepted_names.size() << " filtered candidates";
 	message(1, ss.str());
 
 	ParameterEnsemble filtered_dv_candidates(&pest_scenario, &rand_gen);
@@ -4037,13 +4090,9 @@ FilterRec SeqQuadProgram::line_search(map<string, Eigen::VectorXd>& search_d_map
 		Eigen::VectorXd cand_vec = dv_candidates.get_real_vector(name);
 		filtered_dv_candidates.update_real_ip(name, cand_vec);
 	}
+	dv_candidates = filtered_dv_candidates;
 
-	ss.str("");
-	ss << "running true model for " << accepted_names.size() << " filtered candidates";
-	message(0, ss.str());
-	ObservationEnsemble oe_candidates = run_candidate_ensemble(filtered_dv_candidates);
-
-	auto final_pick = pick_from_filter(filtered_dv_candidates, oe_candidates, recalc, nullptr);
+	ObservationEnsemble oe_candidates = run_candidate_ensemble(dv_candidates);
 
 	if (!recalc)
 		oe_to_save = oe_candidates;
@@ -4061,115 +4110,6 @@ FilterRec SeqQuadProgram::line_search(map<string, Eigen::VectorXd>& search_d_map
 			{
 				oe_to_save.append(rname, row);
 				save[rname] = oe_to_save.get_real_map().at(rname);
-			}
-		}
-	}
-
-	const int num_intermediate_pts = pest_scenario.get_pestpp_options().get_sqp_num_refined_search_pts();
-	if (!recalc && scale_vals.size() > 2 && num_intermediate_pts > 0)
-	{
-		message(1, "performing adaptive refinement around promising candidates");
-
-		map<string, double> omap = get_obj_map(dv, oe);
-		map<string, double> omap_cand = get_obj_map(dv_candidates, oe_candidates);
-		map<string, map<string, double>> vmap = constraints.get_ensemble_violations_map(dv, oe, 0.0, true);
-		map<string, map<string, double>> vmap_cand = constraints.get_ensemble_violations_map(dv_candidates, oe_candidates, 0.0, true);
-
-		map<string, pair<string, double>> best_candidates; 
-		for (const auto& rname : subset_real_names)
-		{
-			double best_obj = omap[rname];
-			double best_viol = 0.0;
-			for (const auto& v : vmap[rname])
-				best_viol += v.second;
-			string best_cand = rname;
-
-			for (const auto& cand_name : cand_real_names)
-			{
-				if (ls_parent_map[cand_name] != rname)
-					continue;
-
-				double obj_val = omap_cand[cand_name];
-				double viol_sum = 0.0;
-				for (const auto& v : vmap_cand[cand_name])
-					viol_sum += v.second;
-
-				bool is_better = false;
-				if (viol_sum <= 1E-6)
-				{
-					if (best_viol > 1E-6)
-						is_better = true;
-					else if (obj_sense == "minimize" && obj_val < best_obj)
-						is_better = true;
-					else if (obj_sense == "maximize" && obj_val > best_obj)
-						is_better = true;
-				}
-				else if (viol_sum < best_viol)
-				{
-					is_better = true;
-				}
-
-				if (is_better)
-				{
-					best_obj = obj_val;
-					best_viol = viol_sum;
-					best_cand = cand_name;
-				}
-			}
-
-			if (find(subset_real_names.begin(), subset_real_names.end(), best_cand) != subset_real_names.end())
-				best_candidates[rname] = { best_cand, 0.0 };
-			else
-				best_candidates[rname] = { best_cand, cname_sf_map[best_cand] };
-		}
-
-		ParameterEnsemble dv_intermediate(&pest_scenario, &rand_gen);
-		dv_intermediate.set_trans_status(ParameterEnsemble::transStatus::NUM);
-		vector<string> intermediate_cand_names;
-		scale_vals.push_back(0.0);
-		sort(scale_vals.begin(), scale_vals.end());
-
-		for (const auto& bc : best_candidates)
-		{
-			string parent_name = bc.first;
-			double best_scale = bc.second.second;
-
-			auto scale_it = find(scale_vals.begin(), scale_vals.end(), best_scale);
-			if (scale_it == scale_vals.end())
-				continue;
-
-			size_t best_idx = distance(scale_vals.begin(), scale_it);
-			if (best_idx == 0)
-				generate_intermediate_candidates(parent_name, -scale_vals[1], 0.0, num_intermediate_pts, dvs_subset, search_d_map, dv_intermediate, intermediate_cand_names);
-			else if (best_idx == scale_vals.size() - 1)
-				generate_intermediate_candidates(parent_name, scale_vals[best_idx], best_scale * (1.0 + BASE_SCALE_FACTOR), num_intermediate_pts, dvs_subset, search_d_map, dv_intermediate, intermediate_cand_names);
-			
-			if (best_idx > 0) 
-				generate_intermediate_candidates(parent_name, scale_vals[best_idx - 1], best_scale,	num_intermediate_pts, dvs_subset, search_d_map, dv_intermediate, intermediate_cand_names);
-			
-			if (best_idx < scale_vals.size() - 1)
-				generate_intermediate_candidates(parent_name, scale_vals[best_idx + 1], best_scale, num_intermediate_pts, dvs_subset, search_d_map, dv_intermediate, intermediate_cand_names);
-			
-		}
-
-		if (!intermediate_cand_names.empty())
-		{
-			ss.str("");
-			ss << "evaluating " << intermediate_cand_names.size() << " intermediate candidates";
-			message(1, ss.str());
-
-			if (pest_scenario.get_pestpp_options().get_sqp_enforce_bounds())
-				dv_intermediate.enforce_bounds(performance_log, false);
-
-			ObservationEnsemble oe_intermediate = run_candidate_ensemble(dv_intermediate);
-
-			dv_candidates.append_other_rows(dv_intermediate);
-			oe_candidates.append_other_rows(oe_intermediate);
-
-			if (!recalc)
-			{
-				dv_to_save.append_other_rows(dv_intermediate, true);
-				oe_to_save.append_other_rows(oe_intermediate, true);
 			}
 		}
 	}
@@ -4675,6 +4615,9 @@ bool SeqQuadProgram::solve_new_ensemble()
 		Eigen::VectorXd real_obs_vec = oe.get_real_vector(d);
 		obs_vals.update_without_clear(oe.get_var_names(), real_obs_vec);
 		
+		pair<Mat, bool> full_constraint_jco_pair = get_constraint_jco(dv_vals, obs_vals);
+		constraint_jco_full_en[d] = full_constraint_jco_pair.first.e_ptr()->toDense();
+
 		constraint_mat_en[d] = get_constraint_mat(dv_vals, obs_vals, working_set_tol);
 		cnames_en[d] = constraint_mat_en[d].first.get_row_names();
 		constraint_jco_en[d] = constraint_mat_en[d].first.e_ptr()->toDense();
@@ -5036,26 +4979,188 @@ double SeqQuadProgram::get_obj_value(Parameters& _current_ctl_dv_vals, Observati
 	}
 	return v;
 }
-
-Eigen::VectorXd SeqQuadProgram::get_quadratic_obj_vector(ParameterEnsemble& _dv, const Eigen::VectorXd& grad, double current_obj)
+void SeqQuadProgram::get_approx_constraints(ParameterEnsemble& _dv_candidates, ObservationEnsemble& approx_oe, const map<string, string>& ls_parent_map, ParameterEnsemble* dvs_subset, const vector<string>& constraint_names)
 {
-	Eigen::VectorXd obj_vec(_dv.shape().first);
+	vector<string> all_obs_var_names = approx_oe.get_var_names();
+
+	vector<int> constraint_indices;
+	for (const auto& constraint_name : constraint_names)
+	{
+		auto it = find(all_obs_var_names.begin(), all_obs_var_names.end(), constraint_name);
+		if (it != all_obs_var_names.end())
+			constraint_indices.push_back(distance(all_obs_var_names.begin(), it));
+		else
+			throw_sqp_error("constraint observation '" + constraint_name + "' not found in approx_oe variable names");
+		
+	}
+
+	for (const auto& real_name : _dv_candidates.get_real_names())
+	{
+		string parent_name;
+		if (ls_parent_map.find(real_name) != ls_parent_map.end())
+			parent_name = ls_parent_map.at(real_name);
+		else
+			throw_sqp_error("parent not found for candidate " + real_name);
+
+		Eigen::MatrixXd parent_constraint_jco;
+		if (constraint_jco_full_en.find(parent_name) != constraint_jco_full_en.end())
+			parent_constraint_jco = constraint_jco_full_en.at(parent_name);
+		else
+			throw_sqp_error("full constraint Jacobian not found for parent " + parent_name);
+		
+
+		//vector<string> full_constraint_names = constraints.get_obs_constraint_names();
+		//vector<int> full_to_constraint_indices;
+		//for (const auto& constraint_name : constraint_names)
+		//{
+		//	auto it = find(full_constraint_names.begin(), full_constraint_names.end(), constraint_name);
+		//	if (it != full_constraint_names.end())
+		//		full_to_constraint_indices.push_back(distance(full_constraint_names.begin(), it));
+		//	
+		//	else
+		//		throw_sqp_error("constraint '" + constraint_name + "' not found in full constraint names");
+		//	
+		//}
+		//Eigen::MatrixXd constraint_jco_subset(full_to_constraint_indices.size(), parent_constraint_jco.cols());
+		//for (size_t i = 0; i < full_to_constraint_indices.size(); i++)
+		//{
+		//	constraint_jco_subset.row(i) = parent_constraint_jco.row(full_to_constraint_indices[i]);
+		//}
+
+
+		Eigen::VectorXd parent_obs_vec = oe.get_real_vector(parent_name);
+		Eigen::VectorXd parent_obs_constraint_vec(constraint_indices.size());
+		for (size_t i = 0; i < constraint_indices.size(); i++)
+			parent_obs_constraint_vec[i] = parent_obs_vec[constraint_indices[i]];
+		
+
+		Eigen::VectorXd parent_dv_vec;
+		bool found_parent_dv = false;
+
+		if (dvs_subset != nullptr)
+		{
+			dvs_subset->transform_ip(ParameterEnsemble::transStatus::NUM);
+			vector<string> subset_real_names = dvs_subset->get_real_names();
+			if (find(subset_real_names.begin(), subset_real_names.end(), parent_name) != subset_real_names.end())
+			{
+				parent_dv_vec = dvs_subset->get_real_vector(parent_name);
+				found_parent_dv = true;
+			}
+		}
+
+		if (!found_parent_dv)
+		{
+			dv.transform_ip(ParameterEnsemble::transStatus::NUM);
+			vector<string> dv_real_names = dv.get_real_names();
+			if (find(dv_real_names.begin(), dv_real_names.end(), parent_name) != dv_real_names.end())
+			{
+				parent_dv_vec = dv.get_real_vector(parent_name);
+				found_parent_dv = true;
+			}
+		}
+
+		if (!found_parent_dv)
+			throw_sqp_error("parent decision variable values not found for ls candidate " + real_name);
+		
+		Eigen::VectorXd candidate_vec = _dv_candidates.get_real_vector(real_name);
+		Eigen::VectorXd step = candidate_vec - parent_dv_vec;
+
+		// obs_new ≈ obs_parent + J_parent * step
+		Eigen::VectorXd lin_obs_vec = parent_obs_constraint_vec + parent_constraint_jco * step;
+		Eigen::VectorXd current_approx_vec = approx_oe.get_real_vector(real_name);
+		for (size_t i = 0; i < constraint_indices.size(); i++)
+			current_approx_vec[constraint_indices[i]] = lin_obs_vec[i];
+		
+
+		approx_oe.update_real_ip(real_name, current_approx_vec);
+	}
+}
+
+ObservationEnsemble& SeqQuadProgram::get_approx_objective(ParameterEnsemble& _dv, ObservationEnsemble& approx_oe, const Eigen::VectorXd& grad, const map<string, double>& current_obj_ens, ParameterEnsemble* dvs_subset, const map<string, string>& ls_parent_map)
+{
 	_dv.transform_ip(ParameterEnsemble::transStatus::NUM);
 
 	Eigen::VectorXd current_dv_vec = current_ctl_dv_values.get_data_eigen_vec(dv_names);
 	Eigen::MatrixXd H = hessian.get_matrix();
 
 	vector<string> vnames = _dv.get_var_names();
+	vector<string> real_names = _dv.get_real_names();
+	vector<string> obs_var_names = approx_oe.get_var_names();
+
+
+	int obj_idx = -1;
+	for (int i = 0; i < obs_var_names.size(); i++)
+	{
+		if (obs_var_names[i] == obj_func_str)
+		{
+			obj_idx = i;
+			break;
+		}
+	}
+	if (obj_idx == -1)
+	{
+		throw_sqp_error("objective function '" + obj_func_str + "' not found in approx_oe variable names");
+	}
+
 	for (int i = 0; i < _dv.shape().first; i++)
 	{
+		string cand_name = real_names[i];
 		Eigen::VectorXd candidate_vec = _dv.get_real_vector(i);
-		Eigen::VectorXd step = candidate_vec - current_dv_vec;
 
-		// Quadratic model: f(x) ≈ f(x_k) + g^T * step + 0.5 * step^T * H * step
-		double pred_obj = current_obj + grad.dot(step) + 0.5 * step.dot(H * step);
-		obj_vec[i] = pred_obj;
+		string parent_name;
+		if (ls_parent_map.find(cand_name) != ls_parent_map.end())
+			parent_name = ls_parent_map.at(cand_name);
+		else
+			throw_sqp_error("parent not found for candidate " + cand_name);
+
+		double parent_obj = 0.0;
+		if (current_obj_ens.find(parent_name) != current_obj_ens.end())
+			parent_obj = current_obj_ens.at(parent_name);
+		else
+			throw_sqp_error("parent objective value not found for candidate " + cand_name);
+		
+
+		Eigen::VectorXd parent_dv_vec;
+		bool found_parent_dv = false;
+
+		if (dvs_subset != nullptr)
+		{
+			dvs_subset->transform_ip(ParameterEnsemble::transStatus::NUM);
+			vector<string> subset_real_names = dvs_subset->get_real_names();
+			if (find(subset_real_names.begin(), subset_real_names.end(), parent_name) != subset_real_names.end())
+			{
+				parent_dv_vec = dvs_subset->get_real_vector(parent_name);
+				found_parent_dv = true;
+			}
+		}
+
+		if (!found_parent_dv)
+		{
+			dv.transform_ip(ParameterEnsemble::transStatus::NUM);
+			vector<string> dv_real_names = dv.get_real_names();
+
+			if (find(dv_real_names.begin(), dv_real_names.end(), parent_name) != dv_real_names.end())
+			{
+				parent_dv_vec = dv.get_real_vector(parent_name);
+				found_parent_dv = true;
+			}
+		}
+
+		if (!found_parent_dv)
+		{
+			throw_sqp_error("parent decision variable values not found for candidate " + cand_name);
+		}
+
+		Eigen::VectorXd step = candidate_vec - parent_dv_vec;
+
+		// Quadratic model: f(x) ≈ f(x_parent) + g^T * step + 0.5 * step^T * H * step
+		double pred_obj = parent_obj + grad.dot(step) + 0.5 * step.dot(H * step);
+		Eigen::VectorXd obs_vec = approx_oe.get_real_vector(cand_name);
+		obs_vec[obj_idx] = pred_obj;
+		approx_oe.update_real_ip(cand_name, obs_vec);
 	}
-	return obj_vec;
+
+	return approx_oe;
 }
 
 
@@ -5101,19 +5206,18 @@ Eigen::VectorXd SeqQuadProgram::get_obj_vector(ParameterEnsemble& _dv, Observati
 	return obj_vec;
 }
 
-tuple<FilterRec, SqpFilter> SeqQuadProgram::pick_from_filter(ParameterEnsemble& dv_candidates, ObservationEnsemble& _oe, bool recalc, const Eigen::VectorXd* quad_obj_vec)
+tuple<FilterRec, SqpFilter> SeqQuadProgram::pick_from_filter(ParameterEnsemble& dv_candidates, ObservationEnsemble& _oe, bool recalc, ObservationEnsemble* approx_oe)
 {
 	stringstream ss;
 	ofstream& frec = file_manager.rec_ofstream();
-	
-	stringstream ss;
-	ofstream& frec = file_manager.rec_ofstream();
+
 
 	Eigen::VectorXd obj_vec;
-	if (use_quadratic_model && quad_obj_vec != nullptr)
+	ObservationEnsemble* constraint_oe = &_oe;
+	if (use_quadratic_model && approx_oe != nullptr)
 	{
-		obj_vec = *quad_obj_vec;
-		message(1, "using quadratic model predictions for candidate filtering");
+		obj_vec = get_obj_vector(dv_candidates, *approx_oe);
+		constraint_oe = approx_oe;
 	}
 	else
 	{
@@ -5141,13 +5245,13 @@ tuple<FilterRec, SqpFilter> SeqQuadProgram::pick_from_filter(ParameterEnsemble& 
 	map<string, map<string, double>> violations, violations_nominal;
 	if (constraints.get_use_chance() && (sqp_risk != 0.5))
 	{
-		violations = constraints.get_ensemble_violations_map(dv_candidates, _oe, viol_pad, true, &_oe, sqp_risk);
-		violations_nominal = constraints.get_ensemble_violations_map(dv_candidates, _oe, 0.0, true, &_oe, sqp_risk);
+		violations = constraints.get_ensemble_violations_map(dv_candidates, *constraint_oe, viol_pad, true, constraint_oe, sqp_risk);
+		violations_nominal = constraints.get_ensemble_violations_map(dv_candidates, *constraint_oe, 0.0, true, constraint_oe, sqp_risk);
 	}
 	else
 	{
-		violations = constraints.get_ensemble_violations_map(dv_candidates, _oe, viol_pad, true);
-		violations_nominal = constraints.get_ensemble_violations_map(dv_candidates, _oe, 0.0, true);
+		violations = constraints.get_ensemble_violations_map(dv_candidates, *constraint_oe, viol_pad, true);
+		violations_nominal = constraints.get_ensemble_violations_map(dv_candidates, *constraint_oe, 0.0, true);
 	}
 
 	vector<string> onames = _oe.get_var_names();
@@ -5159,7 +5263,7 @@ tuple<FilterRec, SqpFilter> SeqQuadProgram::pick_from_filter(ParameterEnsemble& 
 
 	message(0, "current best phi:", last_best);
 	ss.str("");
-	ss << "evaluating " << obj_vec.size() << " candidate realizations and updating filter";
+	ss << "filtering " << obj_vec.size() << " candidate realizations";
 	message(1, ss.str());
 
 	ss.str("");
@@ -5202,7 +5306,10 @@ tuple<FilterRec, SqpFilter> SeqQuadProgram::pick_from_filter(ParameterEnsemble& 
 	ss << string(80, '-') << endl;
 	frec << ss.str();
 	if (accept_idxs.size() > 0)
+	{
 		message(1, "number of candidate realizations passing filter: ", accept_idxs.size());
+		message(1, "number of candidate realizations kept in filter: ", candidate_filter.get_filter_members().size());
+	}
 	else
 		message(1, "no realizations passed the filter");
 	candidate_filter.report(frec, iter);

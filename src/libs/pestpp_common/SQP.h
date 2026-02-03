@@ -58,8 +58,8 @@ private:
 	double obj_tol;
 	double viol_tol;
 	multiset<FilterRec> obj_viol_pairs;
-	bool first_partially_dominates_second(const FilterRec& first, const FilterRec& second);
     bool first_strictly_dominates_second(const FilterRec& first, const FilterRec& second);
+	bool first_weakly_dominates_second(const FilterRec& first, const FilterRec& second);
 
 };
 
@@ -233,7 +233,7 @@ private:
 	map<string, vector<string>> cnames_en;
 	map<string, Eigen::VectorXd> search_d_en, lm_en;
 	map<string, double> current_obj_en;
-	map<string, Eigen::MatrixXd> constraint_jco_en;
+	map<string, Eigen::MatrixXd> constraint_jco_en, constraint_jco_full_en;
 	map<string, Covariance> hessian_en;
 	vector<string> cnames_base;
 	Eigen::VectorXd lm_base;
@@ -277,7 +277,7 @@ private:
 	FilterRec line_search(map<string, Eigen::VectorXd>& search_d_map, Eigen::VectorXd& grad, map<string, double> current_obj_ens, ParameterEnsemble* dvs_subset = nullptr, bool recalc = false);
 	void generate_intermediate_candidates(const string& parent_name, double start_scale, double end_scale,	int num_points,	ParameterEnsemble* dvs_subset,	const map<string, Eigen::VectorXd>& search_d_map, ParameterEnsemble& dv_intermediate, vector<string>& intermediate_cand_names);
 	FilterRec pick_upgrade_and_update_current(ParameterEnsemble& dv_candidates, ObservationEnsemble& _oe, bool cma_reset_arc = true, bool report = false, ParameterEnsemble* dvs_subset = nullptr, bool recalc = false);
-	tuple<FilterRec, SqpFilter> pick_from_filter(ParameterEnsemble& dv_candidates, ObservationEnsemble& _oe, bool recalc = true, const Eigen::VectorXd* quad_obj_vec = nullptr);
+	tuple<FilterRec, SqpFilter> pick_from_filter(ParameterEnsemble& dv_candidates, ObservationEnsemble& _oe, bool recalc = true, ObservationEnsemble* approx_oe = nullptr);
 	FilterRec pick_from_filter_by_merit(SqpFilter _filtered);
 
 	double compute_actual_reduction(Parameters& trial_dv_values, Observations& trial_obs);
@@ -296,9 +296,11 @@ private:
 	Eigen::VectorXd get_obj_vector(ParameterEnsemble& _dv, ObservationEnsemble& _oe);
 	
 	double get_obj_value(Parameters& _current_ctl_dv_vals, Observations& _current_obs);
-	Eigen::VectorXd get_quadratic_obj_vector(ParameterEnsemble& _dv, const Eigen::VectorXd& grad, double current_obj);
+	void get_approx_constraints(ParameterEnsemble& _dv_candidates, ObservationEnsemble& approx_oe, const map<string, string>& ls_parent_map, ParameterEnsemble* dvs_subset, const vector<string>& constraint_names);
+	ObservationEnsemble& get_approx_objective(ParameterEnsemble& _dv, ObservationEnsemble& approx_oe, const Eigen::VectorXd& grad, const map<string, double>& current_obj_ens, ParameterEnsemble* dvs_subset, const map<string, string>& ls_parent_map);
 	map<string, double> get_obj_map(ParameterEnsemble& _dv, ObservationEnsemble& _oe);
 	pair<Mat, bool> get_constraint_mat(Parameters& _dv_vals, Observations&_obs_vals, double working_set_tol = 0.005, const Eigen::VectorXd* lagrange_mults = nullptr, vector<string> curr_ws = vector<string>());
+	pair<Mat, bool> get_constraint_jco(Parameters& _dv_vals, Observations& _obs_vals);
 
 	pair<Eigen::VectorXd, Eigen::VectorXd> calc_search_direction_vector(Parameters& _current_dv_, Observations& _current_obs_values, Eigen::VectorXd& grad_vector, Eigen::MatrixXd* _constraint_jco ,vector<string>* _cnames = nullptr);
 	bool recalc_search_direction_vector(const string& realization, Parameters& dv_vals, Observations& obs_vals, Eigen::VectorXd& grad_vector);
