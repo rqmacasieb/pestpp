@@ -948,6 +948,7 @@ void SeqQuadProgram::initialize()
 	act_par_names = pest_scenario.get_ctl_ordered_adj_par_names();
 	MAX_CONSEC_INFEAS_IES = pest_scenario.get_pestpp_options().get_sqp_max_consec_infeas_ies();
 	SF_DEC_FAC = pest_scenario.get_pestpp_options().get_sqp_scale_down_factor();
+	use_quadratic_model = pest_scenario.get_pestpp_options().get_sqp_debug_use_quadratic_model();
 
 	stringstream ss;
 	PestppOptions* ppo = pest_scenario.get_pestpp_options_ptr();
@@ -4002,8 +4003,47 @@ FilterRec SeqQuadProgram::line_search(map<string, Eigen::VectorXd>& search_d_map
 			used_scale_vals.push_back(cname_sf_map.at(rname));
 		}
 	}
-	message(0, "running candidate dv/pars");
-	ObservationEnsemble oe_candidates = run_candidate_ensemble(dv_candidates);
+	
+	message(0, "computing quadratic model predictions for candidates");
+	Eigen::VectorXd current_dv_vec = current_ctl_dv_values.get_data_eigen_vec(dv_names);
+	double current_obj = get_obj_value(current_ctl_dv_values, current_obs);
+	Eigen::VectorXd grad = current_grad_vector.get_data_eigen_vec(dv_names);
+	Eigen::VectorXd quad_obj_vec = get_quadratic_obj_vector(dv_candidates, grad, current_obj);
+
+	//dummy observation ensemble for quadratic filtering
+	//constraints might need observation values, so we may need to approximate
+	ObservationEnsemble dummy_oe(&pest_scenario, &rand_gen);
+	dummy_oe.reserve(dv_candidates.get_real_names(), pest_scenario.get_ctl_ordered_obs_names());
+
+	message(0, "filtering candidates using quadratic model predictions");
+	auto quad_pick = pick_from_filter(dv_candidates, dummy_oe, recalc, &quad_obj_vec);
+	SqpFilter quad_filter = get<1>(quad_pick);
+	vector<FilterRec> quad_accepted = quad_filter.get_filter_members();
+
+	vector<string> accepted_names;
+	for (const auto& fr : quad_accepted)
+	{
+		accepted_names.push_back(fr.real_name);
+	}
+	ss.str("");
+	ss << "quadratic model filter accepted " << accepted_names.size() << " candidates out of " << dv_candidates.shape().first;
+	message(1, ss.str());
+
+	ParameterEnsemble filtered_dv_candidates(&pest_scenario, &rand_gen);
+	filtered_dv_candidates.set_trans_status(ParameterEnsemble::transStatus::NUM);
+	filtered_dv_candidates.reserve(accepted_names, dv_names);
+	for (const auto& name : accepted_names)
+	{
+		Eigen::VectorXd cand_vec = dv_candidates.get_real_vector(name);
+		filtered_dv_candidates.update_real_ip(name, cand_vec);
+	}
+
+	ss.str("");
+	ss << "running true model for " << accepted_names.size() << " filtered candidates";
+	message(0, ss.str());
+	ObservationEnsemble oe_candidates = run_candidate_ensemble(filtered_dv_candidates);
+
+	auto final_pick = pick_from_filter(filtered_dv_candidates, oe_candidates, recalc, nullptr);
 
 	if (!recalc)
 		oe_to_save = oe_candidates;
@@ -4997,6 +5037,28 @@ double SeqQuadProgram::get_obj_value(Parameters& _current_ctl_dv_vals, Observati
 	return v;
 }
 
+Eigen::VectorXd SeqQuadProgram::get_quadratic_obj_vector(ParameterEnsemble& _dv, const Eigen::VectorXd& grad, double current_obj)
+{
+	Eigen::VectorXd obj_vec(_dv.shape().first);
+	_dv.transform_ip(ParameterEnsemble::transStatus::NUM);
+
+	Eigen::VectorXd current_dv_vec = current_ctl_dv_values.get_data_eigen_vec(dv_names);
+	Eigen::MatrixXd H = hessian.get_matrix();
+
+	vector<string> vnames = _dv.get_var_names();
+	for (int i = 0; i < _dv.shape().first; i++)
+	{
+		Eigen::VectorXd candidate_vec = _dv.get_real_vector(i);
+		Eigen::VectorXd step = candidate_vec - current_dv_vec;
+
+		// Quadratic model: f(x) ≈ f(x_k) + g^T * step + 0.5 * step^T * H * step
+		double pred_obj = current_obj + grad.dot(step) + 0.5 * step.dot(H * step);
+		obj_vec[i] = pred_obj;
+	}
+	return obj_vec;
+}
+
+
 map<string, double> SeqQuadProgram::get_obj_map(ParameterEnsemble& _dv, ObservationEnsemble& _oe)
 {
 	Eigen::VectorXd obj_vec = get_obj_vector(_dv, _oe);
@@ -5039,11 +5101,24 @@ Eigen::VectorXd SeqQuadProgram::get_obj_vector(ParameterEnsemble& _dv, Observati
 	return obj_vec;
 }
 
-tuple<FilterRec, SqpFilter> SeqQuadProgram::pick_from_filter(ParameterEnsemble& dv_candidates, ObservationEnsemble& _oe, bool recalc)
+tuple<FilterRec, SqpFilter> SeqQuadProgram::pick_from_filter(ParameterEnsemble& dv_candidates, ObservationEnsemble& _oe, bool recalc, const Eigen::VectorXd* quad_obj_vec)
 {
 	stringstream ss;
 	ofstream& frec = file_manager.rec_ofstream();
-	Eigen::VectorXd obj_vec = get_obj_vector(dv_candidates, _oe);
+	
+	stringstream ss;
+	ofstream& frec = file_manager.rec_ofstream();
+
+	Eigen::VectorXd obj_vec;
+	if (use_quadratic_model && quad_obj_vec != nullptr)
+	{
+		obj_vec = *quad_obj_vec;
+		message(1, "using quadratic model predictions for candidate filtering");
+	}
+	else
+	{
+		obj_vec = get_obj_vector(dv_candidates, _oe);
+	}
 	double oext, oviol = 0.0, nviol = 0.0;
 
 	vector<string> real_names = dv_candidates.get_real_names();

@@ -247,7 +247,7 @@ private:
 	set<int> unselected_dv_indices;  
 	bool sampling_tracking_initialized, cma_reset_archive = true;
 
-	bool use_ensemble_grad;
+	bool use_ensemble_grad, use_quadratic_model;
 	bool is_blocking_constraint = false;
 	bool is_base_infeas = false;
 	bool seek_ies = false;
@@ -277,7 +277,7 @@ private:
 	FilterRec line_search(map<string, Eigen::VectorXd>& search_d_map, Eigen::VectorXd& grad, map<string, double> current_obj_ens, ParameterEnsemble* dvs_subset = nullptr, bool recalc = false);
 	void generate_intermediate_candidates(const string& parent_name, double start_scale, double end_scale,	int num_points,	ParameterEnsemble* dvs_subset,	const map<string, Eigen::VectorXd>& search_d_map, ParameterEnsemble& dv_intermediate, vector<string>& intermediate_cand_names);
 	FilterRec pick_upgrade_and_update_current(ParameterEnsemble& dv_candidates, ObservationEnsemble& _oe, bool cma_reset_arc = true, bool report = false, ParameterEnsemble* dvs_subset = nullptr, bool recalc = false);
-	tuple<FilterRec, SqpFilter> pick_from_filter(ParameterEnsemble& dv_candidates, ObservationEnsemble& _oe, bool recalc = true);
+	tuple<FilterRec, SqpFilter> pick_from_filter(ParameterEnsemble& dv_candidates, ObservationEnsemble& _oe, bool recalc = true, const Eigen::VectorXd* quad_obj_vec = nullptr);
 	FilterRec pick_from_filter_by_merit(SqpFilter _filtered);
 
 	double compute_actual_reduction(Parameters& trial_dv_values, Observations& trial_obs);
@@ -296,6 +296,7 @@ private:
 	Eigen::VectorXd get_obj_vector(ParameterEnsemble& _dv, ObservationEnsemble& _oe);
 	
 	double get_obj_value(Parameters& _current_ctl_dv_vals, Observations& _current_obs);
+	Eigen::VectorXd get_quadratic_obj_vector(ParameterEnsemble& _dv, const Eigen::VectorXd& grad, double current_obj);
 	map<string, double> get_obj_map(ParameterEnsemble& _dv, ObservationEnsemble& _oe);
 	pair<Mat, bool> get_constraint_mat(Parameters& _dv_vals, Observations&_obs_vals, double working_set_tol = 0.005, const Eigen::VectorXd* lagrange_mults = nullptr, vector<string> curr_ws = vector<string>());
 

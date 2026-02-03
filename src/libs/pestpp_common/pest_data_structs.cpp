@@ -1895,9 +1895,13 @@ bool PestppOptions::assign_value_by_key_sqp(const string& key, const string& val
 		sqp_debug_stosag_grad = pest_utils::parse_string_arg_to_bool(value);
 		return true;
 	}
+	else if (key == "SQP_DEBUG_USE_QUADRATIC_MODEL")
+	{
+		sqp_debug_use_quadratic_model = pest_utils::parse_string_arg_to_bool(value);
+		return true;
+	}
 	return false;
 }
-
 
 void PestppOptions::summary(ostream& os) const
 {
@@ -2090,6 +2094,7 @@ void PestppOptions::summary(ostream& os) const
 	os << "sqp_debug_hessian: " << sqp_debug_hessian << endl;
 	os << "sqp_debug_cmaes: " << sqp_debug_cma << endl;
 	os << "sqp_debug_stosag_grad: " << sqp_debug_stosag_grad << endl;
+	os << "sqp_debug_use_quadratic_model: " << sqp_debug_use_quadratic_model << endl;
 
 	os << endl << "...pestpp-mou options:" << endl;
 	os << "mou_generator: " << mou_generator << endl;
@@ -2353,6 +2358,7 @@ void PestppOptions::set_defaults()
 	set_sqp_debug_hessian(false);
 	set_sqp_debug_cma(false);
 	set_sqp_debug_stosag_grad(false);
+	set_sqp_debug_use_quadratic_model(true);
 
 	set_mou_generator("PSO");
 	set_mou_population_size(100);
