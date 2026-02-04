@@ -3437,29 +3437,13 @@ bool SeqQuadProgram::trust_region_step(Parameters& current_dv_values, Eigen::Vec
 
 
 FilterRec SeqQuadProgram::trust_region_step(Eigen::VectorXd& grad, map<string, double> current_obj_ens, map<string, vector<string>>& cnames_en,
-	map<string, Eigen::MatrixXd>& constraint_jco_en, ParameterEnsemble* dvs_subset, bool recalc)
+	map<string, Eigen::MatrixXd>& constraint_jco_en, bool recalc)
 {
 	stringstream ss;
-	if (!recalc)
-	{
-		ss << "performing line search on ensemble subset:";
-		for (auto& n : dvs_subset->get_real_names())
-			ss << " " << n << ",";
-		ss << " BASE" << endl;
-		message(1, ss.str());
-	}
-	else
-	{
-		ss << "performing line search on realizations:";
-		const auto& n = dvs_subset->get_real_names();
-		for (size_t i = 0; i < n.size(); i++)
-		{
-			ss << ' ' << n[i];
-			if (i + 1 != n.size())
-				ss << ',';
-		}
-		message(1, ss.str());
-	}
+	const auto& dv_real_names = dv.get_real_names();
+	vector<string> dv_rnames(dv_real_names.begin(), dv_real_names.end());
+	
+	message(1, "starting trust region search");
 
 	ParameterEnsemble dv_candidates(&pest_scenario, &rand_gen);
 	dv_candidates.set_trans_status(ParameterEnsemble::transStatus::NUM);
@@ -3487,30 +3471,19 @@ FilterRec SeqQuadProgram::trust_region_step(Eigen::VectorXd& grad, map<string, d
 	}
 	else
 	{
-		if (dvs_subset != nullptr)
-		{
-			ParameterEnsemble d;
-			const auto& names = dvs_subset->get_real_names();
-			if (find(names.begin(), names.end(), BASE_REAL_NAME) == names.end() && !recalc)
-			{
-				d.reserve(vector<string>{ BASE_REAL_NAME }, dv_names);
-				d.add_2_row_ip(BASE_REAL_NAME, dv.get_real_vector(BASE_REAL_NAME));
-				dvs_subset->append_other_rows(d);
-			}
+		if (find(dv_rnames.begin(), dv_rnames.end(), BASE_REAL_NAME) == dv_rnames.end())
+			dv_rnames.push_back(BASE_REAL_NAME);
 
-			for (const auto& real_name : dvs_subset->get_real_names())
+		for (const auto& real_name : dv_rnames)
+		{
+			for (double radius_scale : radius_scale_vals)
 			{
-				for (double radius_scale : radius_scale_vals)
-				{
-					ss.str("");
-					ss << "cand_tr" << real_name << "_rs:" << left << setw(8) << setprecision(3) << radius_scale;
-					real_names.push_back(ss.str());
-					radius_real_map[radius_scale][real_name] = ss.str();
-				}
+				ss.str("");
+				ss << "cand_tr" << real_name << "_rs:" << left << setw(8) << setprecision(3) << radius_scale;
+				real_names.push_back(ss.str());
+				radius_real_map[radius_scale][real_name] = ss.str();
 			}
 		}
-		else
-			throw_sqp_error("use_ensemble_grad is true but subset dv ensemble is null");
 	}
 	dv_candidates.reserve(real_names, dv_names);
 
@@ -3525,73 +3498,70 @@ FilterRec SeqQuadProgram::trust_region_step(Eigen::VectorXd& grad, map<string, d
 
 		double candidate_trust_radius = trust_radius * radius_scale;
 		candidate_trust_radius = max(trust_radius_min, min(candidate_trust_radius, trust_radius_max));
+	
+		map<string, Eigen::VectorXd> candidate_steps;
+		vector<string> short_steps;
 
-		if (dvs_subset != nullptr)
+		for (const auto& real_name : dv_rnames)
 		{
-			map<string, Eigen::VectorXd> candidate_steps;
-			vector<string> short_steps;
+			Eigen::VectorXd real_grad = grad;
 
-			for (const auto& real_name : dvs_subset->get_real_names())
+			Eigen::MatrixXd A_real = Eigen::MatrixXd::Zero(0, H.cols());
+			auto a_it = constraint_jco_en.find(real_name);
+			if (a_it != constraint_jco_en.end())
+				A_real = a_it->second;
+
+			Eigen::VectorXd step = solve_constrained_trust_region_step(H, real_grad, A_real, candidate_trust_radius);
+			Eigen::VectorXd current_dv_vec = dv.get_real_vector(real_name);
+
+			ParameterInfo par_info = pest_scenario.get_ctl_parameter_info();
+			Parameters lbnd = par_info.get_low_bnd(dv_names);
+			Parameters ubnd = par_info.get_up_bnd(dv_names);
+			ParamTransformSeq par_transform = pest_scenario.get_base_par_tran_seq();
+			par_transform.ctl2numeric_ip(lbnd);
+			par_transform.ctl2numeric_ip(ubnd);
+
+			Eigen::VectorXd alpha = Eigen::VectorXd::Ones(dv_names.size());
+			for (int j = 0; j < dv_names.size(); ++j)
 			{
-				Eigen::VectorXd real_grad = grad;
+				double x = current_dv_vec(j);
+				double d = step(j);
+				double lb = lbnd[dv_names[j]];
+				double ub = ubnd[dv_names[j]];
 
-				Eigen::MatrixXd A_real = Eigen::MatrixXd::Zero(0, H.cols());
-				auto a_it = constraint_jco_en.find(real_name);
-				if (a_it != constraint_jco_en.end())
-					A_real = a_it->second;
+				if (abs(d) < 1e-10)
+					continue;
 
-				Eigen::VectorXd step = solve_constrained_trust_region_step(H, real_grad, A_real, candidate_trust_radius);
-				Eigen::VectorXd current_dv_vec = dvs_subset->get_real_vector(real_name);
-
-				ParameterInfo par_info = pest_scenario.get_ctl_parameter_info();
-				Parameters lbnd = par_info.get_low_bnd(dv_names);
-				Parameters ubnd = par_info.get_up_bnd(dv_names);
-				ParamTransformSeq par_transform = pest_scenario.get_base_par_tran_seq();
-				par_transform.ctl2numeric_ip(lbnd);
-				par_transform.ctl2numeric_ip(ubnd);
-
-				Eigen::VectorXd alpha = Eigen::VectorXd::Ones(dv_names.size());
-				for (int j = 0; j < dv_names.size(); ++j)
-				{
-					double x = current_dv_vec(j);
-					double d = step(j);
-					double lb = lbnd[dv_names[j]];
-					double ub = ubnd[dv_names[j]];
-
-					if (abs(d) < 1e-10)
-						continue;
-
-					if (d > 0)
-						alpha(j) = min(alpha(j), (ub - x) / d);
-					else if (d < 0)
-						alpha(j) = min(alpha(j), (x - lb) / (-d));
-				}
-				double min_alpha = alpha.minCoeff();
-				if (min_alpha < 1.0)
-					step *= min_alpha;
-
-				candidate_steps[real_name] = step;
-				if (step.squaredNorm() < 1.0e-10)
-					short_steps.push_back(real_name);
+				if (d > 0)
+					alpha(j) = min(alpha(j), (ub - x) / d);
+				else if (d < 0)
+					alpha(j) = min(alpha(j), (x - lb) / (-d));
 			}
+			double min_alpha = alpha.minCoeff();
+			if (min_alpha < 1.0)
+				step *= min_alpha;
 
-			if (!short_steps.empty())
-			{
-				ss.str("");
-				ss << " very short trust-region steps for radius scale " << radius_scale << " realizations:" << short_steps;
-				message(1, ss.str());
-			}
+			candidate_steps[real_name] = step;
+			if (step.squaredNorm() < 1.0e-10)
+				short_steps.push_back(real_name);
+		}
 
-			for (const auto& real_name : dvs_subset->get_real_names())
-			{
-				Eigen::VectorXd dv_upgrade = dvs_subset->get_real_vector(real_name);
-				dv_upgrade += candidate_steps.at(real_name);
+		if (!short_steps.empty())
+		{
+			ss.str("");
+			ss << " very short trust-region steps for radius scale " << radius_scale << " realizations:" << short_steps;
+			message(1, ss.str());
+		}
 
-				string candidate_rname = radius_real_map.at(radius_scale).at(real_name);
-				dv_candidates.update_real_ip(candidate_rname, dv_upgrade);
-				real_rs_map[candidate_rname] = radius_scale;
-				used_radius_scales.push_back(radius_scale);
-			}
+		for (const auto& real_name : dv_rnames)
+		{
+			Eigen::VectorXd dv_upgrade = dv.get_real_vector(real_name);
+			dv_upgrade += candidate_steps.at(real_name);
+
+			string candidate_rname = radius_real_map.at(radius_scale).at(real_name);
+			dv_candidates.update_real_ip(candidate_rname, dv_upgrade);
+			real_rs_map[candidate_rname] = radius_scale;
+			used_radius_scales.push_back(radius_scale);
 		}
 		message(1, "finished trust region calcs for radius scale:", radius_scale);
 	}
@@ -3834,36 +3804,16 @@ double SeqQuadProgram::compute_predicted_reduction(const Eigen::VectorXd& step,
 	return linear_term + quadratic_term;
 }
 
-FilterRec SeqQuadProgram::line_search(map<string, Eigen::VectorXd>& search_d_map, Eigen::VectorXd& grad, map<string, double> current_obj_ens, ParameterEnsemble* dvs_subset, bool recalc)
+FilterRec SeqQuadProgram::line_search(map<string, Eigen::VectorXd>& search_d_map, Eigen::VectorXd& grad, map<string, double> current_obj_ens, bool recalc)
 {
 	stringstream ss;
 	const auto& dv_real_names = dv.get_real_names();
-	vector <string> subset_real_names = dvs_subset->get_real_names();
+	vector <string> dv_rnames(dv_real_names.begin(), dv_real_names.end());
 
-	if (!recalc)
-	{
-		ss << "performing line search on ensemble subset:";
-		for (auto& n : subset_real_names)
-			ss << " " << n << ",";
-		ss << " BASE" << endl;
-		message(1, ss.str());
-	}
-	else
-	{
-		ss << "performing line search on realizations:";
-		const auto& n = subset_real_names;
-		for (size_t i = 0; i < n.size(); i++)
-		{
-			ss << ' ' << n[i];
-			if (i + 1 != n.size())
-				ss << ',';
-		}
-		message(1, ss.str());
-	}
+	message(1, "starting line search");
 	
 	ParameterEnsemble dv_candidates(&pest_scenario, &rand_gen);
 	dv_candidates.set_trans_status(ParameterEnsemble::transStatus::NUM);
-
 	
 	vector<string> real_names;
 	vector<double> scale_vals;
@@ -3891,7 +3841,7 @@ FilterRec SeqQuadProgram::line_search(map<string, Eigen::VectorXd>& search_d_map
 	}
 
 	sv_lineage_map.clear();
-	if ((use_ensemble_grad) && (SOLVE_EACH_REAL))
+	if (SOLVE_EACH_REAL)
 	{
 		for (auto sv : scale_vals)
 		{
@@ -3903,46 +3853,23 @@ FilterRec SeqQuadProgram::line_search(map<string, Eigen::VectorXd>& search_d_map
 				ls_parent_map[ss.str()] = rname;
 			}
 		}
-
 	}
-	else if (use_ensemble_grad)
+	else 
 	{
-		if (dvs_subset != nullptr) 
+		if (find(dv_rnames.begin(), dv_rnames.end(), BASE_REAL_NAME) == dv_rnames.end())
+			dv_rnames.push_back(BASE_REAL_NAME);
+
+		for (auto& rname : dv_rnames)
 		{
-			ParameterEnsemble d;
-			map<string,int> rmap = dvs_subset->get_real_map();
-			if ((rmap.find(BASE_REAL_NAME) == rmap.end()) && !recalc)
+			for (auto sv : scale_vals)
 			{
-				if (subset_real_names.size() == 0)
-				{
-					dvs_subset->reserve(vector<string>{ BASE_REAL_NAME }, dv_names);
-					Eigen::VectorXd real_vec = dv.get_real_vector(BASE_REAL_NAME);
-					dvs_subset->update_real_ip(BASE_REAL_NAME, real_vec);
-					subset_real_names.push_back(BASE_REAL_NAME);
-				}
-				else
-				{
-					d.reserve(vector<string>{ BASE_REAL_NAME }, dv_names);
-					d.add_2_row_ip(BASE_REAL_NAME, dv.get_real_vector(BASE_REAL_NAME));
-					dvs_subset->append_other_rows(d);
-					subset_real_names.push_back(BASE_REAL_NAME);
-				}
-			}
-			
-			for (auto& rname : subset_real_names) 
-			{
-				for (auto sv : scale_vals) 
-				{
-					ss.str("");
-					ss << "cand_" << rname << "_sv:" << left << setw(8) << setprecision(3) << sv;
-					real_names.push_back(ss.str());
-					sv_lineage_map[sv][rname] = ss.str();
-					ls_parent_map[ss.str()] = rname;
-				}
+				ss.str("");
+				ss << "cand_" << rname << "_sv:" << left << setw(8) << setprecision(3) << sv;
+				real_names.push_back(ss.str());
+				sv_lineage_map[sv][rname] = ss.str();
+				ls_parent_map[ss.str()] = rname;
 			}
 		}
-		else
-			throw_sqp_error("use_ensemble_grad is true but subset dv ensemble is null");
 	}
 	dv_candidates.reserve(real_names, dv_names);
 
@@ -3972,20 +3899,18 @@ FilterRec SeqQuadProgram::line_search(map<string, Eigen::VectorXd>& search_d_map
 			message(1, ss.str());
 		}
 		
-		for (const auto& real_name : dvs_subset->get_real_names())
+		for (const auto& real_name : dv_rnames)
 		{
-			Eigen::VectorXd dv_upgrade = dvs_subset->get_real_vector(real_name);
-			dv_upgrade += scaled_sdir_map[real_name];			
-			
+			Eigen::VectorXd dv_upgrade = dv.get_real_vector(real_name);
+			dv_upgrade += scaled_sdir_map[real_name];
+
 			string cand_rname = sv_lineage_map[scale_val][real_name];
 			dv_candidates.update_real_ip(cand_rname, dv_upgrade);
 			step_length_map[cand_rname] = scaled_sdir_map[real_name];
 			cname_sf_map[cand_rname] = scale_val;
 			used_scale_vals.push_back(scale_val);
 		}
-
 		message(1, "finished calcs for scaling factor:", scale_val);
-
 	}
 
 	if (pest_scenario.get_pestpp_options().get_sqp_enforce_bounds())
@@ -4011,7 +3936,6 @@ FilterRec SeqQuadProgram::line_search(map<string, Eigen::VectorXd>& search_d_map
 				jvals.emplace(j);
 			}
 		}
-
 	}
 	if (drop.size() > 0)
 	{
@@ -4028,10 +3952,9 @@ FilterRec SeqQuadProgram::line_search(map<string, Eigen::VectorXd>& search_d_map
 	approx_oe.reserve(dv_candidates.get_real_names(), oe.get_var_names());
 
 	message(1, "computing QP/LP model predictions for candidates");
-	get_approx_objective(dv_candidates, approx_oe, grad, current_obj_ens, dvs_subset, ls_parent_map);
+	get_approx_objective(dv_candidates, approx_oe, grad, current_obj_ens, ls_parent_map);
 	vector<string> constraint_names = constraints.get_obs_constraint_names();
-	get_approx_constraints(dv_candidates, approx_oe, ls_parent_map, dvs_subset, constraint_names);
-
+	get_approx_constraints(dv_candidates, approx_oe, ls_parent_map, constraint_names);
 
 	ss.str("");
 	ss << file_manager.get_base_filename() << "." << iter << ".est.oec.csv";
@@ -4052,11 +3975,16 @@ FilterRec SeqQuadProgram::line_search(map<string, Eigen::VectorXd>& search_d_map
 	}
 	
 	//select only a subset to run if too many passed the filter
-	int run_queue_size = pest_scenario.get_pestpp_options().get_sqp_num_reals();
-	if (filtered_ls.size() > run_queue_size)
+	int subset_size = pest_scenario.get_pestpp_options().get_sqp_subset_size();
+	if (subset_size < 0)
+		subset_size = filtered_ls.size();
+	else if (subset_size == 0)
+		subset_size = pest_scenario.get_pestpp_options().get_sqp_num_reals();
+
+	if (filtered_ls.size() > subset_size)
 	{
 		ss.str("");
-		ss << "selecting " << run_queue_size << "least violating candidates from " << filtered_ls.size() << " filter members to queue for runs";
+		ss << "selecting " << subset_size << "least violating candidates from " << filtered_ls.size() << " filter members to queue for runs";
 		message(1, ss.str());
 
 		sort(filtered_ls.begin(), filtered_ls.end(),
@@ -4064,7 +3992,7 @@ FilterRec SeqQuadProgram::line_search(map<string, Eigen::VectorXd>& search_d_map
 				return a.viol_val < b.viol_val;
 			});
 
-		filtered_ls.resize(min(static_cast<size_t>(run_queue_size), filtered_ls.size()));
+		filtered_ls.resize(min(static_cast<size_t>(subset_size), filtered_ls.size()));
 	}
 
 	vector<string> accepted_names;
@@ -4082,9 +4010,6 @@ FilterRec SeqQuadProgram::line_search(map<string, Eigen::VectorXd>& search_d_map
 		filtered_dv_candidates.update_real_ip(name, cand_vec);
 	}
 	dv_candidates = filtered_dv_candidates;
-
-
-
 
 	ObservationEnsemble oe_candidates = run_candidate_ensemble(dv_candidates);
 
@@ -4128,13 +4053,13 @@ FilterRec SeqQuadProgram::line_search(map<string, Eigen::VectorXd>& search_d_map
 	}
 
 	ss.str("");
-	ss << file_manager.get_base_filename() << "." << iter << ".dv_candidates.csv";
+	ss << file_manager.get_base_filename() << "." << iter << "sim.dvc.csv";
 	dv_to_save.to_csv(ss.str());
 	message(1, "saved candidate decvar/parameter ensemble to: ", ss.str());
 
 	ObservationEnsemble combined_oe_candidates = combine_obs_and_pi(oe_to_save, dv_to_save);
 	ss.str("");
-	ss << file_manager.get_base_filename() << "." << iter << ".oe_candidates.csv";
+	ss << file_manager.get_base_filename() << "." << iter << "sim.oec.csv";
 	combined_oe_candidates.to_csv(ss.str());
 	message(1, "saved candidate ensemble obs to: ", ss.str());
 
@@ -4143,16 +4068,16 @@ FilterRec SeqQuadProgram::line_search(map<string, Eigen::VectorXd>& search_d_map
 	dv_all.append_other_rows(dv_candidates);
 	oe_all.append_other_rows(oe_candidates);
 	
-	return pick_upgrade_and_update_current(dv_all , oe_all, cma_reset_archive, true, dvs_subset, recalc);
+	return pick_upgrade_and_update_current(dv_all , oe_all, cma_reset_archive, true, recalc);
 }
 
 void SeqQuadProgram::generate_intermediate_candidates(const string& parent_name, double start_scale, double end_scale, int num_points, 
-ParameterEnsemble* dvs_subset, const map<string, Eigen::VectorXd>& search_d_map, ParameterEnsemble& dv_intermediate, vector<string>& intermediate_cand_names)
+const map<string, Eigen::VectorXd>& search_d_map, ParameterEnsemble& dv_intermediate, vector<string>& intermediate_cand_names)
 {
 	if (num_points <= 0 || fabs(end_scale - start_scale) < 1E-10)
 		return;
 
-	Eigen::VectorXd parent_dv = dvs_subset->get_real_vector(parent_name);
+	Eigen::VectorXd parent_dv = dv.get_real_vector(parent_name);
 	Eigen::VectorXd search_dir = search_d_map.at(parent_name);
 	double scale_range = end_scale - start_scale;
 
@@ -4520,80 +4445,12 @@ bool SeqQuadProgram::solve_new_ensemble()
 	ParameterEnsemble _dvs = dv;
 	_dvs.drop_rows(vector<string>{BASE_REAL_NAME}, true);
 
-	int local_subset_size = pest_scenario.get_pestpp_options().get_sqp_subset_size();
-	if (local_subset_size < 0)
-	{
-		ss.str("");
-
-		local_subset_size = (int)((double)_dvs.shape().first) * ((-1. * (double)local_subset_size) / 100.);
-
-		ss << "subset defined as a percentage of ensemble size, using " << local_subset_size;
-		ss << " realizations for subset" << endl;
-		message(2, ss.str());
-		if (local_subset_size < 4)
-		{
-			ss.str("");
-			ss << "percentage-based subset size too small, increasing to 4" << endl;
-			local_subset_size = 4;
-			message(2, ss.str());
-		}
-	}
-	if ((use_subset) && (local_subset_size > _dvs.shape().first))
-	{
-		ss.str("");
-		ss << "subset size (" << local_subset_size << ") greater than ensemble size (" << _dvs.shape().first << ")";
-		frec << "  ---  " << ss.str() << endl;
-		cout << "  ---  " << ss.str() << endl;
-		frec << "  ...reducing subset size to " << _dvs.shape().first << endl;
-		cout << "  ...reducing subset size to " << _dvs.shape().first << endl;
-		local_subset_size = _dvs.shape().first;
-	}
-	else if (pest_scenario.get_pestpp_options().get_sqp_alpha_mults().size() == 1)
-	{
-		ss.str("");
-		ss << "only testing one scale factor, not using subset";
-		frec << "  ---  " << ss.str() << endl;
-		cout << "  ---  " << ss.str() << endl;
-		local_subset_size = _dvs.shape().first;
-	}
-		
-	if (!sampling_tracking_initialized)
-	{
-		unselected_dv_indices.clear();
-		selected_dv_indices.clear();
-		for (int i = 0; i < _dvs.shape().first; i++)
-			unselected_dv_indices.insert(i);
-		
-		sampling_tracking_initialized = true;
-	}
-
-	if (unselected_dv_indices.empty() || local_subset_size > unselected_dv_indices.size())
-	{
-		unselected_dv_indices.clear();
-		selected_dv_indices.clear();
-		for (int i = 0; i < _dvs.shape().first; i++)
-			unselected_dv_indices.insert(i);
-	}
-
-	vector<int> subset_idxs = get_subset_idxs(_dvs.shape().first, local_subset_size);
-	vector<string> subset_real_names;
-	subset_real_names.reserve(subset_idxs.size());
-	for (int idx : subset_idxs)
-	{
-		unselected_dv_indices.erase(idx);
-		selected_dv_indices.insert(idx);
-		subset_real_names.push_back(_dvs.get_real_names()[idx]);
-	}
-
-	ParameterEnsemble _drawn_dvs = _dvs;
-	_drawn_dvs.keep_rows(subset_real_names, true);
-
 	Parameters dv_vals = current_ctl_dv_values;
 	Observations obs_vals = current_obs;
 
 	Eigen::VectorXd grad = current_grad_vector.get_data_eigen_vec(dv_names);
-	vector<string> drawn_real_names = _drawn_dvs.get_real_names();
-	drawn_real_names.push_back(BASE_REAL_NAME);
+	vector<string> dv_rnames = _dvs.get_real_names();
+	dv_rnames.push_back(BASE_REAL_NAME);
 
 	double rangesq = -1.0;
 	if (pest_scenario.get_pestpp_options().get_sqp_rescale_search_dir())
@@ -4616,7 +4473,7 @@ bool SeqQuadProgram::solve_new_ensemble()
 	}
 
 	hessian_en.clear();
-	for (auto d : drawn_real_names)
+	for (auto d : dv_rnames)
 	{
 		ss.str("");
 		ss << "...calculating search direction for realization " << d << endl;
@@ -4690,7 +4547,7 @@ bool SeqQuadProgram::solve_new_ensemble()
 		}
 	}
 
-	FilterRec search = run_search_routine(grad, &_drawn_dvs);
+	FilterRec search = run_search_routine(grad);
 
 	//needed for bfgs hessian update
 	selected_ls_child = search.real_name;
@@ -4733,7 +4590,7 @@ bool SeqQuadProgram::solve_new_ensemble()
 	return (search.viol_val == 0.0);
 }
 
-FilterRec SeqQuadProgram::run_search_routine(Eigen::VectorXd& grad, ParameterEnsemble* drawn_dvs, bool recalc)
+FilterRec SeqQuadProgram::run_search_routine(Eigen::VectorXd& grad, bool recalc)
 {
 	if (recalc)
 		recalc_attempt++;
@@ -4742,9 +4599,9 @@ FilterRec SeqQuadProgram::run_search_routine(Eigen::VectorXd& grad, ParameterEns
 
 	string search_method = pest_scenario.get_pestpp_options().get_sqp_search_method();
 	if (search_method == "LINE" || search_method == "LINE_SEARCH" || search_method == "LS")
-		return line_search(search_d_en, grad, current_obj_en, drawn_dvs, recalc);
+		return line_search(search_d_en, grad, current_obj_en, recalc);
 	else if (search_method == "TRUST_REGION" || search_method == "TRUST" || search_method == "TR")
-		return trust_region_step(grad, current_obj_en, cnames_en, constraint_jco_en, drawn_dvs, recalc);
+		return trust_region_step(grad, current_obj_en, cnames_en, constraint_jco_en, recalc);
 	else
 		throw_sqp_error("search_method not recognized");
 	return FilterRec();
@@ -4992,7 +4849,7 @@ double SeqQuadProgram::get_obj_value(Parameters& _current_ctl_dv_vals, Observati
 	}
 	return v;
 }
-void SeqQuadProgram::get_approx_constraints(ParameterEnsemble& _dv_candidates, ObservationEnsemble& approx_oe, const map<string, string>& ls_parent_map, ParameterEnsemble* dvs_subset, const vector<string>& constraint_names)
+void SeqQuadProgram::get_approx_constraints(ParameterEnsemble& _dv_candidates, ObservationEnsemble& approx_oe, const map<string, string>& ls_parent_map, const vector<string>& constraint_names)
 {
 	vector<string> all_obs_var_names = approx_oe.get_var_names();
 
@@ -5040,26 +4897,13 @@ void SeqQuadProgram::get_approx_constraints(ParameterEnsemble& _dv_candidates, O
 		//	constraint_jco_subset.row(i) = parent_constraint_jco.row(full_to_constraint_indices[i]);
 		//}
 
-
 		Eigen::VectorXd parent_obs_vec = oe.get_real_vector(parent_name);
 		Eigen::VectorXd parent_obs_constraint_vec(constraint_indices.size());
 		for (size_t i = 0; i < constraint_indices.size(); i++)
 			parent_obs_constraint_vec[i] = parent_obs_vec[constraint_indices[i]];
-		
 
 		Eigen::VectorXd parent_dv_vec;
 		bool found_parent_dv = false;
-
-		if (dvs_subset != nullptr)
-		{
-			dvs_subset->transform_ip(ParameterEnsemble::transStatus::NUM);
-			vector<string> subset_real_names = dvs_subset->get_real_names();
-			if (find(subset_real_names.begin(), subset_real_names.end(), parent_name) != subset_real_names.end())
-			{
-				parent_dv_vec = dvs_subset->get_real_vector(parent_name);
-				found_parent_dv = true;
-			}
-		}
 
 		if (!found_parent_dv)
 		{
@@ -5084,12 +4928,11 @@ void SeqQuadProgram::get_approx_constraints(ParameterEnsemble& _dv_candidates, O
 		for (size_t i = 0; i < constraint_indices.size(); i++)
 			current_approx_vec[constraint_indices[i]] = lin_obs_vec[i];
 		
-
 		approx_oe.update_real_ip(real_name, current_approx_vec);
 	}
 }
 
-ObservationEnsemble& SeqQuadProgram::get_approx_objective(ParameterEnsemble& _dv, ObservationEnsemble& approx_oe, const Eigen::VectorXd& grad, const map<string, double>& current_obj_ens, ParameterEnsemble* dvs_subset, const map<string, string>& ls_parent_map)
+ObservationEnsemble& SeqQuadProgram::get_approx_objective(ParameterEnsemble& _dv, ObservationEnsemble& approx_oe, const Eigen::VectorXd& grad, const map<string, double>& current_obj_ens, const map<string, string>& ls_parent_map)
 {
 	_dv.transform_ip(ParameterEnsemble::transStatus::NUM);
 
@@ -5135,17 +4978,6 @@ ObservationEnsemble& SeqQuadProgram::get_approx_objective(ParameterEnsemble& _dv
 
 		Eigen::VectorXd parent_dv_vec;
 		bool found_parent_dv = false;
-
-		if (dvs_subset != nullptr)
-		{
-			dvs_subset->transform_ip(ParameterEnsemble::transStatus::NUM);
-			vector<string> subset_real_names = dvs_subset->get_real_names();
-			if (find(subset_real_names.begin(), subset_real_names.end(), parent_name) != subset_real_names.end())
-			{
-				parent_dv_vec = dvs_subset->get_real_vector(parent_name);
-				found_parent_dv = true;
-			}
-		}
 
 		if (!found_parent_dv)
 		{
@@ -5368,7 +5200,7 @@ tuple<FilterRec, SqpFilter> SeqQuadProgram::pick_from_filter(ParameterEnsemble& 
 	return { selected, candidate_filter };
 }
 
-FilterRec SeqQuadProgram::pick_upgrade_and_update_current(ParameterEnsemble& dv_candidates, ObservationEnsemble& _oe, bool cma_reset_arc, bool report, ParameterEnsemble* dvs_subset, bool recalc)
+FilterRec SeqQuadProgram::pick_upgrade_and_update_current(ParameterEnsemble& dv_candidates, ObservationEnsemble& _oe, bool cma_reset_arc, bool report, bool recalc)
 {
 	stringstream ss;
 	ofstream& frec = file_manager.rec_ofstream();

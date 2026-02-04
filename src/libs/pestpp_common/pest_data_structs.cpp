@@ -1736,11 +1736,6 @@ bool PestppOptions::assign_value_by_key_sqp(const string& key, const string& val
 		convert_ip(value, sqp_num_reals);
 		return true;
 	}
-	else if (key == "SQP_NUM_REFINED_SEARCH_PTS")
-	{
-		convert_ip(value, sqp_num_refined_search_pts);
-		return true;
-	}
 	else if (key == "SQP_SUBSET_SIZE")
 	{
 		convert_ip(value, sqp_subset_size);
@@ -2064,7 +2059,6 @@ void PestppOptions::summary(ostream& os) const
 	os << "sqp_search_method: " << sqp_search_method << endl;
 	os << "sqp_solve_method: " << sqp_solve_method << endl;
 	os << "sqp_num_reals: " << sqp_num_reals << endl;
-	os << "sqp_num_refined_search_pts: " << sqp_num_refined_search_pts << endl;
 	os << "sqp_subset_size: " << sqp_subset_size << endl;
 	os << "sqp_update_hessian: " << sqp_update_hessian << endl;
 	os << "sqp_hessian_update_method: " << sqp_hessian_update_method << endl;
@@ -2328,11 +2322,10 @@ void PestppOptions::set_defaults()
 	set_sqp_search_method("LINE");
 	set_sqp_solve_method("NULL");
 	set_sqp_num_reals(-1);
-	set_sqp_num_refined_search_pts(1.0);
-	set_sqp_subset_size(-10);
+	set_sqp_subset_size(0);
 	set_sqp_update_hessian(true);
 	set_sqp_hessian_update_method("BFGS");
-	set_sqp_alpha_mults(vector<double>{0.001, 0.005, 0.01, 0.1, 0.5, 1.0});
+	set_sqp_alpha_mults(vector<double>{-0.05, 0.01, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0});
 	set_sqp_filter_tol(0.001);
 	set_sqp_working_set_tol(0.10);
 	set_sqp_cma_c1(-1);

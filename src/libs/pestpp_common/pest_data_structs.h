@@ -380,8 +380,6 @@ public:
 	string get_sqp_solve_method()const { return sqp_solve_method; }
 	void set_sqp_search_method(string _how) { sqp_search_method = _how; }
 	int get_sqp_num_reals()const { return sqp_num_reals; }
-	void set_sqp_num_refined_search_pts(int _num_pts) { sqp_num_refined_search_pts = _num_pts; }
-	int get_sqp_num_refined_search_pts()const { return sqp_num_refined_search_pts; }
 	void set_sqp_num_reals(int _num_reals) { sqp_num_reals = _num_reals; }
 	int get_sqp_subset_size()const { return sqp_subset_size; }
 	void set_sqp_subset_size(int _num_reals) { sqp_subset_size = _num_reals; }
@@ -853,7 +851,6 @@ private:
 	int sqp_num_reals;
 	int sqp_subset_size;
 	bool sqp_update_hessian;
-	int sqp_num_refined_search_pts;
 	string sqp_hessian_update_method;
 	vector<double> sqp_alpha_mults;
 	double sqp_filter_tol;
