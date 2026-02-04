@@ -3983,8 +3983,7 @@ FilterRec SeqQuadProgram::line_search(map<string, Eigen::VectorXd>& search_d_map
 			cname_sf_map[cand_rname] = scale_val;
 			used_scale_vals.push_back(scale_val);
 		}
-			
-		ss.str("");
+
 		message(1, "finished calcs for scaling factor:", scale_val);
 
 	}
@@ -3996,25 +3995,6 @@ FilterRec SeqQuadProgram::line_search(map<string, Eigen::VectorXd>& search_d_map
 	ss << file_manager.get_base_filename() << "." << iter << ".dv_candidates.csv";
 	
 	const vector<string> cand_real_names = dv_candidates.get_real_names();
-	if (!recalc)
-		dv_to_save = dv_candidates;
-	else
-	{
-		auto save = dv_to_save.get_real_map();
-		for (const auto& rname : cand_real_names)
-		{
-			Eigen::VectorXd row = dv_candidates.get_real_vector(rname);
-			if (save.find(rname) != save.end())
-			{
-				dv_to_save.update_real_ip(rname, row);
-			}
-			else
-			{
-				throw_sqp_error("active set recalc has new candidate not in original candidate set:" + rname);
-			}
-		}
-	}
-
 	Eigen::VectorXd v1, v2;
 	double d;
 	vector<string> drop;
@@ -4067,10 +4047,24 @@ FilterRec SeqQuadProgram::line_search(map<string, Eigen::VectorXd>& search_d_map
 	vector<FilterRec> filtered_ls;
 	for (const auto& fr : accepted_preds)
 	{
-		if (parent_names.find(fr.real_name) == parent_names.end())
-		{
+		if ((parent_names.find(fr.real_name) == parent_names.end()) && (fr.iter == iter))
 			filtered_ls.push_back(fr);
-		}
+	}
+	
+	//select only a subset to run if too many passed the filter
+	int run_queue_size = pest_scenario.get_pestpp_options().get_sqp_num_reals();
+	if (filtered_ls.size() > run_queue_size)
+	{
+		ss.str("");
+		ss << "selecting " << run_queue_size << "least violating candidates from " << filtered_ls.size() << " filter members to queue for runs";
+		message(1, ss.str());
+
+		sort(filtered_ls.begin(), filtered_ls.end(),
+			[](const FilterRec& a, const FilterRec& b) {
+				return a.viol_val < b.viol_val;
+			});
+
+		filtered_ls.resize(min(static_cast<size_t>(run_queue_size), filtered_ls.size()));
 	}
 
 	vector<string> accepted_names;
@@ -4078,9 +4072,6 @@ FilterRec SeqQuadProgram::line_search(map<string, Eigen::VectorXd>& search_d_map
 	{
 		accepted_names.push_back(fr.real_name);
 	}
-	ss.str("");
-	ss << "queueing runs for " << accepted_names.size() << " filtered candidates";
-	message(1, ss.str());
 
 	ParameterEnsemble filtered_dv_candidates(&pest_scenario, &rand_gen);
 	filtered_dv_candidates.set_trans_status(ParameterEnsemble::transStatus::NUM);
@@ -4092,7 +4083,29 @@ FilterRec SeqQuadProgram::line_search(map<string, Eigen::VectorXd>& search_d_map
 	}
 	dv_candidates = filtered_dv_candidates;
 
+
+
+
 	ObservationEnsemble oe_candidates = run_candidate_ensemble(dv_candidates);
+
+	if (!recalc)
+		dv_to_save = dv_candidates;
+	else
+	{
+		auto save = dv_to_save.get_real_map();
+		for (const auto& rname : cand_real_names)
+		{
+			Eigen::VectorXd row = dv_candidates.get_real_vector(rname);
+			if (save.find(rname) != save.end())
+			{
+				dv_to_save.update_real_ip(rname, row);
+			}
+			else
+			{
+				throw_sqp_error("active set recalc has new candidate not in original candidate set:" + rname);
+			}
+		}
+	}
 
 	if (!recalc)
 		oe_to_save = oe_candidates;
