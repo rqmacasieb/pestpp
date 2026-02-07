@@ -229,6 +229,10 @@ private:
 	map<string, string> constraint_sense;
 	Eigen::VectorXd lambda;
 
+	double initial_marq_lam, last_best_marq_lam;
+	double last_best_obj, last_best_viol; 
+	double marq_lam_min, marq_lam_max;       
+
 	map <string, pair<Mat, bool>> constraint_mat_en;
 	map<string, vector<string>> cnames_en;
 	map<string, Eigen::VectorXd> search_d_en, lm_en;
@@ -289,18 +293,17 @@ private:
 	Eigen::VectorXd solve_trust_region_subproblem_dogleg(const Eigen::MatrixXd& B, const Eigen::VectorXd& g, double radius);
 	Eigen::VectorXd solve_constrained_trust_region_step(const Eigen::MatrixXd& B, const Eigen::VectorXd& g, const Eigen::MatrixXd& A, double radius);
 
-
 	Parameters calc_gradient_vector(const Parameters& _current_dv_values, string _center_on=string());
 	Eigen::VectorXd calc_gradient_vector_from_coeffs(const Parameters & _current_dv_values);
 
 	Eigen::VectorXd get_obj_vector(ParameterEnsemble& _dv, ObservationEnsemble& _oe);
-	
 	double get_obj_value(Parameters& _current_ctl_dv_vals, Observations& _current_obs);
 	map<string, double> get_obj_map(ParameterEnsemble& _dv, ObservationEnsemble& _oe);
 	pair<Mat, bool> get_constraint_mat(Parameters& _dv_vals, Observations&_obs_vals, double working_set_tol = 0.005, const Eigen::VectorXd* lagrange_mults = nullptr, vector<string> curr_ws = vector<string>());
+	vector<double> get_scale_vals();
 
-	pair<Eigen::VectorXd, Eigen::VectorXd> calc_search_direction_vector(Parameters& _current_dv_, Observations& _current_obs_values, Eigen::VectorXd& grad_vector, Eigen::MatrixXd* _constraint_jco ,vector<string>* _cnames = nullptr);
-	bool recalc_search_direction_vector(const string& realization, Parameters& dv_vals, Observations& obs_vals, Eigen::VectorXd& grad_vector);
+	pair<Eigen::VectorXd, Eigen::VectorXd> calc_search_direction_vector(Parameters& _current_dv_, Observations& _current_obs_values, Eigen::VectorXd& grad_vector, Eigen::MatrixXd* _constraint_jco ,vector<string>* _cnames = nullptr, double marq_lambda = 0.0);
+	bool recalc_search_direction_vector(const string& realization, Parameters& dv_vals, Observations& obs_vals, Eigen::VectorXd& grad_vector, double marq_lambda = 0.0);
 
 	pair<Eigen::VectorXd, Eigen::VectorXd> _kkt_direct(const Eigen::MatrixXd& inv_hessian, Eigen::MatrixXd& _constraint_jco, Eigen::VectorXd& constraint_diff, Eigen::VectorXd& curved_grad, vector<string>* _cnames = nullptr);
 	pair<Eigen::VectorXd, Eigen::VectorXd> _kkt_null_space(const Eigen::MatrixXd& inv_hessian, Eigen::MatrixXd& _constraint_jco, Eigen::VectorXd& constraint_diff, Eigen::VectorXd& curved_grad, vector<string>* _cnames = nullptr);
