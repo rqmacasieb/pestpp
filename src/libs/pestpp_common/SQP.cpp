@@ -949,11 +949,12 @@ void SeqQuadProgram::initialize()
 	MAX_CONSEC_INFEAS_IES = pest_scenario.get_pestpp_options().get_sqp_max_consec_infeas_ies();
 	SF_DEC_FAC = pest_scenario.get_pestpp_options().get_sqp_scale_down_factor();
 
-	last_best_marq_lam = 0.0;
-	last_best_obj = 1.0E+30;
-	last_best_viol = 1.0E+30;
-	marq_lam_min = 1.0E-30;
-	marq_lam_max = 1.0E+30;
+	last_best_marq_lam_binding = 0.0;
+	last_best_marq_lam_nonbinding = 0.0;
+	last_best_obj_binding = 1.0E+30;
+	last_best_viol_binding = 1.0E+30;
+	last_best_obj_nonbinding = 1.0E+30;
+	last_best_viol_nonbinding = 1.0E+30;
 
 	stringstream ss;
 	PestppOptions* ppo = pest_scenario.get_pestpp_options_ptr();
@@ -4586,570 +4587,73 @@ bool SeqQuadProgram::solve_new_ensemble()
 			unselected_dv_indices.insert(i);
 	}
 
-	vector<int> subset_idxs = get_subset_idxs(_dvs.shape().first, local_subset_size);
-	vector<string> subset_real_names;
+	vector<string> dv_real_names = dv.get_real_names();
+	Parameters dv_vals = current_ctl_dv_values;
+	Observations obs_vals = current_obs;
+	for (auto d : dv_real_names)
+	{
+		if (cnames_en.find(d) == cnames_en.end())
+		{
+			Eigen::VectorXd real_dv_vec = dv.get_real_vector(d);
+			dv_vals.update_without_clear(dv_names, real_dv_vec);
+			Eigen::VectorXd real_obs_vec = oe.get_real_vector(d);
+			obs_vals.update_without_clear(oe.get_var_names(), real_obs_vec);
+
+			constraint_mat_en[d] = get_constraint_mat(dv_vals, obs_vals, working_set_tol);
+			cnames_en[d] = constraint_mat_en[d].first.get_row_names();
+			constraint_jco_en[d] = constraint_mat_en[d].first.e_ptr()->toDense();
+		}
+	}
+
+	vector<int> subset_idxs = get_subset_idxs(_dvs.shape().first, local_subset_size, cnames_en);
+
+	vector<string> subset_real_names, binding_subset, nonbinding_subset;
 	subset_real_names.reserve(subset_idxs.size());
 	for (int idx : subset_idxs)
 	{
 		unselected_dv_indices.erase(idx);
 		selected_dv_indices.insert(idx);
-		subset_real_names.push_back(_dvs.get_real_names()[idx]);
+		string n = _dvs.get_real_names()[idx];
+		subset_real_names.push_back(n);
+		if (cnames_en[n].size() == 0)
+			nonbinding_subset.push_back(n);
+		else
+			binding_subset.push_back(n);
 	}
-
-	ParameterEnsemble _drawn_dvs = _dvs;
-	_drawn_dvs.keep_rows(subset_real_names, true);
-
-	Parameters dv_vals = current_ctl_dv_values;
-	Observations obs_vals = current_obs;
 
 	Eigen::VectorXd grad = current_grad_vector.get_data_eigen_vec(dv_names);
-	vector<string> drawn_real_names = _drawn_dvs.get_real_names();
-	drawn_real_names.push_back(BASE_REAL_NAME);
+	ParameterEnsemble _drawn_dvs = _dvs;
+	//_drawn_dvs.keep_rows(subset_real_names, true);
+	//subset_real_names.push_back(BASE_REAL_NAME);
 
-	double rangesq = -1.0;
-	if (pest_scenario.get_pestpp_options().get_sqp_rescale_search_dir())
-	{
-		ParameterInfo par_info = pest_scenario.get_ctl_parameter_info();
-		Parameters lbnd = par_info.get_low_bnd(dv_names);
-		Parameters ubnd = par_info.get_up_bnd(dv_names);
-		ParamTransformSeq par_transform = pest_scenario.get_base_par_tran_seq();
-		par_transform.ctl2numeric_ip(lbnd);
-		par_transform.ctl2numeric_ip(ubnd);
+	ParameterEnsemble _drawn_binding = _drawn_dvs;
+	_drawn_binding.keep_rows(binding_subset, true);
+	ParameterEnsemble _drawn_nonbinding = _drawn_dvs;
+	_drawn_nonbinding.keep_rows(nonbinding_subset, true);
 
-		rangesq = 0.0;
-		for (int i = 0; i < dv_names.size(); i++)
-		{
-			double lb = lbnd[dv_names[i]];
-			double ub = ubnd[dv_names[i]];
-			rangesq += pow(ub - lb, 2);
-		}
-		rangesq = pow(rangesq, 0.5);
-	}
-
-	vector<double> lambda_mults = pest_scenario.get_pestpp_options().get_ies_lam_mults();
-	if (lambda_mults.empty())
-	{
-		lambda_mults = { 0.1, 1.0, 10.0 };
-	}
-	message(1, "using Marquardt lambda multipliers: ", lambda_mults);
-
-	vector<double> marq_lam_vec = lambda_mults;
-	double base_marq_lambda = (iter == 1) ? initial_marq_lam : last_best_marq_lam;
-
-	if (base_marq_lambda > 0.0)
-	{
-		for (auto& m : marq_lam_vec)
-			m *= base_marq_lambda;
-		message(1, "testing Marquardt lambdas: ", marq_lam_vec);
-	}
+	if (cnames_en[BASE_REAL_NAME].size() > 0)
+		binding_subset.push_back(BASE_REAL_NAME);
 	else
+		nonbinding_subset.push_back(BASE_REAL_NAME);
+
+	MarqLamTest binding_marq, nonbinding_marq;
+	double binding_marqlam = 0.0, nonbinding_marqlam = 0.0;
+	if (binding_subset.size() > 0)
 	{
-		marq_lam_vec = { 0.0, 0.1, 1.0, 10.0, 100.0 };
-		message(1, "no previous Marquardt lambda, using fixed lambda values");
+		binding_marq = test_marquardt_lambdas(_drawn_binding, oe, grad, binding_subset, true);
+		binding_marqlam = binding_marq.overall_best_marq_lam;
 	}
 
-	sort(marq_lam_vec.begin(), marq_lam_vec.end());
-	auto iter_unique = unique(marq_lam_vec.begin(), marq_lam_vec.end());
-	marq_lam_vec.resize(distance(marq_lam_vec.begin(), iter_unique));
-
-	hessian_en.clear();
-	map<string, map<double, Eigen::VectorXd>> sd_marq_lam_en, lm_marq_lambda_en;
-	map<string, map<double, double>> obj_marq_lam_en, viol_marq_lam_en;
-	map<string, double> best_marq_lam_en;
-
-	for (auto d : drawn_real_names)
+	if (nonbinding_subset.size() > 0)
 	{
-		ss.str("");
-		ss << "...calculating search directions for realization " << d << " with Marquardt lambda testing" << endl;
-		frec << ss.str();
-		performance_log->log_event(ss.str());
-
-		Eigen::VectorXd real_dv_vec = dv.get_real_vector(d);
-		dv_vals.update_without_clear(dv_names, real_dv_vec);
-		Eigen::VectorXd real_obs_vec = oe.get_real_vector(d);
-		obs_vals.update_without_clear(oe.get_var_names(), real_obs_vec);
-
-		constraint_mat_en[d] = get_constraint_mat(dv_vals, obs_vals, working_set_tol);
-		cnames_en[d] = constraint_mat_en[d].first.get_row_names();
-		constraint_jco_en[d] = constraint_mat_en[d].first.e_ptr()->toDense();
-		double base_obj = get_obj_value(dv_vals, obs_vals);
-
-		if (hessian_en.find(d) == hessian_en.end())
-			hessian_en[d] = hessian;
-
-		Covariance backup_hessian = hessian;
-		hessian = hessian_en[d];
-		used_hessian = Covariance();
-
-		for (double test_marq_lam : marq_lam_vec)
-		{
-			try
-			{
-				pair<Eigen::VectorXd, Eigen::VectorXd> x = calc_search_direction_vector(dv_vals, obs_vals, grad, &constraint_jco_en[d], &cnames_en[d], test_marq_lam);
-				Eigen::VectorXd test_search_d = x.first;
-				Eigen::VectorXd test_lm = x.second; 
-
-				lm_en[d] = test_lm;
-				search_d_en[d] = test_search_d;
-				while (true)
-				{
-					bool changed = recalc_search_direction_vector(d, dv_vals, obs_vals, grad, test_marq_lam);
-					if (!changed)
-						break;
-					test_search_d = search_d_en[d];
-					test_lm = lm_en[d];
-				}
-
-				vector<double> scale_vals = get_scale_vals();
-				double sv = scale_vals[0];
-				double dir_norm = test_search_d.norm();
-				/*if (rangesq > 0.0 && dir_norm > rangesq)
-				{
-					test_search_d = 0.5 * rangesq * test_search_d / dir_norm;
-				}*/
-
-				sd_marq_lam_en[d][test_marq_lam] = test_search_d;
-				lm_marq_lambda_en[d][test_marq_lam] = test_lm;
-
-				ss.str("");
-				ss << "   Marquardt lambda = " << test_marq_lam	<< ", step length = " << test_search_d.norm() << endl;
-				frec << ss.str();
-	
-			}
-			catch (const exception& e)
-			{
-				ss.str("");
-				ss << "   WARNING: Marquardt lambda = " << test_marq_lam
-					<< " failed: " << e.what() << endl;
-				frec << ss.str();
-				message(1, ss.str());
-				continue;
-			}
-		}
-
-		if (!used_hessian.get_col_names().empty())
-			hessian_en[d] = used_hessian;
-
-		hessian = backup_hessian;
-	}
-
-	vector<string> lam_rnames = drawn_real_names;
-	ParameterEnsemble pe_base = dv;
-	pe_base.keep_rows(lam_rnames, true);
-	pe_base.transform_ip(ParameterEnsemble::transStatus::NUM);
-	vector<ParameterEnsemble> pe_marq_lams;
-	vector<double> marq_lam_vals;
-
-	for (double test_marq_lam : marq_lam_vec)
-	{
-		ParameterEnsemble pe_lam = pe_base;
-
-		Eigen::MatrixXd base_eigen = *pe_lam.get_eigen_ptr();
-		Eigen::MatrixXd search_dir_mat(base_eigen.rows(), base_eigen.cols());
-		search_dir_mat.setZero();
-
-		int row_idx = 0;
-		for (auto d : lam_rnames)
-		{
-			if (sd_marq_lam_en[d].find(test_marq_lam) != sd_marq_lam_en[d].end())
-			{
-				search_dir_mat.row(row_idx) = sd_marq_lam_en[d][test_marq_lam].transpose();
-			}
-			row_idx++;
-		}
-
-		Eigen::MatrixXd new_eigen = base_eigen + search_dir_mat;
-		pe_lam.set_eigen(new_eigen);
-
-		pe_marq_lams.push_back(pe_lam);
-		marq_lam_vals.push_back(test_marq_lam);
-	}
-
-	message(1, "queuing model runs for Marquardt lambda testing");
-	run_mgr_ptr->reinitialize();
-
-	vector<map<int, int>> real_run_ids_vec;
-	for (size_t i = 0; i < pe_marq_lams.size(); i++)
-	{
-		ss.str("");
-		ss << " marq_lambda:" << marq_lam_vals[i] << " iteration:" << iter;
-		string additional_tag = ss.str();
-
-		try
-		{
-			vector<int> subset_idxs;
-			for (size_t j = 0; j < pe_marq_lams[i].shape().first; j++)
-				subset_idxs.push_back(j);
-
-			real_run_ids_vec.push_back(pe_marq_lams[i].add_runs(run_mgr_ptr, subset_idxs, iter, additional_tag));
-		}
-		catch (const exception& e)
-		{
-			ss.str("");
-			ss << "error queueing runs for Marquardt lambda " << marq_lam_vals[i] << ": " << e.what();
-			throw_sqp_error(ss.str());
-		}
-	}
-
-	performance_log->log_event("running models for Marquardt lambda testing");
-	try
-	{
-		run_mgr_ptr->run();
-	}
-	catch (const exception& e)
-	{
-		ss.str("");
-		ss << "error running models for lambda testing: " << e.what();
-		throw_sqp_error(ss.str());
-	}
-
-	performance_log->log_event("processing runs and evaluating objectives and constraints");
-	vector<ObservationEnsemble> oe_marq_lams;
-
-	for (size_t i = 0; i < pe_marq_lams.size(); i++)
-	{
-		ObservationEnsemble oe_lam(&pest_scenario, &rand_gen);
-		oe_lam.reserve(pe_marq_lams[i].get_real_names(), pest_scenario.get_ctl_ordered_obs_names());
-
-		vector<int> failed_idxs = oe_lam.update_from_runs(real_run_ids_vec[i], run_mgr_ptr);
-		oe_marq_lams.push_back(oe_lam);
-
-		for (auto d : lam_rnames)
-		{
-			vector<string> oe_real_names = oe_lam.get_real_names();
-			if (std::find(oe_real_names.begin(), oe_real_names.end(), d) != oe_real_names.end())
-			{
-				Eigen::VectorXd obs_vec = oe_lam.get_real_vector(d);
-				Eigen::VectorXd dv_vec = pe_marq_lams[i].get_real_vector(d);
-
-				Parameters test_dv_vals;
-				test_dv_vals.update_without_clear(dv_names, dv_vec);
-				Observations test_obs_vals;
-				test_obs_vals.update_without_clear(oe_lam.get_var_names(), obs_vec);
-
-				double actual_obj = get_obj_value(test_dv_vals, test_obs_vals);
-				obj_marq_lam_en[d][marq_lam_vals[i]] = actual_obj;
-
-				map<string, map<string, double>> violations_nominal;
-				if (constraints.get_use_chance() && (sqp_risk != 0.5))
-				{
-					violations_nominal = constraints.get_ensemble_violations_map(pe_marq_lams[i], oe_lam, 0.1, true, &oe_lam, sqp_risk);
-				}
-				else
-				{
-					violations_nominal = constraints.get_ensemble_violations_map(pe_marq_lams[i], oe_lam, 0.1, true);
-				}
-
-				double viol_sum = 0.0;
-				for (auto& v : violations_nominal[d])
-					viol_sum += v.second;
-
-				viol_marq_lam_en[d][marq_lam_vals[i]] = viol_sum;
-
-				ss.str("");
-				ss << "   realization " << d
-					<< ", Marquardt lambda = " << marq_lam_vals[i]
-					<< ", obj = " << actual_obj
-					<< ", viol = " << viol_sum << endl;
-				frec << ss.str();
-				
-			}
-		}
-	}
-
-	//choose best lambda for each realization
-	for (auto d : lam_rnames)
-	{
-		Eigen::VectorXd base_dv_vec = dv.get_real_vector(d);
-		dv_vals.update_without_clear(dv_names, base_dv_vec);
-		Eigen::VectorXd base_obs_vec = oe.get_real_vector(d);
-		obs_vals.update_without_clear(oe.get_var_names(), base_obs_vec);
-		double base_obj = get_obj_value(dv_vals, obs_vals);
-
-		vector<double> feas_marqs;
-		vector<double> infeas_marqs;
-		vector<double> feas_objs;
-		vector<double> infeas_viols;
-
-		for (double test_marq_lam : marq_lam_vec)
-		{
-			if (obj_marq_lam_en[d].find(test_marq_lam) != obj_marq_lam_en[d].end() &&
-				viol_marq_lam_en[d].find(test_marq_lam) != viol_marq_lam_en[d].end())
-			{
-				double viol = viol_marq_lam_en[d][test_marq_lam];
-
-				if (viol <= 1.0E-6)
-				{
-					feas_marqs.push_back(test_marq_lam);
-					feas_objs.push_back(obj_marq_lam_en[d][test_marq_lam]);
-				}
-				else
-				{
-					infeas_marqs.push_back(test_marq_lam);
-					infeas_viols.push_back(viol);
-				}
-			}
-		}
-
-		double best_marq_lam = 0.0;
-		double best_obj = base_obj;
-		double best_viol = 0.0;
-		Eigen::VectorXd best_search_d;
-		Eigen::VectorXd best_lm;
-
-		if (feas_marqs.size() > 0)
-		{
-			//choose best obj among feasible marq lambda
-			int best_idx = 0;
-			for (size_t i = 1; i < feas_marqs.size(); i++)
-			{
-				if (obj_sense == "minimize")
-				{
-					if (feas_objs[i] < feas_objs[best_idx])
-						best_idx = i;
-				}
-				else
-				{
-					if (feas_objs[i] > feas_objs[best_idx])
-						best_idx = i;
-				}
-			}
-			best_marq_lam = feas_marqs[best_idx];
-			best_obj = feas_objs[best_idx];
-			best_viol = 0.0;
-			best_search_d = sd_marq_lam_en[d][best_marq_lam];
-			best_lm = lm_marq_lambda_en[d][best_marq_lam];
-		}
-		else if (infeas_marqs.size() > 0)
-		{
-			//if all infeasible, choose least violation
-			int best_idx = 0;
-			for (size_t i = 1; i < infeas_marqs.size(); i++)
-			{
-				if (infeas_viols[i] < infeas_viols[best_idx])
-					best_idx = i;
-			}
-			best_marq_lam = infeas_marqs[best_idx];
-			best_obj = obj_marq_lam_en[d][best_marq_lam];
-			best_viol = infeas_viols[best_idx];
-			best_search_d = sd_marq_lam_en[d][best_marq_lam];
-			best_lm = lm_marq_lambda_en[d][best_marq_lam];
-		}
-		else
-		{
-			message(1, "WARNING: no valid Marquardt lambda found for realization " + d);
-			continue;
-		}
-
-		search_d_en[d] = best_search_d;
-		lm_en[d] = best_lm;
-		best_marq_lam_en[d] = best_marq_lam;
-
-		message(1, "realization " + d + " selected Marquardt lambda = ", best_marq_lam);
-		ss.str("");
-		ss << "   with obj = " << best_obj << " (base obj = " << base_obj << ")";
-		if (best_viol > 1.0E-6)
-			ss << ", viol = " << best_viol;
-		else
-			ss << ", feasible";
-		ss << endl;
-		if (cnames_en[d].size() == 0)
-		{
-			ss << "   working set: EMPTY" << endl;
-			ss << "   step length: " << search_d_en[d].norm() << endl;
-			ss << "   search direction: " << search_d_en[d].transpose() << endl;
-		}
-		else
-		{
-			ss << "   working set:" << endl;
-			int i = 0;
-			for (auto c : cnames_en[d])
-			{
-				ss << "         " << c << " (lm = " << lm_en[d][i] << ")" << endl;
-				i++;
-			}
-			ss << "   step length: " << search_d_en[d].norm() << endl;
-			ss << "   search direction: " << search_d_en[d].transpose() << endl;
-		}
-		frec << ss.str() << endl;
-	}
-
-	//select overall best Marquardt lambda
-	map<double, vector<double>> lambda_obj_map, lambda_viol_map;
-	for (auto d : lam_rnames)
-	{
-		double lambda_val = best_marq_lam_en[d];	
-		lambda_obj_map[lambda_val].push_back(obj_marq_lam_en[d][lambda_val]);
-		lambda_viol_map[lambda_val].push_back(viol_marq_lam_en[d][lambda_val]);
-	}
-
-	vector<double> feas_marqs, infeas_marqs;
-	vector<double> feas_mean_objs;
-	vector<double> infeas_mean_viols;
-
-	for (auto& lambda_pair : lambda_obj_map)
-	{
-		double lambda_val = lambda_pair.first;
-		vector<double>& objs = lambda_pair.second;
-		vector<double>& viols = lambda_viol_map[lambda_val];
-
-		if (objs.size() == 0 || viols.size() == 0)
-			continue;
-
-		double mean_viol = 0.0;
-		for (double v : viols)
-			mean_viol += v;
-		mean_viol /= viols.size();
-
-		if (mean_viol <= 1.0E-6)
-		{
-			feas_marqs.push_back(lambda_val);
-
-			double mean_obj = 0.0;
-			for (double o : objs)
-				mean_obj += o;
-			mean_obj /= objs.size();
-			feas_mean_objs.push_back(mean_obj);
-		}
-		else
-		{
-			infeas_marqs.push_back(lambda_val);
-			infeas_mean_viols.push_back(mean_viol);
-		}
-	}
-
-	double overall_best_marq_lam = 0.0;
-	double overall_best_obj = 1.0E+30;
-	double overall_best_viol = 1.0E+30;
-
-	if (feas_marqs.size() > 0)
-	{
-		int best_idx = 0;
-		for (size_t i = 1; i < feas_marqs.size(); i++)
-		{
-			if (obj_sense == "minimize")
-			{
-				if (feas_mean_objs[i] < feas_mean_objs[best_idx])
-					best_idx = i;
-			}
-			else
-			{
-				if (feas_mean_objs[i] > feas_mean_objs[best_idx])
-					best_idx = i;
-			}
-		}
-		overall_best_marq_lam = feas_marqs[best_idx];
-		overall_best_obj = feas_mean_objs[best_idx];
-		overall_best_viol = 0.0;
-	}
-	else if (infeas_marqs.size() > 0)
-	{
-		int best_idx = 0;
-		for (size_t i = 1; i < infeas_marqs.size(); i++)
-		{
-			if (infeas_mean_viols[i] < infeas_mean_viols[best_idx])
-				best_idx = i;
-		}
-		overall_best_marq_lam = infeas_marqs[best_idx];
-		overall_best_viol = infeas_mean_viols[best_idx];
-
-		vector<double>& objs = lambda_obj_map[overall_best_marq_lam];
-		overall_best_obj = 0.0;
-		for (double o : objs)
-			overall_best_obj += o;
-		overall_best_obj /= objs.size();
-	}
-	else
-	{
-		message(1, "WARNING: no valid overall Marquardt lambda found...this shouldn't be happening");
-	}
-
-	if (overall_best_marq_lam > 0.0)
-	{
-		ss.str("");
-		ss << "overall best Marquardt lambda = " << overall_best_marq_lam
-			<< " (mean obj = " << overall_best_obj;
-		if (overall_best_viol > 1.0E-6)
-			ss << ", mean viol = " << overall_best_viol;
-		else
-			ss << ", feasible";
-		ss << ")" << endl;
-		message(1, ss.str());
-	}
-
-	if (overall_best_marq_lam > 0.0)
-	{
-		double acc_fac = pest_scenario.get_pestpp_options().get_ies_accept_phi_fac();
-		double lam_inc = pest_scenario.get_pestpp_options().get_ies_lambda_inc_fac();
-		double lam_dec = pest_scenario.get_pestpp_options().get_ies_lambda_dec_fac();
-
-		bool acc_imprv = false;
-		bool acc_viol_imprv = false;
-
-		if (iter == 1)
-		{
-			acc_imprv = (overall_best_obj < last_best_obj);
-			acc_viol_imprv = (overall_best_viol < last_best_viol);
-		}
-		else
-		{
-			acc_imprv = (overall_best_obj < last_best_obj * acc_fac);
-			acc_viol_imprv = (overall_best_viol < last_best_viol * acc_fac);
-		}
-
-		bool is_feasible = (overall_best_viol <= 1.0E-6);
-		acc_imprv = acc_imprv && (acc_viol_imprv || is_feasible);
-		if (acc_imprv)
-		{
-			double new_marq_lambda = overall_best_marq_lam * lam_dec;
-			new_marq_lambda = (new_marq_lambda < marq_lam_min) ? marq_lam_min : new_marq_lambda;
-
-			last_best_marq_lam = new_marq_lambda;
-			last_best_obj = overall_best_obj;
-
-			ss.str("");
-			ss << "Marquardt lambda testing successful, decreasing to " << new_marq_lambda
-				<< " for next iteration";
-			message(1, ss.str());
-		}
-		else
-		{
-			double new_marq_lambda = last_best_marq_lam * lam_inc;
-			new_marq_lambda = (new_marq_lambda > marq_lam_max) ? marq_lam_max : new_marq_lambda;
-
-			last_best_marq_lam = new_marq_lambda;
-
-			ss.str("");
-			ss << "Marquardt lambda testing unsuccessful (best_obj = " << overall_best_obj
-				<< " > " << (last_best_obj * acc_fac) << "), increasing to "
-				<< new_marq_lambda << " for next iteration";
-			message(1, ss.str());
-		}
-	}
-	else
-	{
-		double lam_inc = pest_scenario.get_pestpp_options().get_ies_lambda_inc_fac();
-		double new_marq_lambda = last_best_marq_lam * lam_inc * 10.0;
-		new_marq_lambda = (new_marq_lambda > marq_lam_max) ? marq_lam_max : new_marq_lambda;
-		last_best_marq_lam = new_marq_lambda;
-		message(1, "all Marquardt lambda tests failed, dramatically increasing to ", new_marq_lambda);
+		nonbinding_marq = test_marquardt_lambdas(_drawn_nonbinding, oe, grad, nonbinding_subset, false);
+		nonbinding_marqlam = nonbinding_marq.overall_best_marq_lam;
 	}
 
 	vector<string> all_real_names = dv.get_real_names();
-	//vector<string> untested_real_names;
-
-	////run only untested realizations
-	//for (auto& real_name : all_real_names)
-	//{
-	//	if (best_marq_lam_en.find(real_name) == best_marq_lam_en.end())
-	//	{
-	//		untested_real_names.push_back(real_name);
-	//	}
-	//}
-
-	if (overall_best_marq_lam > 0.0)
+	if (binding_marqlam > 0.0 || nonbinding_marqlam > 0.0)
 	{
-		message(1, "computing search directions for realizations with applied Marquardt lambda = ", overall_best_marq_lam);
+		message(1, "computing search directions for realizations using respective Marquardt lambda");
 
 		for (auto& real_name : all_real_names)
 		{
@@ -5170,7 +4674,11 @@ bool SeqQuadProgram::solve_new_ensemble()
 			if (hessian_en.find(real_name) == hessian_en.end())
 				hessian_en[real_name] = hessian;
 
-			pair<Eigen::VectorXd, Eigen::VectorXd> x = calc_search_direction_vector(dv_vals, obs_vals, grad, &constraint_jco_en[real_name], &cnames_en[real_name], overall_best_marq_lam);
+			pair<Eigen::VectorXd, Eigen::VectorXd> x;
+			if (cnames_en[real_name].size() == 0)
+				x = calc_search_direction_vector(dv_vals, obs_vals, grad, &constraint_jco_en[real_name], &cnames_en[real_name], nonbinding_marqlam);
+			else
+				x = calc_search_direction_vector(dv_vals, obs_vals, grad, &constraint_jco_en[real_name], &cnames_en[real_name], binding_marqlam);
 			search_d_en[real_name] = x.first;
 			lm_en[real_name] = x.second;
 
@@ -5197,7 +4705,11 @@ bool SeqQuadProgram::solve_new_ensemble()
 
 			while (true)
 			{
-				bool changed = recalc_search_direction_vector(real_name, dv_vals, obs_vals, grad, overall_best_marq_lam);
+				bool changed;
+				if (cnames_en[real_name].size() == 0)
+					changed = recalc_search_direction_vector(real_name, dv_vals, obs_vals, grad, nonbinding_marqlam);
+				else
+					changed = recalc_search_direction_vector(real_name, dv_vals, obs_vals, grad, binding_marqlam);
 				if (!changed)
 					break;
 			}
@@ -5828,7 +5340,7 @@ FilterRec SeqQuadProgram::pick_upgrade_and_update_current(ParameterEnsemble& dv_
 			
 		}
 		message(1, "updating CMA archive of size: ", cma.get_parent_num());
-		cma.update_archives(dv_candidates, obj_map, total_viol_map, to_string(iter), true);
+		cma.update_archives(dv, get_obj_map(dv, oe), total_viol_map, to_string(iter), true);
 	}
 	else
 	{
@@ -5838,7 +5350,7 @@ FilterRec SeqQuadProgram::pick_upgrade_and_update_current(ParameterEnsemble& dv_
 			cma.set_parent_num(pest_scenario.get_pestpp_options().get_sqp_num_reals() / 4);
 		}
 		message(1, "updating CMA archive of size: ", cma.get_parent_num());
-		cma.update_archives(dv_candidates, obj_map, total_viol_map, to_string(iter), true);
+		cma.update_archives(dv, get_obj_map(dv, oe), total_viol_map, to_string(iter), true);
 	}
 
 	bool is_violated = (selected.viol_val >= 1E-10);
@@ -6308,17 +5820,16 @@ vector<double> SeqQuadProgram::get_scale_vals()
 	return scale_vals;
 }
 
-vector<int> SeqQuadProgram::get_subset_idxs(int size, int nreal_subset)
+vector<int> SeqQuadProgram::get_subset_idxs(int size, int nreal_subset, const map<string, vector<string>>& _cnames_en)
 {
 	vector<int> subset_idxs;
 	if ((!use_subset) || (nreal_subset >= size))
 	{
+		subset_idxs.reserve(size);
 		for (int i = 0; i < size; i++)
 			subset_idxs.push_back(i);
 		return subset_idxs;
 	}
-
-	vector<string> dv_real_names = dv.get_real_names();
 
 	map<string, map<string, double>> violations_nominal;
 	if (constraints.get_use_chance() && (sqp_risk != 0.5))
@@ -6330,46 +5841,622 @@ vector<int> SeqQuadProgram::get_subset_idxs(int size, int nreal_subset)
 		violations_nominal = constraints.get_ensemble_violations_map(dv, oe, 0.0, true);
 	}
 
-	vector<pair<int, double>> idx_vsum_pairs;
+	vector<string> dv_real_names = dv.get_real_names();
+	vector<pair<int, double>> idx_vsum_bounded;
+	vector<pair<int, double>> idx_vsum_unbounded;
+	map<string, double> violation_sums;
+	for (const auto& viol_pair : violations_nominal)
+	{
+		double vsum = 0.0;
+		for (const auto& v : viol_pair.second)
+			vsum += v.second;
+		violation_sums[viol_pair.first] = vsum;
+	}
+
+
 	for (size_t i = 0; i < size; ++i)
 	{
 		const string& rname = dv_real_names[i];
 		if (rname == BASE_REAL_NAME)
 			continue;
 
-		double vsum = 0;
-		auto viol_it = violations_nominal.find(rname);
-		if (viol_it != violations_nominal.end())
-		{
-			for (const auto& v : viol_it->second)
-				vsum += v.second;
-		}
+		double vsum = 0.0;
+		auto vsum_it = violation_sums.find(rname);
+		if (vsum_it != violation_sums.end())
+			vsum = vsum_it->second;
 
-		idx_vsum_pairs.push_back({ static_cast<int>(i), vsum });
+		bool is_bounded = (cnames_en.find(rname) != cnames_en.end() &&
+			cnames_en[rname].size() > 0);
+
+		if (is_bounded)
+			idx_vsum_bounded.push_back({ static_cast<int>(i), vsum });
+		else
+			idx_vsum_unbounded.push_back({ static_cast<int>(i), vsum });
 	}
 
-	sort(idx_vsum_pairs.begin(), idx_vsum_pairs.end(),
+	sort(idx_vsum_bounded.begin(), idx_vsum_bounded.end(),
 		[](const pair<int, double>& a, const pair<int, double>& b) {
 			return a.second < b.second;
 		});
 
-	set<int> selected_set;
+	sort(idx_vsum_unbounded.begin(), idx_vsum_unbounded.end(),
+		[](const pair<int, double>& a, const pair<int, double>& b) {
+			return a.second < b.second;
+		});
 
-	for (const auto& pair : idx_vsum_pairs)
+
+	int n_bounded = idx_vsum_bounded.size();
+	int n_unbounded = idx_vsum_unbounded.size();
+
+	int target_bounded, target_unbounded;
+	if (nreal_subset % 2 == 0)
 	{
-		if (subset_idxs.size() >= nreal_subset)
-			break;
+		target_bounded = nreal_subset / 2;
+		target_unbounded = nreal_subset / 2;
+	}
+	else
+	{
+		target_bounded = (nreal_subset + 1) / 2;
+		target_unbounded = nreal_subset / 2;
+	}
 
-		if (selected_set.find(pair.first) == selected_set.end())
+	if (n_bounded < target_bounded)
+	{
+		target_bounded = n_bounded;
+		target_unbounded = min(nreal_subset - target_bounded, n_unbounded);
+	}
+	else if (n_unbounded < target_unbounded)
+	{
+		target_unbounded = n_unbounded;
+		target_bounded = min(nreal_subset - target_unbounded, n_bounded);
+	}
+
+	subset_idxs.reserve(nreal_subset);
+	for (int i = 0; i < target_bounded && i < static_cast<int>(idx_vsum_bounded.size()); ++i)
+	{
+		subset_idxs.push_back(idx_vsum_bounded[i].first);
+	}
+
+	for (int i = 0; i < target_unbounded && i < static_cast<int>(idx_vsum_unbounded.size()); ++i)
+	{
+		subset_idxs.push_back(idx_vsum_unbounded[i].first);
+	}
+
+	if (static_cast<int>(subset_idxs.size()) < nreal_subset)
+	{
+		for (int i = target_bounded; i < static_cast<int>(idx_vsum_bounded.size()) &&
+			static_cast<int>(subset_idxs.size()) < nreal_subset; ++i)
 		{
-			subset_idxs.push_back(pair.first);
-			selected_set.insert(pair.first);
+			subset_idxs.push_back(idx_vsum_bounded[i].first);
+		}
+
+		for (int i = target_unbounded; i < static_cast<int>(idx_vsum_unbounded.size()) &&
+			static_cast<int>(subset_idxs.size()) < nreal_subset; ++i)
+		{
+			subset_idxs.push_back(idx_vsum_unbounded[i].first);
 		}
 	}
 
 	sort(subset_idxs.begin(), subset_idxs.end());
 	return subset_idxs;
+}
 
+SeqQuadProgram::MarqLamTest SeqQuadProgram::test_marquardt_lambdas(const ParameterEnsemble& _drawn_dvs, const ObservationEnsemble& _oe, const Eigen::VectorXd& grad, const vector<string>& drawn_real_names, bool is_binding)
+{
+	MarqLamTest result;
+	result.overall_best_marq_lam = 0.0;
+	result.new_marq_lambda = 0.0;
+
+	stringstream ss;
+	ofstream& frec = file_manager.rec_ofstream();
+
+	vector<double> lambda_mults = pest_scenario.get_pestpp_options().get_ies_lam_mults();
+	if (lambda_mults.empty())
+	{
+		lambda_mults = { 0.1, 1.0, 10.0 };
+	}
+	message(1, "using Marquardt lambda multipliers: ", lambda_mults);
+
+	vector<double> marq_lam_vec = lambda_mults;
+	double& last_best_marq_lam = is_binding ? last_best_marq_lam_binding : last_best_marq_lam_nonbinding;
+	double& last_best_obj = is_binding ? last_best_obj_binding : last_best_obj_nonbinding;
+	double& last_best_viol = is_binding ? last_best_viol_binding : last_best_viol_nonbinding;
+
+	double base_marq_lambda = (iter == 1) ? initial_marq_lam : last_best_marq_lam;
+
+	if (base_marq_lambda > 0.0)
+	{
+		for (auto& m : marq_lam_vec)
+			m *= base_marq_lambda;
+		message(1, "testing Marquardt lambdas: ", marq_lam_vec);
+	}
+	else
+	{
+		marq_lam_vec = { 0.0, 0.1, 1.0, 10.0, 100.0 };
+		message(1, "no previous Marquardt lambda, using fixed lambda values");
+	}
+
+
+	sort(marq_lam_vec.begin(), marq_lam_vec.end());
+	auto iter_unique = unique(marq_lam_vec.begin(), marq_lam_vec.end());
+	marq_lam_vec.resize(distance(marq_lam_vec.begin(), iter_unique));
+
+
+	hessian_en.clear();
+	map<string, map<double, Eigen::VectorXd>> sd_marq_lam_en, lm_marq_lambda_en;
+	map<string, map<double, double>> obj_marq_lam_en, viol_marq_lam_en;
+	map<string, double> best_marq_lam_en;
+
+	Parameters dv_vals = current_ctl_dv_values;
+	Observations obs_vals = current_obs;
+	Eigen::VectorXd g = grad;
+
+	for (auto d : drawn_real_names)
+	{
+
+		Eigen::VectorXd real_dv_vec = dv.get_real_vector(d);
+		dv_vals.update_without_clear(dv_names, real_dv_vec);
+		Eigen::VectorXd real_obs_vec = oe.get_real_vector(d);
+		obs_vals.update_without_clear(oe.get_var_names(), real_obs_vec);
+
+		ss.str("");
+		ss << "...calculating search directions for realization " << d << " with trial Marquardt lambda" << endl;
+		frec << ss.str();
+		performance_log->log_event(ss.str());
+
+		if (hessian_en.find(d) == hessian_en.end())
+			hessian_en[d] = hessian;
+
+		Covariance backup_hessian = hessian;
+		hessian = hessian_en[d];
+		used_hessian = Covariance();
+
+		for (double test_marq_lam : marq_lam_vec)
+		{
+			try
+			{
+
+				pair<Eigen::VectorXd, Eigen::VectorXd> x = calc_search_direction_vector(dv_vals, obs_vals, g, &constraint_jco_en[d], &cnames_en[d], test_marq_lam);
+				Eigen::VectorXd test_search_d = x.first;
+				Eigen::VectorXd test_lm = x.second;
+
+				lm_en[d] = test_lm;
+				search_d_en[d] = test_search_d;
+				while (true)
+				{
+					bool changed = recalc_search_direction_vector(d, dv_vals, obs_vals, g, test_marq_lam);
+					if (!changed)
+						break;
+					test_search_d = search_d_en[d];
+					test_lm = lm_en[d];
+				}
+
+				sd_marq_lam_en[d][test_marq_lam] = test_search_d;
+				lm_marq_lambda_en[d][test_marq_lam] = test_lm;
+
+				ss.str("");
+				ss << "   Marquardt lambda = " << test_marq_lam << ", step length = " << test_search_d.norm() << endl;
+				frec << ss.str();
+			}
+			catch (const exception& e)
+			{
+				ss.str("");
+				ss << "   WARNING: Marquardt lambda = " << test_marq_lam << " failed: " << e.what() << endl;
+				frec << ss.str();
+				message(1, ss.str());
+				continue;
+			}
+		}
+
+		if (!used_hessian.get_col_names().empty())
+			hessian_en[d] = used_hessian;
+
+		hessian = backup_hessian;
+	}
+
+	vector<string> lam_rnames = drawn_real_names;
+	ParameterEnsemble pe_base = dv;
+	pe_base.keep_rows(lam_rnames, true);
+	pe_base.transform_ip(ParameterEnsemble::transStatus::NUM);
+	vector<ParameterEnsemble> pe_marq_lams;
+	vector<double> marq_lam_vals;
+
+	for (double test_marq_lam : marq_lam_vec)
+	{
+		ParameterEnsemble pe_lam = pe_base;
+		Eigen::MatrixXd base_eigen = *pe_lam.get_eigen_ptr();
+		Eigen::MatrixXd search_dir_mat(base_eigen.rows(), base_eigen.cols());
+		search_dir_mat.setZero();
+
+		int row_idx = 0;
+		for (auto d : lam_rnames)
+		{
+			if (sd_marq_lam_en[d].find(test_marq_lam) != sd_marq_lam_en[d].end())
+			{
+				search_dir_mat.row(row_idx) = sd_marq_lam_en[d][test_marq_lam].transpose();
+			}
+			row_idx++;
+		}
+
+		Eigen::MatrixXd new_eigen = base_eigen + search_dir_mat;
+		pe_lam.set_eigen(new_eigen);
+		pe_marq_lams.push_back(pe_lam);
+		marq_lam_vals.push_back(test_marq_lam);
+	}
+
+	message(1, "queuing model runs for Marquardt lambda testing");
+	run_mgr_ptr->reinitialize();
+
+	vector<map<int, int>> real_run_ids_vec;
+	for (size_t i = 0; i < pe_marq_lams.size(); i++)
+	{
+		ss.str("");
+		ss << " marq_lambda:" << marq_lam_vals[i] << " iteration:" << iter;
+		string additional_tag = ss.str();
+
+		try
+		{
+			vector<int> subset_idxs;
+			for (size_t j = 0; j < pe_marq_lams[i].shape().first; j++)
+				subset_idxs.push_back(j);
+
+			real_run_ids_vec.push_back(pe_marq_lams[i].add_runs(run_mgr_ptr, subset_idxs, iter, additional_tag));
+		}
+		catch (const exception& e)
+		{
+			ss.str("");
+			ss << "error queueing runs for Marquardt lambda " << marq_lam_vals[i] << ": " << e.what();
+			throw_sqp_error(ss.str());
+		}
+	}
+
+	performance_log->log_event("running models for Marquardt lambda testing");
+	try
+	{
+		run_mgr_ptr->run();
+	}
+	catch (const exception& e)
+	{
+		ss.str("");
+		ss << "error running models for lambda testing: " << e.what();
+		throw_sqp_error(ss.str());
+	}
+
+	performance_log->log_event("processing runs and evaluating objectives and constraints");
+	vector<ObservationEnsemble> oe_marq_lams;
+
+	for (size_t i = 0; i < pe_marq_lams.size(); i++)
+	{
+		ObservationEnsemble oe_lam(&pest_scenario, &rand_gen);
+		oe_lam.reserve(pe_marq_lams[i].get_real_names(), pest_scenario.get_ctl_ordered_obs_names());
+
+		vector<int> failed_idxs = oe_lam.update_from_runs(real_run_ids_vec[i], run_mgr_ptr);
+		oe_marq_lams.push_back(oe_lam);
+
+		for (auto d : lam_rnames)
+		{
+			vector<string> oe_real_names = oe_lam.get_real_names();
+			if (std::find(oe_real_names.begin(), oe_real_names.end(), d) != oe_real_names.end())
+			{
+				Eigen::VectorXd obs_vec = oe_lam.get_real_vector(d);
+				Eigen::VectorXd dv_vec = pe_marq_lams[i].get_real_vector(d);
+
+				Parameters test_dv_vals;
+				test_dv_vals.update_without_clear(dv_names, dv_vec);
+				Observations test_obs_vals;
+				test_obs_vals.update_without_clear(oe_lam.get_var_names(), obs_vec);
+
+				double actual_obj = get_obj_value(test_dv_vals, test_obs_vals);
+				obj_marq_lam_en[d][marq_lam_vals[i]] = actual_obj;
+
+				map<string, map<string, double>> violations_nominal;
+				if (constraints.get_use_chance() && (sqp_risk != 0.5))
+				{
+					violations_nominal = constraints.get_ensemble_violations_map(pe_marq_lams[i], oe_lam, 0.1, true, &oe_lam, sqp_risk);
+				}
+				else
+				{
+					violations_nominal = constraints.get_ensemble_violations_map(pe_marq_lams[i], oe_lam, 0.1, true);
+				}
+
+				double viol_sum = 0.0;
+				for (auto& v : violations_nominal[d])
+					viol_sum += v.second;
+
+				viol_marq_lam_en[d][marq_lam_vals[i]] = viol_sum;
+
+				ss.str("");
+				ss << "   realization " << d << ", Marquardt lambda = " << marq_lam_vals[i]
+					<< ", obj = " << actual_obj << ", viol = " << viol_sum << endl;
+				frec << ss.str();
+			}
+		}
+	}
+
+	for (auto d : lam_rnames)
+	{
+		Eigen::VectorXd base_dv_vec = dv.get_real_vector(d);
+		dv_vals.update_without_clear(dv_names, base_dv_vec);
+		Eigen::VectorXd base_obs_vec = oe.get_real_vector(d);
+		obs_vals.update_without_clear(oe.get_var_names(), base_obs_vec);
+		double base_obj = get_obj_value(dv_vals, obs_vals);
+
+		vector<double> feas_marqs;
+		vector<double> infeas_marqs;
+		vector<double> feas_objs;
+		vector<double> infeas_viols;
+
+		for (double test_marq_lam : marq_lam_vec)
+		{
+			if (obj_marq_lam_en[d].find(test_marq_lam) != obj_marq_lam_en[d].end() &&
+				viol_marq_lam_en[d].find(test_marq_lam) != viol_marq_lam_en[d].end())
+			{
+				double viol = viol_marq_lam_en[d][test_marq_lam];
+
+				if (viol <= 1.0E-6)
+				{
+					feas_marqs.push_back(test_marq_lam);
+					feas_objs.push_back(obj_marq_lam_en[d][test_marq_lam]);
+				}
+				else
+				{
+					infeas_marqs.push_back(test_marq_lam);
+					infeas_viols.push_back(viol);
+				}
+			}
+		}
+
+		double best_marq_lam = 0.0;
+		double best_obj = base_obj;
+		double best_viol = 0.0;
+		Eigen::VectorXd best_search_d;
+		Eigen::VectorXd best_lm;
+
+		if (feas_marqs.size() > 0)
+		{
+			//choose best obj among feasible marq lambda
+			int best_idx = 0;
+			for (size_t i = 1; i < feas_marqs.size(); i++)
+			{
+				if (obj_sense == "minimize")
+				{
+					if (feas_objs[i] < feas_objs[best_idx])
+						best_idx = i;
+				}
+				else
+				{
+					if (feas_objs[i] > feas_objs[best_idx])
+						best_idx = i;
+				}
+			}
+			best_marq_lam = feas_marqs[best_idx];
+			best_obj = feas_objs[best_idx];
+			best_viol = 0.0;
+			best_search_d = sd_marq_lam_en[d][best_marq_lam];
+			best_lm = lm_marq_lambda_en[d][best_marq_lam];
+		}
+		else if (infeas_marqs.size() > 0)
+		{
+			//if all infeasible, choose least violation
+			int best_idx = 0;
+			for (size_t i = 1; i < infeas_marqs.size(); i++)
+			{
+				if (infeas_viols[i] < infeas_viols[best_idx])
+					best_idx = i;
+			}
+			best_marq_lam = infeas_marqs[best_idx];
+			best_obj = obj_marq_lam_en[d][best_marq_lam];
+			best_viol = infeas_viols[best_idx];
+			best_search_d = sd_marq_lam_en[d][best_marq_lam];
+			best_lm = lm_marq_lambda_en[d][best_marq_lam];
+		}
+		else
+		{
+			message(1, "WARNING: no valid Marquardt lambda found for realization " + d);
+			continue;
+		}
+
+		search_d_en[d] = best_search_d;
+		lm_en[d] = best_lm;
+		best_marq_lam_en[d] = best_marq_lam;
+
+		message(1, "realization " + d + " selected Marquardt lambda = ", best_marq_lam);
+		ss.str("");
+		ss << "   with obj = " << best_obj << " (base obj = " << base_obj << ")";
+		if (best_viol > 1.0E-6)
+			ss << ", viol = " << best_viol;
+		else
+			ss << ", feasible";
+		ss << endl;
+		if (cnames_en[d].size() == 0)
+		{
+			ss << "   working set: EMPTY" << endl;
+			ss << "   step length: " << search_d_en[d].norm() << endl;
+			ss << "   search direction: " << search_d_en[d].transpose() << endl;
+		}
+		else
+		{
+			ss << "   working set:" << endl;
+			int i = 0;
+			for (auto c : cnames_en[d])
+			{
+				ss << "         " << c << " (lm = " << lm_en[d][i] << ")" << endl;
+				i++;
+			}
+			ss << "   step length: " << search_d_en[d].norm() << endl;
+			ss << "   search direction: " << search_d_en[d].transpose() << endl;
+		}
+		frec << ss.str() << endl;
+	}
+
+	//select overall best Marquardt lambda
+	map<double, vector<double>> lambda_obj_map, lambda_viol_map;
+	for (auto d : lam_rnames)
+	{
+		double lambda_val = best_marq_lam_en[d];
+		lambda_obj_map[lambda_val].push_back(obj_marq_lam_en[d][lambda_val]);
+		lambda_viol_map[lambda_val].push_back(viol_marq_lam_en[d][lambda_val]);
+	}
+
+	vector<double> feas_marqs, infeas_marqs;
+	vector<double> feas_mean_objs;
+	vector<double> infeas_mean_viols;
+
+	for (auto& lambda_pair : lambda_obj_map)
+	{
+		double lambda_val = lambda_pair.first;
+		vector<double>& objs = lambda_pair.second;
+		vector<double>& viols = lambda_viol_map[lambda_val];
+
+		if (objs.size() == 0 || viols.size() == 0)
+			continue;
+
+		double mean_viol = 0.0;
+		for (double v : viols)
+			mean_viol += v;
+		mean_viol /= viols.size();
+
+		if (mean_viol <= 1.0E-6)
+		{
+			feas_marqs.push_back(lambda_val);
+
+			double mean_obj = 0.0;
+			for (double o : objs)
+				mean_obj += o;
+			mean_obj /= objs.size();
+			feas_mean_objs.push_back(mean_obj);
+		}
+		else
+		{
+			infeas_marqs.push_back(lambda_val);
+			infeas_mean_viols.push_back(mean_viol);
+		}
+	}
+
+	double overall_best_marq_lam = 0.0;
+	double overall_best_obj = 1.0E+30;
+	double overall_best_viol = 1.0E+30;
+
+	if (feas_marqs.size() > 0)
+	{
+		int best_idx = 0;
+		for (size_t i = 1; i < feas_marqs.size(); i++)
+		{
+			if (obj_sense == "minimize")
+			{
+				if (feas_mean_objs[i] < feas_mean_objs[best_idx])
+					best_idx = i;
+			}
+			else
+			{
+				if (feas_mean_objs[i] > feas_mean_objs[best_idx])
+					best_idx = i;
+			}
+		}
+		overall_best_marq_lam = feas_marqs[best_idx];
+		overall_best_obj = feas_mean_objs[best_idx];
+		overall_best_viol = 0.0;
+	}
+	else if (infeas_marqs.size() > 0)
+	{
+		int best_idx = 0;
+		for (size_t i = 1; i < infeas_marqs.size(); i++)
+		{
+			if (infeas_mean_viols[i] < infeas_mean_viols[best_idx])
+				best_idx = i;
+		}
+		overall_best_marq_lam = infeas_marqs[best_idx];
+		overall_best_viol = infeas_mean_viols[best_idx];
+
+		vector<double>& objs = lambda_obj_map[overall_best_marq_lam];
+		overall_best_obj = 0.0;
+		for (double o : objs)
+			overall_best_obj += o;
+		overall_best_obj /= objs.size();
+	}
+	else
+	{
+		message(1, "WARNING: no valid overall Marquardt lambda found...this shouldn't be happening");
+	}
+
+	if (overall_best_marq_lam > 0.0)
+	{
+		ss.str("");
+		ss << "overall best Marquardt lambda = " << overall_best_marq_lam
+			<< " (mean obj = " << overall_best_obj;
+		if (overall_best_viol > 1.0E-6)
+			ss << ", mean viol = " << overall_best_viol;
+		else
+			ss << ", feasible";
+		ss << ")" << endl;
+		message(1, ss.str());
+	}
+
+	result.overall_best_marq_lam = overall_best_marq_lam;
+	result.best_marq_lam_en = best_marq_lam_en;
+
+	if (result.overall_best_marq_lam > 0.0)
+	{
+		double acc_fac = pest_scenario.get_pestpp_options().get_ies_accept_phi_fac();
+		double lam_inc = pest_scenario.get_pestpp_options().get_ies_lambda_inc_fac();
+		double lam_dec = pest_scenario.get_pestpp_options().get_ies_lambda_dec_fac();
+
+		bool acc_imprv = false;
+		bool acc_viol_imprv = false;
+
+		if (iter == 1)
+		{
+			acc_imprv = (overall_best_obj < last_best_obj);
+			acc_viol_imprv = (overall_best_viol < last_best_viol);
+		}
+		else
+		{
+			acc_imprv = (overall_best_obj < last_best_obj * acc_fac);
+			acc_viol_imprv = (overall_best_viol < last_best_viol * acc_fac);
+		}
+
+		bool is_feasible = (overall_best_viol <= 1E-6);
+		acc_imprv = acc_imprv && (acc_viol_imprv || is_feasible);
+		if (acc_imprv)
+		{
+			double new_marq_lambda = overall_best_marq_lam * lam_dec;
+
+			last_best_marq_lam = new_marq_lambda;
+			last_best_obj = overall_best_obj;
+			last_best_viol = overall_best_viol;
+			result.new_marq_lambda = new_marq_lambda;
+
+			ss.str("");
+			ss << "Marquardt lambda testing successful" << (is_binding ? " (binding)" : " (nonbinding)")
+				<< ", decreasing to " << new_marq_lambda << " for next iteration";
+			message(1, ss.str());
+		}
+		else
+		{
+			double new_marq_lambda = last_best_marq_lam * lam_inc;
+
+			last_best_marq_lam = new_marq_lambda;
+			result.new_marq_lambda = new_marq_lambda;
+
+			ss.str("");
+			ss << "Marquardt lambda testing unsuccessful" << (is_binding ? " (binding)" : " (nonbinding)")
+				<< " (best_obj = " << overall_best_obj
+				<< " > " << (last_best_obj * acc_fac) << "), increasing to "
+				<< new_marq_lambda << " for next iteration";
+			message(1, ss.str());
+		}
+	}
+	else
+	{
+		double lam_inc = pest_scenario.get_pestpp_options().get_ies_lambda_inc_fac();
+		result.new_marq_lambda = last_best_marq_lam * lam_inc * 10.0;
+		ss.str("");
+		ss << "all Marquardt lambda tests failed" << (is_binding ? " (binding)" : " (nonbinding)")
+			<< ", dramatically increasing to ", result.new_marq_lambda;
+		message(1, ss.str());
+	}
+
+	return result;
 }
 
 void CovMatAdap::initialize(int n_params, int _num_reals)

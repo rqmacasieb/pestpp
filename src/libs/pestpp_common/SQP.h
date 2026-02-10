@@ -229,9 +229,10 @@ private:
 	map<string, string> constraint_sense;
 	Eigen::VectorXd lambda;
 
-	double initial_marq_lam, last_best_marq_lam;
-	double last_best_obj, last_best_viol; 
-	double marq_lam_min, marq_lam_max;       
+	double initial_marq_lam;
+	double last_best_marq_lam_binding, last_best_marq_lam_nonbinding;
+	double last_best_obj_binding, last_best_viol_binding;
+	double last_best_obj_nonbinding, last_best_viol_nonbinding;
 
 	map <string, pair<Mat, bool>> constraint_mat_en;
 	map<string, vector<string>> cnames_en;
@@ -340,7 +341,15 @@ private:
 
 	void add_current_as_bases(ParameterEnsemble& _dv, ObservationEnsemble& _oe);
 
-	vector<int> get_subset_idxs(int size, int nreal_subset);
+	vector<int> get_subset_idxs(int size, int nreal_subset, const map<string, vector<string>>& _cnames_en);
+
+	struct MarqLamTest {
+		double overall_best_marq_lam;
+		double new_marq_lambda;
+		map<string, double> best_marq_lam_en;
+	};
+
+	MarqLamTest test_marquardt_lambdas(const ParameterEnsemble& _drawn_dvs, const ObservationEnsemble& _oe, const Eigen::VectorXd& grad, const vector<string>& drawn_real_names, bool is_binding);
 };
 
 
