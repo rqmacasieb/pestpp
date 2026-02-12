@@ -1736,11 +1736,6 @@ bool PestppOptions::assign_value_by_key_sqp(const string& key, const string& val
 		convert_ip(value, sqp_num_reals);
 		return true;
 	}
-	else if (key == "SQP_NUM_REFINED_SEARCH_PTS")
-	{
-		convert_ip(value, sqp_num_refined_search_pts);
-		return true;
-	}
 	else if (key == "SQP_SUBSET_SIZE")
 	{
 		convert_ip(value, sqp_subset_size);
@@ -1782,6 +1777,32 @@ bool PestppOptions::assign_value_by_key_sqp(const string& key, const string& val
 			convert_ip(t, v);
 			sqp_alpha_mults.push_back(v);
 		}
+		return true;
+	}
+	if (key == "SQP_LAMBDA_MULTS")
+	{
+		sqp_lam_mults.clear();
+		vector<string> tok;
+		tokenize(value, tok, ",");
+		for (const auto& iscale : tok)
+		{
+			sqp_lam_mults.push_back(convert_cp<double>(iscale));
+		}
+		return true;
+	}
+	else if (key == "SQP_ACCEPT_PHI_FAC")
+	{
+		convert_ip(value, sqp_accept_phi_fac);
+		return true;
+	}
+	else if (key == "SQP_LAMBDA_INC_FAC")
+	{
+		convert_ip(value, sqp_lambda_inc_fac);
+		return true;
+	}
+	else if (key == "SQP_LAMBDA_DEC_FAC")
+	{
+		convert_ip(value, sqp_lambda_dec_fac);
 		return true;
 	}
 	else if (key == "SQP_CMA_C1")
@@ -2060,13 +2081,18 @@ void PestppOptions::summary(ostream& os) const
 	os << "sqp_search_method: " << sqp_search_method << endl;
 	os << "sqp_solve_method: " << sqp_solve_method << endl;
 	os << "sqp_num_reals: " << sqp_num_reals << endl;
-	os << "sqp_num_refined_search_pts: " << sqp_num_refined_search_pts << endl;
 	os << "sqp_subset_size: " << sqp_subset_size << endl;
 	os << "sqp_update_hessian: " << sqp_update_hessian << endl;
 	os << "sqp_hessian_update_method: " << sqp_hessian_update_method << endl;
 	os << "sqp_alpha_mults:" << endl;
 	for (auto m : sqp_alpha_mults)
 		os << "  " << m << endl;
+	os << "sqp_lambda_mults:" << endl;
+	for (auto m : sqp_lam_mults)
+		os << "  " << m << endl;
+	os << "sqp_accept_phi_fac: " << sqp_accept_phi_fac << endl;
+	os << "sqp_lambda_inc_fac: " << sqp_lambda_inc_fac << endl;
+	os << "sqp_lambda_dec_fac: " << sqp_lambda_dec_fac << endl;
 	os << "sqp_filter_tol: " << sqp_filter_tol << endl;
 	os << "sqp_working_set_tol: " << sqp_working_set_tol << endl;
 	os << "sqp_cma_c1: " << sqp_cma_c1 << endl;
@@ -2323,14 +2349,17 @@ void PestppOptions::set_defaults()
 	set_sqp_search_method("LINE");
 	set_sqp_solve_method("NULL");
 	set_sqp_num_reals(-1);
-	set_sqp_num_refined_search_pts(1.0);
 	set_sqp_subset_size(-10);
 	set_sqp_update_hessian(true);
 	set_sqp_hessian_update_method("BFGS");
-	set_sqp_alpha_mults(vector<double>{0.001, 0.005, 0.01, 0.1, 0.5, 1.0});
+	set_sqp_alpha_mults(vector<double>{0.1, 0.5, 1.0});
+	set_sqp_lam_mults(vector<double>());
+	set_sqp_accept_phi_fac(1.05);
+	set_sqp_lambda_inc_fac(10.0);
+	set_sqp_lambda_dec_fac(0.75);
 	set_sqp_filter_tol(0.001);
 	set_sqp_working_set_tol(0.10);
-	set_sqp_cma_c1(-1);
+	set_sqp_cma_c1(0.0);
 	set_sqp_cma_cmu(-1);
 	set_sqp_cma_cc(-1);
 	set_sqp_cma_parent_num(-1);
@@ -2344,7 +2373,7 @@ void PestppOptions::set_defaults()
 	set_sqp_enforce_bounds(false);
 	set_sqp_viol_pad(1E-4);
 	set_sqp_reset_hessian_every(-1);
-	set_sqp_use_ensemble_approx_hessian(true);
+	set_sqp_use_ensemble_approx_hessian(false);
 	set_sqp_rescale_search_dir(true);
 	set_sqp_seek_feas_max_iter(3);
 	set_sqp_risk(0.50);

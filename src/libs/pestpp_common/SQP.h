@@ -348,7 +348,6 @@ private:
 		double new_marq_lambda;
 		map<string, double> best_marq_lam_en;
 	};
-
 	MarqLamTest test_marquardt_lambdas(const ParameterEnsemble& _drawn_dvs, const ObservationEnsemble& _oe, const Eigen::VectorXd& grad, const vector<string>& drawn_real_names, bool is_binding);
 };
 

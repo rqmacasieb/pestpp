@@ -380,8 +380,6 @@ public:
 	string get_sqp_solve_method()const { return sqp_solve_method; }
 	void set_sqp_search_method(string _how) { sqp_search_method = _how; }
 	int get_sqp_num_reals()const { return sqp_num_reals; }
-	void set_sqp_num_refined_search_pts(int _num_pts) { sqp_num_refined_search_pts = _num_pts; }
-	int get_sqp_num_refined_search_pts()const { return sqp_num_refined_search_pts; }
 	void set_sqp_num_reals(int _num_reals) { sqp_num_reals = _num_reals; }
 	int get_sqp_subset_size()const { return sqp_subset_size; }
 	void set_sqp_subset_size(int _num_reals) { sqp_subset_size = _num_reals; }
@@ -391,6 +389,14 @@ public:
 	void set_sqp_hessian_update_method(string _how) { sqp_hessian_update_method = _how; }
 	vector<double> get_sqp_alpha_mults() const { return sqp_alpha_mults; } 
 	void set_sqp_alpha_mults(vector<double> _mults) { sqp_alpha_mults = _mults; }
+	vector<double> get_sqp_lam_mults() const { return sqp_lam_mults; }
+	void set_sqp_lam_mults(vector<double> _sqp_lam_mults) { sqp_lam_mults = _sqp_lam_mults; }
+	double get_sqp_accept_phi_fac() const { return sqp_accept_phi_fac; }
+	void set_sqp_accept_phi_fac(double _acc_phi_fac) { sqp_accept_phi_fac = _acc_phi_fac; }
+	double get_sqp_lambda_inc_fac() const { return sqp_lambda_inc_fac; }
+	void set_sqp_lambda_inc_fac(double _inc_fac) { sqp_lambda_inc_fac = _inc_fac; }
+	double get_sqp_lambda_dec_fac() const { return sqp_lambda_dec_fac; }
+	void set_sqp_lambda_dec_fac(double _dec_fac) { sqp_lambda_dec_fac = _dec_fac; }
 	double get_sqp_filter_tol() const { return sqp_filter_tol; }
 	void set_sqp_filter_tol(double val) { sqp_filter_tol = val; }
 	double get_sqp_working_set_tol() const { return sqp_working_set_tol; }
@@ -851,7 +857,6 @@ private:
 	int sqp_num_reals;
 	int sqp_subset_size;
 	bool sqp_update_hessian;
-	int sqp_num_refined_search_pts;
 	string sqp_hessian_update_method;
 	vector<double> sqp_alpha_mults;
 	double sqp_filter_tol;
@@ -877,6 +882,10 @@ private:
 	int sqp_seek_feas_max_iter;
 	double sqp_risk;
 	double sqp_powell_damping_factor;
+	vector<double> sqp_lam_mults;
+	double sqp_accept_phi_fac;
+	double sqp_lambda_inc_fac;
+	double sqp_lambda_dec_fac;
 	bool sqp_debug_enable_constraint_weighted_jco;
 	bool sqp_debug_hessian;
 	bool sqp_debug_cma;
