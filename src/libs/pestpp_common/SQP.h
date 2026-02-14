@@ -233,6 +233,7 @@ private:
 	double last_best_marq_lam_binding, last_best_marq_lam_nonbinding;
 	double last_best_obj_binding, last_best_viol_binding;
 	double last_best_obj_nonbinding, last_best_viol_nonbinding;
+	vector<string> binding_subset, nonbinding_subset;
 
 	map <string, pair<Mat, bool>> constraint_mat_en;
 	map<string, vector<string>> cnames_en;
