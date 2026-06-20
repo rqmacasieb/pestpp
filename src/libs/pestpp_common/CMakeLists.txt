@@ -10,6 +10,7 @@ add_library(pestpp_com STATIC
   EnsembleMethodUtils.cpp
   EnsembleSmoother.cpp
   FileManager.cpp
+  Gpr.cpp
   Jacobian_1to1.cpp
   Jacobian.cpp
   linear_analysis.cpp

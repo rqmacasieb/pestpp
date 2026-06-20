@@ -579,7 +579,6 @@ PestppOptions::ARG_STATUS PestppOptions::assign_value_by_key(string key, const s
         sweep_include_regul_phi = pest_utils::parse_string_arg_to_bool(value);
     }
 
-
     else if (key == "TIE_BY_GROUP")
 	{
 		tie_by_group = pest_utils::parse_string_arg_to_bool(value);
@@ -831,7 +830,8 @@ PestppOptions::ARG_STATUS PestppOptions::assign_value_by_key(string key, const s
 	else if ((!assign_value_by_key_continued(key, value, org_value)) && 
 	(!assign_value_by_key_sqp(key, value, org_value)) &&
 	(!assign_mou_value_by_key(key, value, org_value)) && 
-	(!assign_ies_value_by_key(key, value, org_value)))
+	(!assign_ies_value_by_key(key, value, org_value)) &&
+	(!assign_sm_value_by_key(key, value, org_value)))
 	{
 		//special treatment of the da args...
 		if (!assign_da_value_by_key(key, value, org_value))
@@ -1457,6 +1457,71 @@ bool PestppOptions::assign_value_by_key_continued(const string& key, const strin
 }
 
 
+bool PestppOptions::assign_sm_value_by_key(const string& key, const string& value, const string& org_value)
+{
+	if ((key == "SM_TRAINING_INPUT_FILE") || (key == "SM_TRAINING_PARAMETER_FILE"))
+	{
+		passed_args.insert("SM_TRAINING_INPUT_FILE");
+		passed_args.insert("SM_TRAINING_PARAMETER_FILE");
+		sm_training_input_file = org_value;
+		return true;
+	}
+	else if (key == "SM_TRAINING_OUTPUT_FILE")
+	{
+		sm_training_output_file = org_value;
+		return true;
+	}
+	else if (key == "SM_TRAINING_DATA_SIZE")
+	{
+		convert_ip(value, sm_training_data_size);
+		return true;
+	}
+	else if ((key == "SM_INPUT_FILE") || (key == "SM_PARAMETER_FILE"))
+	{
+		passed_args.insert("SM_INPUT_FILE");
+		passed_args.insert("SM_PARAMETER_FILE");
+		sm_input_file = org_value;
+		return true;
+	}
+	else if (key == "GPR_LENGTHSCALE")
+	{
+		convert_ip(value, gpr_lengthscale);
+		return true;
+	}
+	else if (key == "GPR_NUGGET")
+	{
+		convert_ip(value, gpr_nugget);
+		return true;
+	}
+	else if (key == "GPR_LOCAL")
+	{
+		gpr_local = pest_utils::parse_string_arg_to_bool(value);
+		return true;
+	}
+	else if (key == "GPR_LOCAL_START")
+	{
+		convert_ip(value, gpr_local_start);
+		return true;
+	}
+	else if (key == "GPR_LOCAL_END")
+	{
+		convert_ip(value, gpr_local_end);
+		return true;
+	}
+	else if (key == "GPR_LOCAL_METHOD")
+	{
+		gpr_local_method = value;
+		return true;
+	}
+	else if (key == "GPR_VERBOSE")
+	{
+		convert_ip(value, gpr_verbose);
+		return true;
+	}
+	return false;
+}
+
+
 bool PestppOptions::assign_mou_value_by_key(const string& key, const string& value, const string& org_value)
 {
 	if (key == "MOU_GENERATOR")
@@ -2030,7 +2095,20 @@ void PestppOptions::summary(ostream& os) const
 	os << "sweep_forgive: " << sweep_forgive << endl;
 	os << "sweep_base_run: " << sweep_base_run << endl;
 	os << "sweep_include_regul_phi: " << sweep_include_regul_phi << endl;
-	
+
+	os << endl << "...pestpp-sm options:" << endl;
+	os << "sm_training_input_file: " << sm_training_input_file << endl;
+	os << "sm_training_output_file: " << sm_training_output_file << endl;
+	os << "sm_training_data_size: " << sm_training_data_size << endl;
+	os << "sm_input_file: " << sm_input_file << endl;
+	os << "gpr_lengthscale: " << gpr_lengthscale << endl;
+	os << "gpr_nugget: " << gpr_nugget << endl;
+	os << "gpr_local: " << gpr_local << endl;
+	os << "gpr_local_start: " << gpr_local_start << endl;
+	os << "gpr_local_end: " << gpr_local_end << endl;
+	os << "gpr_local_method: " << gpr_local_method << endl;
+	os << "gpr_verbose: " << gpr_verbose << endl;
+
 	os << endl << "...pestpp-opt options:" << endl;
 	os << "opt_objective_function: " <<  opt_obj_func << endl;
 	os << "opt_coin_log: " << opt_coin_log << endl;
@@ -2304,6 +2382,18 @@ void PestppOptions::set_defaults()
 	set_tie_by_group(false);
 	set_enforce_tied_bounds(false);
     set_sweep_include_regul_phi(false);
+
+	set_sm_training_input_file("");
+	set_sm_training_output_file("");
+	set_sm_training_data_size(0);
+	set_sm_input_file("gpr_in.csv");
+	set_gpr_lengthscale(-1.0);
+	set_gpr_nugget(1.0e-4);
+	set_gpr_local(false);
+	set_gpr_local_start(6);
+	set_gpr_local_end(50);
+	set_gpr_local_method("alc");
+	set_gpr_verbose(0);
 
 	set_opt_obj_func("");
     set_org_opt_obj_func("");

@@ -230,6 +230,7 @@ public:
 	bool assign_mou_value_by_key(const string& key, const string& value, const string& org_value);
 	bool assign_da_value_by_key(const string& key, const string& value, const string& org_value);
 	bool assign_ies_value_by_key(const string& key, const string& value, const string& org_value);
+	bool assign_sm_value_by_key(const string& key, const string& value, const string& org_value);
 	bool assign_value_by_key_continued(const string& key, const string& value, const string& org_value);
 
 	int get_max_n_super() const { return max_n_super; }
@@ -317,6 +318,30 @@ public:
 	void set_sweep_base_run(bool _base) { sweep_base_run = _base; }
 	bool get_sweep_include_regul_phi() const {return sweep_include_regul_phi;}
 	void set_sweep_include_regul_phi(bool _flag) {sweep_include_regul_phi = _flag;}
+
+	//pestpp-sm options
+	string get_sm_training_input_file() const { return sm_training_input_file; }
+	void set_sm_training_input_file(string _file) { sm_training_input_file = _file; }
+	string get_sm_training_output_file() const { return sm_training_output_file; }
+	void set_sm_training_output_file(string _file) { sm_training_output_file = _file; }
+	int get_sm_training_data_size() const { return sm_training_data_size; }
+	void set_sm_training_data_size(int _size) { sm_training_data_size = _size; }
+	string get_sm_input_file() const { return sm_input_file; }
+	void set_sm_input_file(string _file) { sm_input_file = _file; }
+	double get_gpr_lengthscale() const { return gpr_lengthscale; }
+	void set_gpr_lengthscale(double _v) { gpr_lengthscale = _v; }
+	double get_gpr_nugget() const { return gpr_nugget; }
+	void set_gpr_nugget(double _v) { gpr_nugget = _v; }
+	bool get_gpr_local() const { return gpr_local; }
+	void set_gpr_local(bool _flag) { gpr_local = _flag; }
+	int get_gpr_local_start() const { return gpr_local_start; }
+	void set_gpr_local_start(int _v) { gpr_local_start = _v; }
+	int get_gpr_local_end() const { return gpr_local_end; }
+	void set_gpr_local_end(int _v) { gpr_local_end = _v; }
+	string get_gpr_local_method() const { return gpr_local_method; }
+	void set_gpr_local_method(string _v) { gpr_local_method = _v; }
+	int get_gpr_verbose() const { return gpr_verbose; }
+	void set_gpr_verbose(int _v) { gpr_verbose = _v; }
 
 	bool get_jac_scale()const { return jac_scale; }
 	void set_jac_scale(bool _jac_scale) { jac_scale = _jac_scale; }
@@ -819,6 +844,18 @@ private:
 	int sweep_chunk;
 	bool sweep_base_run;
 	bool sweep_include_regul_phi;
+
+	string sm_training_input_file;
+	string sm_training_output_file;
+	int sm_training_data_size;
+	string sm_input_file;
+	double gpr_lengthscale;
+	double gpr_nugget;
+	bool gpr_local;
+	int gpr_local_start;
+	int gpr_local_end;
+	string gpr_local_method;
+	int gpr_verbose;
 
 	GLOBAL_OPT global_opt;
 	string moea_name;

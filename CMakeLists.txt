@@ -153,6 +153,7 @@ add_custom_target(local_install
     pestpp-opt
     pestpp-sen
     pestpp-swp
+    pestpp-sm
     pestpp-mou
     pestpp-sqp
     pestpp-da
