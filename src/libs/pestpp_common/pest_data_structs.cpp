@@ -1518,6 +1518,11 @@ bool PestppOptions::assign_sm_value_by_key(const string& key, const string& valu
 		convert_ip(value, gpr_verbose);
 		return true;
 	}
+	else if (key == "SM_NUM_THREADS")
+	{
+		convert_ip(value, sm_num_threads);
+		return true;
+	}
 	return false;
 }
 
@@ -2108,6 +2113,7 @@ void PestppOptions::summary(ostream& os) const
 	os << "gpr_local_end: " << gpr_local_end << endl;
 	os << "gpr_local_method: " << gpr_local_method << endl;
 	os << "gpr_verbose: " << gpr_verbose << endl;
+	os << "sm_num_threads: " << sm_num_threads << endl;
 
 	os << endl << "...pestpp-opt options:" << endl;
 	os << "opt_objective_function: " <<  opt_obj_func << endl;
@@ -2394,6 +2400,7 @@ void PestppOptions::set_defaults()
 	set_gpr_local_end(50);
 	set_gpr_local_method("alc");
 	set_gpr_verbose(0);
+	set_sm_num_threads(-1);
 
 	set_opt_obj_func("");
     set_org_opt_obj_func("");
