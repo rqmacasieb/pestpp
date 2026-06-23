@@ -11,7 +11,7 @@
  *   4. uses the trained emulator to predict the outputs for a second
  *      (prediction) suite of parameter sets - without running the model.
  *
- * The GPR framework is a C++/Eigen port of the laGPy library (see Gpr.h).
+ * The GPR framework is a C++/Eigen port of the laGPy library (see GPR.h).
  */
 
 #include "RunManagerPanther.h"
@@ -45,7 +45,7 @@
 #include "logger.h"
 #include "Jacobian.h"
 #include "RunManagerExternal.h"
-#include "Gpr.h"
+#include "GPR.h"
 #include "Ensemble.h"
 #include <random>
 #include <thread>

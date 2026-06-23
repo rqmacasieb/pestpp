@@ -1,4 +1,4 @@
-#include "Gpr.h"
+#include "GPR.h"
 
 #include <cmath>
 #include <cctype>
@@ -532,8 +532,8 @@ Eigen::VectorXd GPutils::alc(const GP& gp, const Eigen::MatrixXd& Xcand, const E
 	double dfrat = df / (df - 2.0);
 	for (int c = 0; c < ncand; c++)
 	{
-	if (mui[c] <= dbl_eps())
-			continue;
+		if (mui[c] <= dbl_eps())
+				continue;
 		Eigen::RowVectorXd gc = -gvec.row(c) / mui[c];
 		double dotp = gc.dot(kvec);
 		double kxyc = kxy(c, 0);
@@ -1030,7 +1030,13 @@ void GPR::local_gp_predict(const Eigen::MatrixXd& Xtrain, const Eigen::VectorXd&
 				int w = 0;
 				double best = scores[0];
 				for (int c = 1; c < scores.size(); c++)
-					if (scores[c] > best) { best = scores[c]; w = c; }
+				{
+					if (scores[c] > best)
+					{
+						best = scores[c];
+						w = c;
+					}
+				}
 
 				Eigen::MatrixXd Xnew = Xtrain.row(cand[w]);
 				Eigen::VectorXd Znew(1);
