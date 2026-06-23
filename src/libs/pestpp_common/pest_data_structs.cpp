@@ -1523,6 +1523,16 @@ bool PestppOptions::assign_sm_value_by_key(const string& key, const string& valu
 		convert_ip(value, sm_num_threads);
 		return true;
 	}
+	else if (key == "GPR_KERNEL")
+	{
+		gpr_kernel = value;
+		return true;
+	}
+	else if (key == "GPR_COMPUTE_DERIVATIVES")
+	{
+		gpr_compute_derivatives = pest_utils::parse_string_arg_to_bool(value);
+		return true;
+	}
 	return false;
 }
 
@@ -2114,6 +2124,8 @@ void PestppOptions::summary(ostream& os) const
 	os << "gpr_local_method: " << gpr_local_method << endl;
 	os << "gpr_verbose: " << gpr_verbose << endl;
 	os << "sm_num_threads: " << sm_num_threads << endl;
+	os << "gpr_kernel: " << gpr_kernel << endl;
+	os << "gpr_compute_derivatives: " << gpr_compute_derivatives << endl;
 
 	os << endl << "...pestpp-opt options:" << endl;
 	os << "opt_objective_function: " <<  opt_obj_func << endl;
@@ -2401,6 +2413,8 @@ void PestppOptions::set_defaults()
 	set_gpr_local_method("alc");
 	set_gpr_verbose(0);
 	set_sm_num_threads(-1);
+	set_gpr_kernel("squared_exponential");
+	set_gpr_compute_derivatives(false);
 
 	set_opt_obj_func("");
     set_org_opt_obj_func("");

@@ -1,24 +1,6 @@
-/*
-
-
-This file is part of PEST++.
-
-PEST++ is free software: you can redistribute it and/or modify
-it under the terms of the GNU General Public License as published by
-the Free Software Foundation, either version 3 of the License, or
-(at your option) any later version.
-
-PEST++ is distributed in the hope that it will be useful,
-but WITHOUT ANY WARRANTY; without even the implied warranty of
-MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-GNU General Public License for more details.
-
-You should have received a copy of the GNU General Public License
-along with PEST++.  If not, see<http://www.gnu.org/licenses/>.
-*/
 /**
  * @file pestpp-sm.cpp
- * @brief A surrogate-model (currently Gaussian Process Regression) emulator utility.
+ * @brief A surrogate-model emulator utility.
  *
  * pestpp-sm behaves like pestpp-swp, but rather than simply evaluating a set
  * of input parameters with the model, it:
@@ -32,7 +14,7 @@ along with PEST++.  If not, see<http://www.gnu.org/licenses/>.
  * The GPR framework is a C++/Eigen port of the laGPy library (see Gpr.h).
  */
 
-#include "RunManagerPanther.h" //needs to be first because it includes winsock2.h
+#include "RunManagerPanther.h"
 #include <iostream>
 #include <iomanip>
 #include <fstream>
@@ -192,8 +174,7 @@ static void load_all_parameters_from_csv(map<string, int>& header_info, ifstream
  * jacobian, or dense binary) into a vector of Parameters.
  */
 static void read_all_parameters(const string& par_file, Pest& pest_scenario, bool forgive,
-	ofstream& fout_rec, vector<string>& run_ids, vector<Parameters>& all_pars,
-	vector<string>* file_par_columns = nullptr)
+	ofstream& fout_rec, vector<string>& run_ids, vector<Parameters>& all_pars, vector<string>* file_par_columns = nullptr)
 {
 	run_ids.clear();
 	all_pars.clear();
@@ -460,7 +441,7 @@ static void write_par_csv(const string& filename, const vector<string>& col_name
 /**
  * @brief Write successful training inputs to ``<pst>.training.in.csv``.
  */
-static void write_train_in_csv(const string& filename, const vector<string>& adj_names,
+static void write_training_in_csv(const string& filename, const vector<string>& adj_names,
 	const vector<string>& run_ids, const vector<Parameters>& pars_vec)
 {
 	write_par_csv(filename, adj_names, run_ids, pars_vec);
@@ -498,6 +479,40 @@ static void write_pred_obs_csv(const string& filename, const vector<string>& obs
 }
 
 /**
+ * @brief Write emulator prediction gradients to a CSV.
+ *
+ * One row per (prediction realization, observation) pair; one column per
+ * adjustable parameter.  ``deriv[j]`` holds the (n_pred x n_adj) gradient
+ * matrix for observation ``j``.  Used for both the predictive-mean gradients
+ * (``<pst>.pred.dmean.csv``) and the predictive-variance gradients
+ * (``<pst>.pred.ds2.csv``).
+ */
+static void write_pred_deriv_csv(const string& filename, const vector<string>& obs_names,
+	const vector<string>& adj_names, const vector<string>& run_ids,
+	const vector<Eigen::MatrixXd>& deriv)
+{
+	ofstream out(filename);
+	if (!out.good())
+		throw runtime_error("could not open prediction gradient file for writing: " + filename);
+	out << setprecision(numeric_limits<double>::digits10);
+	out << "real_name,obs_name";
+	for (auto& n : adj_names)
+		out << ',' << lower_cp(n);
+	out << endl;
+	for (int i = 0; i < (int)run_ids.size(); i++)
+	{
+		for (int j = 0; j < (int)obs_names.size(); j++)
+		{
+			out << run_ids[i] << ',' << lower_cp(obs_names[j]);
+			for (int c = 0; c < (int)adj_names.size(); c++)
+				out << ',' << deriv[j](i, c);
+			out << endl;
+		}
+	}
+	out.close();
+}
+
+/**
  * @brief Write training outputs to ``<pst>.training.out.csv`` (real_name + observations only).
  */
 static void write_training_out_csv(const string& filename, const vector<string>& obs_names,
@@ -522,19 +537,6 @@ static void write_training_out_csv(const string& filename, const vector<string>&
 	out.close();
 }
 
-/**
- * @brief Write ``<pst>.training.in.csv`` and ``<pst>.training.out.csv``.
- */
-static void write_training_archives(
-	const string& train_in_file, const string& train_out_file,
-	const vector<string>& adj_names, const vector<string>& obs_names,
-	const vector<string>& run_ids, const vector<Parameters>& pars_vec,
-	const vector<Observations>& obs_vec)
-{
-	write_train_in_csv(train_in_file, adj_names, run_ids, pars_vec);
-	write_training_out_csv(train_out_file, obs_names, run_ids, obs_vec);
-}
-
 
 int main(int argc, char* argv[])
 {
@@ -544,7 +546,7 @@ int main(int argc, char* argv[])
 #endif
 		string version = PESTPP_VERSION;
 		cout << endl << endl;
-		cout << "             pestpp-sm - a surrogate-model (GPR) emulator utility, version " << version << endl;
+		cout << "             pestpp-sm - a surrogate-model emulator utility, version " << version << endl;
 		cout << "                     for PEST(++) datasets " << endl << endl;
 		cout << "                 by the PEST++ development team" << endl << endl << endl;
 		auto start = chrono::steady_clock::now();
@@ -667,18 +669,21 @@ int main(int argc, char* argv[])
 		int local_end = ppo.get_gpr_local_end();
 		string local_method = ppo.get_gpr_local_method();
 		int verb = ppo.get_gpr_verbose();
-		// number of threads to use for the in-process GPR training/prediction
-		// (mirrors ies_num_threads: < 1 => serial).  hardware_concurrency is
-		// only used as an upper sanity cap when a positive value is given.
+
 		int sm_num_threads = ppo.get_sm_num_threads();
 		if (sm_num_threads < 1)
 			sm_num_threads = 1;
+		
+		GPKernel gpr_kernel = gpr_kernel_from_string(ppo.get_gpr_kernel());
+		bool compute_derivs = ppo.get_gpr_compute_derivatives();
 
 		string pst_base = file_manager.get_base_filename();
 		string train_in_archive = pst_base + ".training.in.csv";
 		string train_out_archive = pst_base + ".training.out.csv";
 		string pred_par_archive = pst_base + ".par.csv";
 		string pred_obs_archive = pst_base + ".obs.csv";
+		string pred_dmean_archive = pst_base + ".pred.dmean.csv";
+		string pred_ds2_archive = pst_base + ".pred.ds2.csv";
 
 		fout_rec << endl << "    sm training input parameter file = " << train_input_file << endl;
 		fout_rec << "    sm training data size = " << sm_training_data_size << endl;
@@ -699,6 +704,8 @@ int main(int argc, char* argv[])
 			fout_rec << "    gpr local design method = " << local_method << endl;
 		}
 		fout_rec << "    sm number of threads = " << sm_num_threads << endl;
+		fout_rec << "    gpr kernel = " << gpr_kernel_to_string(gpr_kernel) << endl;
+		fout_rec << "    gpr compute derivatives = " << compute_derivs << endl;
 
 		if (pest_scenario.get_pestpp_options().get_debug_parse_only())
 		{
@@ -725,12 +732,9 @@ int main(int argc, char* argv[])
 				throw runtime_error("pestpp-sm requires sm_training_data_size >= 2 when sm_training_input_file is not supplied");
 			if (use_preevaluated_training)
 				throw runtime_error("sm_training_output_file requires sm_training_input_file when training data is not drawn");
-			cout << endl << "...drawing " << sm_training_data_size
-				<< " uniform training parameter sets" << endl;
-			fout_rec << endl << "...drawing " << sm_training_data_size
-				<< " uniform training parameter sets" << endl;
-			draw_uniform_training_parameters(pest_scenario, sm_training_data_size, adj_names,
-				performance_log, fout_rec, train_run_ids, train_pars);
+			cout << endl << "...drawing " << sm_training_data_size << " uniform training parameter sets" << endl;
+			fout_rec << endl << "...drawing " << sm_training_data_size << " uniform training parameter sets" << endl;
+			draw_uniform_training_parameters(pest_scenario, sm_training_data_size, adj_names, performance_log, fout_rec, train_run_ids, train_pars);
 			drew_training = true;
 		}
 		else
@@ -912,8 +916,9 @@ int main(int argc, char* argv[])
 
 		cout << endl << "...writing training archive files" << endl;
 		fout_rec << endl << "...writing training archive files" << endl;
-		write_training_archives(train_in_archive, train_out_archive,
-			adj_names, obs_names, train_success_ids, train_success_pars, train_success_obs);
+		write_training_in_csv(train_in_archive, adj_names, train_success_ids, train_success_pars);
+		write_training_out_csv(train_out_archive, obs_names, train_success_ids, train_success_obs);
+
 		cout << "   training inputs written to " << train_in_archive << endl;
 		cout << "   training outputs written to " << train_out_archive << endl;
 		fout_rec << "   training inputs written to " << train_in_archive << endl;
@@ -929,22 +934,6 @@ int main(int argc, char* argv[])
 			for (int j = 0; j < n_obs; j++)
 				Ztrain(i, j) = Ztrain_rows[i][j];
 		}
-
-		// standardize the input columns (mean 0, std 1) so the isotropic
-		// covariance is scale-invariant across parameters
-		Eigen::VectorXd xmean = Xtrain.colwise().mean();
-		Eigen::VectorXd xstd(n_adj);
-		for (int j = 0; j < n_adj; j++)
-		{
-			double s = 0.0;
-			for (int i = 0; i < n_train; i++)
-				s += (Xtrain(i, j) - xmean[j]) * (Xtrain(i, j) - xmean[j]);
-			s = sqrt(s / (double)n_train);
-			xstd[j] = (s > 0.0) ? s : 1.0;
-		}
-		for (int j = 0; j < n_adj; j++)
-			for (int i = 0; i < n_train; i++)
-				Xtrain(i, j) = (Xtrain(i, j) - xmean[j]) / xstd[j];
 
 		//-------------------------------------------------------------
 		// Step 2: read the prediction parameter sets
@@ -968,7 +957,7 @@ int main(int argc, char* argv[])
 		{
 			Eigen::VectorXd xvec = pred_pars[i].get_data_eigen_vec(adj_names);
 			for (int j = 0; j < n_adj; j++)
-				Xpred(i, j) = (xvec[j] - xmean[j]) / xstd[j];
+				Xpred(i, j) = xvec[j];
 		}
 
 		//-------------------------------------------------------------
@@ -980,7 +969,17 @@ int main(int argc, char* argv[])
 		Eigen::MatrixXd PredMean(n_pred, n_obs);
 		Eigen::MatrixXd PredStd(n_pred, n_obs);
 
-		GPR gpr_engine;
+		// optional per-observation analytic gradients of the prediction with
+		// respect to the adjustable parameters (n_pred x n_adj each); only
+		// allocated when GPR_COMPUTE_DERIVATIVES is true.
+		vector<Eigen::MatrixXd> PredDMean, PredDS2;
+		if (compute_derivs)
+		{
+			PredDMean.assign(n_obs, Eigen::MatrixXd::Zero(n_pred, n_adj));
+			PredDS2.assign(n_obs, Eigen::MatrixXd::Zero(n_pred, n_adj));
+		}
+
+		GPR gpr_engine(gpr_kernel);
 		performance_log.log_event("starting GPR training/prediction");
 
 		// train one GP for observation 'j' and write its predictive mean/sd
@@ -989,7 +988,7 @@ int main(int argc, char* argv[])
 		// this is safe to run concurrently across observations.  'row_threads'
 		// is forwarded to the local GP so its per-prediction-row loop can be
 		// parallelized when the observation loop itself is serial.
-		std::mutex sm_log_mutex;
+		mutex sm_log_mutex;
 		auto process_obs = [&](int j, int row_threads)
 		{
 			Eigen::VectorXd Zj = Ztrain.col(j);
@@ -997,11 +996,19 @@ int main(int argc, char* argv[])
 			double zmax = Zj.maxCoeff();
 
 			Eigen::VectorXd mean_j, s2_j;
+			Eigen::MatrixXd dmean_j, ds2_j;
+			Eigen::MatrixXd* dmean_ptr = compute_derivs ? &dmean_j : nullptr;
+			Eigen::MatrixXd* ds2_ptr = compute_derivs ? &ds2_j : nullptr;
 			if ((zmax - zmin) < (1.0e-30 + 1.0e-10 * (fabs(zmax) + fabs(zmin))))
 			{
 				// observation is (effectively) constant over the training set
 				mean_j = Eigen::VectorXd::Constant(n_pred, Zj.mean());
 				s2_j = Eigen::VectorXd::Zero(n_pred);
+				if (compute_derivs)
+				{
+					dmean_j = Eigen::MatrixXd::Zero(n_pred, n_adj);
+					ds2_j = Eigen::MatrixXd::Zero(n_pred, n_adj);
+				}
 			}
 			else
 			{
@@ -1009,17 +1016,16 @@ int main(int argc, char* argv[])
 				{
 					if (use_local)
 						gpr_engine.local_gp_predict(Xtrain, Zj, Xpred, local_start, local_end,
-							local_method, d_in, g_in, verb, mean_j, s2_j, row_threads);
+							local_method, d_in, g_in, verb, mean_j, s2_j, row_threads, dmean_ptr, ds2_ptr);
 					else
 					{
 						double d_used, g_used;
 						gpr_engine.full_gp_predict(Xtrain, Zj, Xpred, d_in, g_in, verb,
-							mean_j, s2_j, d_used, g_used);
+							mean_j, s2_j, d_used, g_used, dmean_ptr, ds2_ptr);
 						if (verb > 0)
 						{
-							std::lock_guard<std::mutex> lk(sm_log_mutex);
-							fout_rec << "   obs '" << obs_names[j] << "': d=" << d_used
-								<< " g=" << g_used << endl;
+							lock_guard<mutex> lk(sm_log_mutex);
+							fout_rec << "   obs '" << obs_names[j] << "': d=" << d_used << " g=" << g_used << endl;
 						}
 					}
 				}
@@ -1027,7 +1033,7 @@ int main(int argc, char* argv[])
 				{
 					// fall back to the training mean if the GP build fails
 					{
-						std::lock_guard<std::mutex> lk(sm_log_mutex);
+						lock_guard<mutex> lk(sm_log_mutex);
 						fout_rec << "   WARNING: GPR failed for observation '" << obs_names[j]
 							<< "' (" << e.what() << "); using training mean" << endl;
 						cout << "   WARNING: GPR failed for observation '" << obs_names[j]
@@ -1039,21 +1045,27 @@ int main(int argc, char* argv[])
 					for (int i = 0; i < n_train; i++) var += (Zj[i] - zm) * (Zj[i] - zm);
 					var /= (double)n_train;
 					s2_j = Eigen::VectorXd::Constant(n_pred, var);
+					if (compute_derivs)
+					{
+						dmean_j = Eigen::MatrixXd::Zero(n_pred, n_adj);
+						ds2_j = Eigen::MatrixXd::Zero(n_pred, n_adj);
+					}
 				}
 			}
 			PredMean.col(j) = mean_j;
 			for (int i = 0; i < n_pred; i++)
 				PredStd(i, j) = sqrt(max(0.0, s2_j[i]));
+			if (compute_derivs)
+			{
+				PredDMean[j] = dmean_j;
+				PredDS2[j] = ds2_j;
+			}
 		};
 
 		if (use_local)
 		{
-			// local GP: the parallelism lives inside local_gp_predict (over
-			// the prediction rows), so keep the observation loop serial to
-			// avoid nesting threads.
 			if (sm_num_threads > 1)
-				cout << "   training/predicting with up to " << sm_num_threads
-					<< " threads over prediction points (per observation)" << endl;
+				cout << "   training/predicting with up to " << sm_num_threads << " threads over prediction points (per observation)" << endl;
 			int report_every = max(1, n_obs / 20);
 			for (int j = 0; j < n_obs; j++)
 			{
@@ -1090,7 +1102,7 @@ int main(int argc, char* argv[])
 			vector<thread> obs_threads;
 			vector<exception_ptr> obs_eptrs(nthreads, nullptr);
 			int next_obs = 0;
-			std::mutex next_obs_lock;
+			mutex next_obs_lock;
 			auto obs_queue = [&](int tid)
 			{
 				try
@@ -1099,7 +1111,7 @@ int main(int argc, char* argv[])
 					{
 						int j;
 						{
-							std::lock_guard<std::mutex> guard(next_obs_lock);
+							lock_guard<mutex> guard(next_obs_lock);
 							if (next_obs >= n_obs)
 								break;
 							j = next_obs;
@@ -1134,6 +1146,15 @@ int main(int argc, char* argv[])
 		cout << "   emulator predictions written to " << pred_obs_archive << endl;
 		fout_rec << "   prediction parameters written to " << pred_par_archive << endl;
 		fout_rec << "   emulator predictions written to " << pred_obs_archive << endl;
+		if (compute_derivs)
+		{
+			write_pred_deriv_csv(pred_dmean_archive, obs_names, adj_names, pred_run_ids, PredDMean);
+			write_pred_deriv_csv(pred_ds2_archive, obs_names, adj_names, pred_run_ids, PredDS2);
+			cout << "   prediction mean gradients written to " << pred_dmean_archive << endl;
+			cout << "   prediction variance gradients written to " << pred_ds2_archive << endl;
+			fout_rec << "   prediction mean gradients written to " << pred_dmean_archive << endl;
+			fout_rec << "   prediction variance gradients written to " << pred_ds2_archive << endl;
+		}
 
 		string case_name = file_manager.get_base_filename();
 		file_manager.close_file("rst");

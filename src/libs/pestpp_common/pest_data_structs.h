@@ -344,6 +344,10 @@ public:
 	void set_gpr_verbose(int _v) { gpr_verbose = _v; }
 	int get_sm_num_threads() const { return sm_num_threads; }
 	void set_sm_num_threads(int _threads) { sm_num_threads = _threads; }
+	string get_gpr_kernel() const { return gpr_kernel; }
+	void set_gpr_kernel(string _v) { gpr_kernel = _v; }
+	bool get_gpr_compute_derivatives() const { return gpr_compute_derivatives; }
+	void set_gpr_compute_derivatives(bool _flag) { gpr_compute_derivatives = _flag; }
 
 	bool get_jac_scale()const { return jac_scale; }
 	void set_jac_scale(bool _jac_scale) { jac_scale = _jac_scale; }
@@ -859,6 +863,8 @@ private:
 	string gpr_local_method;
 	int gpr_verbose;
 	int sm_num_threads;
+	string gpr_kernel;
+	bool gpr_compute_derivatives;
 
 	GLOBAL_OPT global_opt;
 	string moea_name;
