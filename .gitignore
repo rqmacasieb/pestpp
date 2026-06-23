@@ -84,5 +84,5 @@ docs/_build/
 docs/_doxygen/
 docs/_manual_assets/
 docs/users_manual_processed.md
-/benchmarks/gpr_michalewicz_data
 /benchmarks/__pycache__
+/benchmarks/gpr_michalewicz_data/template
