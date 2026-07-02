@@ -11,6 +11,7 @@ add_library(pestpp_com STATIC
   EnsembleSmoother.cpp
   FileManager.cpp
   GPR.cpp
+  PLS.cpp
   Jacobian_1to1.cpp
   Jacobian.cpp
   linear_analysis.cpp

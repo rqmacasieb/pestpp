@@ -46,6 +46,7 @@
 #include "Jacobian.h"
 #include "RunManagerExternal.h"
 #include "GPR.h"
+#include "PLS.h"
 #include "Ensemble.h"
 #include <random>
 #include <thread>
@@ -676,6 +677,9 @@ int main(int argc, char* argv[])
 		
 		GPKernel gpr_kernel = gpr_kernel_from_string(ppo.get_gpr_kernel());
 		bool compute_derivs = ppo.get_gpr_compute_derivatives();
+		bool use_pls = ppo.get_sm_pls();
+		int pls_ncomp = ppo.get_sm_pls_ncomp();
+		double pls_var_thresh = ppo.get_sm_pls_var_thresh();
 
 		string pst_base = file_manager.get_base_filename();
 		string train_in_archive = pst_base + ".training.in.csv";
@@ -706,6 +710,12 @@ int main(int argc, char* argv[])
 		fout_rec << "    sm number of threads = " << sm_num_threads << endl;
 		fout_rec << "    gpr kernel = " << gpr_kernel_to_string(gpr_kernel) << endl;
 		fout_rec << "    gpr compute derivatives = " << compute_derivs << endl;
+		fout_rec << "    sm pls (PLS-K mode) = " << use_pls << endl;
+		if (use_pls)
+		{
+			fout_rec << "    sm pls ncomp (0=auto) = " << pls_ncomp << endl;
+			fout_rec << "    sm pls var thresh = " << pls_var_thresh << endl;
+		}
 
 		if (pest_scenario.get_pestpp_options().get_debug_parse_only())
 		{
@@ -961,179 +971,221 @@ int main(int argc, char* argv[])
 		}
 
 		//-------------------------------------------------------------
-		// Step 3: train one GPR per observation and predict
+		// Step 3: train emulator(s) and predict
+		//   PLS-K path: NIPALS PLS extracts d latent score pairs, then d
+		//               one-dimensional GPs are fitted and used for prediction.
+		//   GPR path  : one n-dimensional GP per observation (original behaviour).
 		//-------------------------------------------------------------
-		cout << endl << "...training GPR emulator(s) and predicting" << endl;
-		fout_rec << endl << "...training GPR emulator(s) and predicting" << endl;
+		cout << endl << "...training emulator(s) and predicting" << endl;
+		fout_rec << endl << "...training emulator(s) and predicting" << endl;
 
 		Eigen::MatrixXd PredMean(n_pred, n_obs);
 		Eigen::MatrixXd PredStd(n_pred, n_obs);
 
-		// optional per-observation analytic gradients of the prediction with
-		// respect to the adjustable parameters (n_pred x n_adj each); only
-		// allocated when GPR_COMPUTE_DERIVATIVES is true.
+		// analytic gradients only supported in plain-GPR mode
 		vector<Eigen::MatrixXd> PredDMean, PredDS2;
 		if (compute_derivs)
 		{
-			PredDMean.assign(n_obs, Eigen::MatrixXd::Zero(n_pred, n_adj));
-			PredDS2.assign(n_obs, Eigen::MatrixXd::Zero(n_pred, n_adj));
-		}
-
-		GPR gpr_engine(gpr_kernel);
-		performance_log.log_event("starting GPR training/prediction");
-
-		// train one GP for observation 'j' and write its predictive mean/sd
-		// columns.  shared inputs (Xtrain, Xpred, ...) are read-only and the
-		// only writes are to the distinct column 'j' of PredMean/PredStd, so
-		// this is safe to run concurrently across observations.  'row_threads'
-		// is forwarded to the local GP so its per-prediction-row loop can be
-		// parallelized when the observation loop itself is serial.
-		mutex sm_log_mutex;
-		auto process_obs = [&](int j, int row_threads)
-		{
-			Eigen::VectorXd Zj = Ztrain.col(j);
-			double zmin = Zj.minCoeff();
-			double zmax = Zj.maxCoeff();
-
-			Eigen::VectorXd mean_j, s2_j;
-			Eigen::MatrixXd dmean_j, ds2_j;
-			Eigen::MatrixXd* dmean_ptr = compute_derivs ? &dmean_j : nullptr;
-			Eigen::MatrixXd* ds2_ptr = compute_derivs ? &ds2_j : nullptr;
-			if ((zmax - zmin) < (1.0e-30 + 1.0e-10 * (fabs(zmax) + fabs(zmin))))
+			if (use_pls)
 			{
-				// observation is (effectively) constant over the training set
-				mean_j = Eigen::VectorXd::Constant(n_pred, Zj.mean());
-				s2_j = Eigen::VectorXd::Zero(n_pred);
-				if (compute_derivs)
-				{
-					dmean_j = Eigen::MatrixXd::Zero(n_pred, n_adj);
-					ds2_j = Eigen::MatrixXd::Zero(n_pred, n_adj);
-				}
+				cout << "   WARNING: gpr_compute_derivatives is not supported in PLS-K mode; ignored" << endl;
+				fout_rec << "   WARNING: gpr_compute_derivatives is not supported in PLS-K mode; ignored" << endl;
 			}
 			else
 			{
-				try
+				PredDMean.assign(n_obs, Eigen::MatrixXd::Zero(n_pred, n_adj));
+				PredDS2.assign(n_obs, Eigen::MatrixXd::Zero(n_pred, n_adj));
+			}
+		}
+
+		performance_log.log_event("starting emulator training/prediction");
+
+		if (use_pls)
+		{
+			// ---- PLS-K path ----
+			if (pls_ncomp > 0)
+				cout << "   PLS-K: using " << pls_ncomp << " fixed components" << endl;
+			else
+				cout << "   PLS-K: auto components (var_thresh=" << pls_var_thresh << ")" << endl;
+			fout_rec << "   PLS-K: n_comp=" << pls_ncomp
+				<< "  var_thresh=" << pls_var_thresh << endl;
+
+			try
+			{
+				PLSGP plsgp;
+				plsgp.fit(Xtrain, Ztrain, pls_ncomp, pls_var_thresh, d_in, g_in, gpr_kernel, verb);
+				int d_used = plsgp.get_n_comp();
+				double var_exp = plsgp.get_var_explained();
+				cout << "   PLS-K: " << d_used << " components, "
+					<< var_exp * 100.0 << "% Y-variance explained" << endl;
+				fout_rec << "   PLS-K: " << d_used << " components, "
+					<< var_exp * 100.0 << "% Y-variance explained" << endl;
+
+				plsgp.predict(Xpred, PredMean, PredStd);
+			}
+			catch (exception& e)
+			{
+				throw runtime_error(string("PLS-K fitting/prediction failed: ") + e.what());
+			}
+		}
+		else
+		{
+			// ---- plain GPR path (original behaviour) ----
+			GPR gpr_engine(gpr_kernel);
+
+			// train one GP for observation 'j' and write its predictive mean/sd
+			// columns.  shared inputs (Xtrain, Xpred, ...) are read-only and the
+			// only writes are to the distinct column 'j' of PredMean/PredStd, so
+			// this is safe to run concurrently across observations.  'row_threads'
+			// is forwarded to the local GP so its per-prediction-row loop can be
+			// parallelized when the observation loop itself is serial.
+			mutex sm_log_mutex;
+			auto process_obs = [&](int j, int row_threads)
+			{
+				Eigen::VectorXd Zj = Ztrain.col(j);
+				double zmin = Zj.minCoeff();
+				double zmax = Zj.maxCoeff();
+
+				Eigen::VectorXd mean_j, s2_j;
+				Eigen::MatrixXd dmean_j, ds2_j;
+				Eigen::MatrixXd* dmean_ptr = compute_derivs ? &dmean_j : nullptr;
+				Eigen::MatrixXd* ds2_ptr = compute_derivs ? &ds2_j : nullptr;
+				if ((zmax - zmin) < (1.0e-30 + 1.0e-10 * (fabs(zmax) + fabs(zmin))))
 				{
-					if (use_local)
-						gpr_engine.local_gp_predict(Xtrain, Zj, Xpred, local_start, local_end,
-							local_method, d_in, g_in, verb, mean_j, s2_j, row_threads, dmean_ptr, ds2_ptr);
-					else
-					{
-						double d_used, g_used;
-						gpr_engine.full_gp_predict(Xtrain, Zj, Xpred, d_in, g_in, verb,
-							mean_j, s2_j, d_used, g_used, dmean_ptr, ds2_ptr);
-						if (verb > 0)
-						{
-							lock_guard<mutex> lk(sm_log_mutex);
-							fout_rec << "   obs '" << obs_names[j] << "': d=" << d_used << " g=" << g_used << endl;
-						}
-					}
-				}
-				catch (exception& e)
-				{
-					// fall back to the training mean if the GP build fails
-					{
-						lock_guard<mutex> lk(sm_log_mutex);
-						fout_rec << "   WARNING: GPR failed for observation '" << obs_names[j]
-							<< "' (" << e.what() << "); using training mean" << endl;
-						cout << "   WARNING: GPR failed for observation '" << obs_names[j]
-							<< "'; using training mean" << endl;
-					}
+					// observation is (effectively) constant over the training set
 					mean_j = Eigen::VectorXd::Constant(n_pred, Zj.mean());
-					double var = 0.0;
-					double zm = Zj.mean();
-					for (int i = 0; i < n_train; i++) var += (Zj[i] - zm) * (Zj[i] - zm);
-					var /= (double)n_train;
-					s2_j = Eigen::VectorXd::Constant(n_pred, var);
+					s2_j = Eigen::VectorXd::Zero(n_pred);
 					if (compute_derivs)
 					{
 						dmean_j = Eigen::MatrixXd::Zero(n_pred, n_adj);
 						ds2_j = Eigen::MatrixXd::Zero(n_pred, n_adj);
 					}
 				}
-			}
-			PredMean.col(j) = mean_j;
-			for (int i = 0; i < n_pred; i++)
-				PredStd(i, j) = sqrt(max(0.0, s2_j[i]));
-			if (compute_derivs)
-			{
-				PredDMean[j] = dmean_j;
-				PredDS2[j] = ds2_j;
-			}
-		};
-
-		if (use_local)
-		{
-			if (sm_num_threads > 1)
-				cout << "   training/predicting with up to " << sm_num_threads << " threads over prediction points (per observation)" << endl;
-			int report_every = max(1, n_obs / 20);
-			for (int j = 0; j < n_obs; j++)
-			{
-				process_obs(j, sm_num_threads);
-				if ((j + 1) % report_every == 0 || j == n_obs - 1)
-					cout << "   trained/predicted " << (j + 1) << " of " << n_obs << " observations\r" << flush;
-			}
-			cout << endl;
-		}
-		else if ((sm_num_threads < 2) || (n_obs < 2))
-		{
-			// full GP, serial over observations
-			int report_every = max(1, n_obs / 20);
-			for (int j = 0; j < n_obs; j++)
-			{
-				process_obs(j, 1);
-				if ((j + 1) % report_every == 0 || j == n_obs - 1)
-					cout << "   trained/predicted " << (j + 1) << " of " << n_obs << " observations\r" << flush;
-			}
-			cout << endl;
-		}
-		else
-		{
-			// full GP: each observation is an independent global GP, so spread
-			// the observation loop across threads using a dynamic work queue
-			// (Option B).  threads pull the next observation index from a
-			// shared counter guarded by a mutex, self-balancing when per-obs
-			// cost varies.  keep Eigen single-threaded so the per-observation
-			// linear algebra does not over-subscribe the cores we dispatch over.
-			int nthreads = min(sm_num_threads, n_obs);
-			cout << "   training/predicting " << n_obs << " observations using "
-				<< nthreads << " threads" << endl;
-			Eigen::setNbThreads(1);
-			vector<thread> obs_threads;
-			vector<exception_ptr> obs_eptrs(nthreads, nullptr);
-			int next_obs = 0;
-			mutex next_obs_lock;
-			auto obs_queue = [&](int tid)
-			{
-				try
+				else
 				{
-					while (true)
+					try
 					{
-						int j;
+						if (use_local)
+							gpr_engine.local_gp_predict(Xtrain, Zj, Xpred, local_start, local_end,
+								local_method, d_in, g_in, verb, mean_j, s2_j, row_threads, dmean_ptr, ds2_ptr);
+						else
 						{
-							lock_guard<mutex> guard(next_obs_lock);
-							if (next_obs >= n_obs)
-								break;
-							j = next_obs;
-							next_obs++;
+							double d_used, g_used;
+							gpr_engine.full_gp_predict(Xtrain, Zj, Xpred, d_in, g_in, verb,
+								mean_j, s2_j, d_used, g_used, dmean_ptr, ds2_ptr);
+							if (verb > 0)
+							{
+								lock_guard<mutex> lk(sm_log_mutex);
+								fout_rec << "   obs '" << obs_names[j] << "': d=" << d_used << " g=" << g_used << endl;
+							}
 						}
-						process_obs(j, 1);
+					}
+					catch (exception& e)
+					{
+						// fall back to the training mean if the GP build fails
+						{
+							lock_guard<mutex> lk(sm_log_mutex);
+							fout_rec << "   WARNING: GPR failed for observation '" << obs_names[j]
+								<< "' (" << e.what() << "); using training mean" << endl;
+							cout << "   WARNING: GPR failed for observation '" << obs_names[j]
+								<< "'; using training mean" << endl;
+						}
+						mean_j = Eigen::VectorXd::Constant(n_pred, Zj.mean());
+						double var = 0.0;
+						double zm = Zj.mean();
+						for (int i = 0; i < n_train; i++) var += (Zj[i] - zm) * (Zj[i] - zm);
+						var /= (double)n_train;
+						s2_j = Eigen::VectorXd::Constant(n_pred, var);
+						if (compute_derivs)
+						{
+							dmean_j = Eigen::MatrixXd::Zero(n_pred, n_adj);
+							ds2_j = Eigen::MatrixXd::Zero(n_pred, n_adj);
+						}
 					}
 				}
-				catch (...)
+				PredMean.col(j) = mean_j;
+				for (int i = 0; i < n_pred; i++)
+					PredStd(i, j) = sqrt(max(0.0, s2_j[i]));
+				if (compute_derivs)
 				{
-					obs_eptrs[tid] = current_exception();
+					PredDMean[j] = dmean_j;
+					PredDS2[j] = ds2_j;
 				}
 			};
-			for (int t = 0; t < nthreads; t++)
-				obs_threads.push_back(thread(obs_queue, t));
-			for (int t = 0; t < nthreads; t++)
-				obs_threads[t].join();
-			for (int t = 0; t < nthreads; t++)
-				if (obs_eptrs[t])
-					rethrow_exception(obs_eptrs[t]);
+
+			if (use_local)
+			{
+				if (sm_num_threads > 1)
+					cout << "   training/predicting with up to " << sm_num_threads << " threads over prediction points (per observation)" << endl;
+				int report_every = max(1, n_obs / 20);
+				for (int j = 0; j < n_obs; j++)
+				{
+					process_obs(j, sm_num_threads);
+					if ((j + 1) % report_every == 0 || j == n_obs - 1)
+						cout << "   trained/predicted " << (j + 1) << " of " << n_obs << " observations\r" << flush;
+				}
+				cout << endl;
+			}
+			else if ((sm_num_threads < 2) || (n_obs < 2))
+			{
+				// full GP, serial over observations
+				int report_every = max(1, n_obs / 20);
+				for (int j = 0; j < n_obs; j++)
+				{
+					process_obs(j, 1);
+					if ((j + 1) % report_every == 0 || j == n_obs - 1)
+						cout << "   trained/predicted " << (j + 1) << " of " << n_obs << " observations\r" << flush;
+				}
+				cout << endl;
+			}
+			else
+			{
+				// full GP: each observation is an independent global GP, so spread
+				// the observation loop across threads using a dynamic work queue.
+				// threads pull the next observation index from a shared counter
+				// guarded by a mutex, self-balancing when per-obs cost varies.
+				// keep Eigen single-threaded so the per-observation linear algebra
+				// does not over-subscribe the cores we dispatch over.
+				int nthreads = min(sm_num_threads, n_obs);
+				cout << "   training/predicting " << n_obs << " observations using "
+					<< nthreads << " threads" << endl;
+				Eigen::setNbThreads(1);
+				vector<thread> obs_threads;
+				vector<exception_ptr> obs_eptrs(nthreads, nullptr);
+				int next_obs = 0;
+				mutex next_obs_lock;
+				auto obs_queue = [&](int tid)
+				{
+					try
+					{
+						while (true)
+						{
+							int j;
+							{
+								lock_guard<mutex> guard(next_obs_lock);
+								if (next_obs >= n_obs)
+									break;
+								j = next_obs;
+								next_obs++;
+							}
+							process_obs(j, 1);
+						}
+					}
+					catch (...)
+					{
+						obs_eptrs[tid] = current_exception();
+					}
+				};
+				for (int t = 0; t < nthreads; t++)
+					obs_threads.push_back(thread(obs_queue, t));
+				for (int t = 0; t < nthreads; t++)
+					obs_threads[t].join();
+				for (int t = 0; t < nthreads; t++)
+					if (obs_eptrs[t])
+						rethrow_exception(obs_eptrs[t]);
+			}
 		}
-		performance_log.log_event("finished GPR training/prediction");
+		performance_log.log_event("finished emulator training/prediction");
 
 		//-------------------------------------------------------------
 		// write outputs
@@ -1146,7 +1198,7 @@ int main(int argc, char* argv[])
 		cout << "   emulator predictions written to " << pred_obs_archive << endl;
 		fout_rec << "   prediction parameters written to " << pred_par_archive << endl;
 		fout_rec << "   emulator predictions written to " << pred_obs_archive << endl;
-		if (compute_derivs)
+		if (compute_derivs && !use_pls)
 		{
 			write_pred_deriv_csv(pred_dmean_archive, obs_names, adj_names, pred_run_ids, PredDMean);
 			write_pred_deriv_csv(pred_ds2_archive, obs_names, adj_names, pred_run_ids, PredDS2);

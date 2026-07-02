@@ -348,6 +348,12 @@ public:
 	void set_gpr_kernel(string _v) { gpr_kernel = _v; }
 	bool get_gpr_compute_derivatives() const { return gpr_compute_derivatives; }
 	void set_gpr_compute_derivatives(bool _flag) { gpr_compute_derivatives = _flag; }
+	bool get_sm_pls() const { return sm_pls; }
+	void set_sm_pls(bool _flag) { sm_pls = _flag; }
+	int get_sm_pls_ncomp() const { return sm_pls_ncomp; }
+	void set_sm_pls_ncomp(int _v) { sm_pls_ncomp = _v; }
+	double get_sm_pls_var_thresh() const { return sm_pls_var_thresh; }
+	void set_sm_pls_var_thresh(double _v) { sm_pls_var_thresh = _v; }
 
 	bool get_jac_scale()const { return jac_scale; }
 	void set_jac_scale(bool _jac_scale) { jac_scale = _jac_scale; }
@@ -865,6 +871,9 @@ private:
 	int sm_num_threads;
 	string gpr_kernel;
 	bool gpr_compute_derivatives;
+	bool sm_pls;
+	int sm_pls_ncomp;
+	double sm_pls_var_thresh;
 
 	GLOBAL_OPT global_opt;
 	string moea_name;
