@@ -2765,6 +2765,8 @@ vector<int> MOEA::run_population(ParameterEnsemble& _dp, ObservationEnsemble& _o
 		_op.drop_rows(failed_real_indices);
 	}
 
+	readjust_dv(_dp, _op);
+
 	//do this here in case something is wrong, we know sooner than later
 	if (allow_chance)
 	{
@@ -2772,6 +2774,34 @@ vector<int> MOEA::run_population(ParameterEnsemble& _dp, ObservationEnsemble& _o
 		constraints.update_chance_offsets();
 	}
 	return failed_real_indices;
+}
+
+void MOEA::readjust_dv(ParameterEnsemble& _dp, ObservationEnsemble& _op)
+{
+	if (readjust_dv_names.size() == 0)
+		return;
+	map<string, int> par2col_map;
+	for (int i = 0; i < readjust_dv_names.size(); i++)
+		par2col_map[readjust_dv_names[i]] = i;
+
+	ParameterEnsemble::transStatus org_status = _dp.get_trans_status();
+	Eigen::MatrixXd mat = _op.get_eigen(vector<string>(), readjust_obs_names);
+	if (org_status == ParameterEnsemble::transStatus::NUM)
+	{
+		ParamTransformSeq bts = pest_scenario.get_base_par_tran_seq();
+		for (int i = 0; i < mat.rows(); i++)
+		{
+			Parameters pars = pest_scenario.get_ctl_parameters();
+			pars.update(readjust_dv_names, mat.row(i));
+			bts.ctl2numeric_ip(pars);
+			for (auto& p : readjust_dv_names)
+				mat(i, par2col_map[p]) = pars.get_rec(p);
+		}
+	}
+	_dp.replace_col_vals_and_fixed(readjust_dv_names, mat);
+	stringstream ss;
+	ss << "readjusted " << readjust_dv_names.size() << " decision variable(s) using actual-implemented-value observations for " << mat.rows() << " realizations";
+	message(1, ss.str());
 }
 
 /**
@@ -2950,6 +2980,72 @@ void MOEA::initialize()
 		dv_names = act_par_names;
 	}
 
+	//process 'mou_readjust_dv' args - dv groups whose members should have their in-population
+	//value overwritten (post-run) with the value reported by a corresponding "<PARNAME>_ACTUAL"
+	//observation (e.g. a model that auto-reduces a requested pumping rate)
+	vector<string> readjust_groups = ppo->get_mou_readjust_dv_groups();
+	if (readjust_groups.size() != 0)
+	{
+		vector<string> missing;
+		vector<string> pst_groups = pest_scenario.get_ctl_ordered_par_group_names();
+		vector<string>::iterator gend = pst_groups.end();
+		vector<string>::iterator gstart = pst_groups.begin();
+		for (auto grp : readjust_groups)
+			if (find(gstart, gend, grp) == gend)
+				missing.push_back(grp);
+		if (missing.size() > 0)
+		{
+			ss.str("");
+			ss << "the following 'mou_readjust_dv' groups were not found: ";
+			for (auto m : missing)
+				ss << m << ",";
+			throw_moea_error(ss.str());
+		}
+
+		ParameterGroupInfo readjust_pinfo = pest_scenario.get_base_group_info();
+		vector<string> onames = pest_scenario.get_ctl_ordered_obs_names();
+		set<string> oset(onames.begin(), onames.end());
+		vector<string> missing_obs;
+		gend = readjust_groups.end();
+		gstart = readjust_groups.begin();
+		for (auto& par_name : dv_names)
+		{
+			if (find(gstart, gend, readjust_pinfo.get_group_name(par_name)) != gend)
+			{
+				string actual_obs_name = par_name + "_ACTUAL";
+				if (oset.find(actual_obs_name) == oset.end())
+					missing_obs.push_back(actual_obs_name);
+				else
+				{
+					readjust_dv_names.push_back(par_name);
+					readjust_obs_names.push_back(actual_obs_name);
+				}
+			}
+		}
+		if (missing_obs.size() > 0)
+		{
+			ss.str("");
+			ss << "'mou_readjust_dv' is active but the following actual-implemented-value observations were not found: ";
+			for (auto m : missing_obs)
+				ss << m << ",";
+			throw_moea_error(ss.str());
+		}
+		if (readjust_dv_names.size() == 0)
+		{
+			ss.str("");
+			ss << "no decision variables found in supplied 'mou_readjust_dv' groups: ";
+			for (auto g : readjust_groups)
+				ss << g << ",";
+			throw_moea_error(ss.str());
+		}
+		ss.str("");
+		ss << "'mou_readjust_dv' passed, " << readjust_dv_names.size() << " decision variable(s) will be readjusted post-run using actual-implemented-value observations";
+		message(1, ss.str());
+		ofstream& rfrec = file_manager.rec_ofstream();
+		rfrec << "decision variables to be readjusted post-run (dv -> actual-value observation):" << endl;
+		for (int i = 0; i < readjust_dv_names.size(); i++)
+			rfrec << readjust_dv_names[i] << " -> " << readjust_obs_names[i] << endl;
+	}
 
 	message(1, "number of decision variables: ", dv_names.size());
 	message(1, "max run fail: ", ppo->get_max_run_fail());

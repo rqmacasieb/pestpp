@@ -198,6 +198,7 @@ private:
 	std::mt19937 rand_gen;
 	vector<string> obj_names, obs_obj_names, pi_obj_names, obs_obj_sd_names, pi_obj_sd_names;
 	vector<string> dv_names;
+	vector<string> readjust_dv_names, readjust_obs_names;
     map<string,string> ppd_obj_to_sd;
 	map<string, double> obj_dir_mult;
 	int n_adaptive_dvs;
@@ -247,6 +248,7 @@ private:
 
 	void sanity_checks();
 	vector<int> run_population(ParameterEnsemble& _dp, ObservationEnsemble& _op, bool allow_chance);
+	void readjust_dv(ParameterEnsemble& _dp, ObservationEnsemble& _op);
 
 	void queue_chance_runs(ParameterEnsemble& _dp);
 	ObservationEnsemble get_chance_shifted_op(ParameterEnsemble& _dp, ObservationEnsemble& _op, string& opt_member);

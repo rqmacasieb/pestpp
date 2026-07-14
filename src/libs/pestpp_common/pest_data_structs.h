@@ -520,6 +520,8 @@ public:
     void set_mou_shuffle_fixed_pars(bool _flag) {mou_shuffle_fixed_pars = _flag;}
 	bool get_mou_debug_dv_handling() const { return mou_debug_dv_handling; }
 	void set_mou_debug_dv_handling(bool _flag) { mou_debug_dv_handling = _flag; }
+	vector<string> get_mou_readjust_dv_groups() const { return mou_readjust_dv_groups; }
+	void set_mou_readjust_dv_groups(vector<string> _groups) { mou_readjust_dv_groups = _groups; }
 
 	string get_ies_par_csv()const { return ies_par_csv; }
 	void set_ies_par_csv(string _ies_par_csv) { ies_par_csv = _ies_par_csv; }
@@ -930,6 +932,7 @@ private:
 	bool mou_use_multigen;
 	bool mou_shuffle_fixed_pars;
 	bool mou_debug_dv_handling;
+	vector<string> mou_readjust_dv_groups;
 
 	int ies_subset_size;
 	string ies_par_csv;

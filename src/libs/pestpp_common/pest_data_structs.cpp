@@ -1720,6 +1720,15 @@ bool PestppOptions::assign_mou_value_by_key(const string& key, const string& val
 		mou_debug_dv_handling = pest_utils::parse_string_arg_to_bool(value);
 		return true;
 	}
+	else if (key == "MOU_READJUST_DV")
+	{
+		mou_readjust_dv_groups.clear();
+		vector<string> tok;
+		tokenize(value, tok, ",\t ");
+		for (const auto& grp : tok)
+			mou_readjust_dv_groups.push_back(upper_cp(strip_cp(grp)));
+		return true;
+	}
 
 
 	return false;
@@ -2162,6 +2171,10 @@ void PestppOptions::summary(ostream& os) const
     os << "mou_use_multigen:" << mou_use_multigen << endl;
     os << "mou_shuffle_fixed_pars: " << mou_shuffle_fixed_pars << endl;
 	os << "mou_debug_dv_handling: " << mou_debug_dv_handling << endl;
+	os << "mou_readjust_dv_groups: ";
+	for (auto v : mou_readjust_dv_groups)
+		os << v << ",";
+	os << endl;
 
 	os << endl << "...shared pestpp-ies/pestpp-da options:" << endl;
 	os << "(note: 'da' args override 'ies' args when using pestpp-da)" << endl;
@@ -2414,7 +2427,8 @@ void PestppOptions::set_defaults()
     set_mou_use_multigen(false);
     set_mou_shuffle_fixed_pars(false);
 	set_mou_debug_dv_handling(false);
-	
+	set_mou_readjust_dv_groups(vector<string>());
+
 	set_ies_par_csv("");
 	set_ies_obs_csv("");
 	set_ies_obs_restart_csv("");
