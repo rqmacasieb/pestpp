@@ -2784,11 +2784,11 @@ bool SeqQuadProgram::should_terminate()
         message(1, "number of iterations since best yet mean phi > nphinored");
         nphinored_sat = true;
     }
-    if (best_phis[best_phis.size() - 1] < numeric_limits<double>::denorm_min())
-    {
-        message(1, "phi is zero, all done");
-        return true;
-    }
+    // if (best_phis[best_phis.size() - 1] < numeric_limits<double>::denorm_min())
+    // {
+    //     message(1, "phi is zero, all done");
+    //     return true;
+    // }
 
 	const double grad_tol = 1e-6;
 	if (current_grad_vector.get_data_eigen_vec(dv_names).norm() < grad_tol)
