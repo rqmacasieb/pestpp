@@ -4506,7 +4506,20 @@ bool SeqQuadProgram::recalc_search_direction_vector(const string& rname, Paramet
 	stringstream ss;
 	ofstream& frec = file_manager.rec_ofstream();
 
-	if ((lm_en[rname].array() < 0).any())
+	//only inequality-sense constraints are droppable from the working set
+	vector<string> ineq_cnames = constraints.get_working_set_ineq_names(cnames_en[rname]);
+	set<string> ineq_cnames_set(ineq_cnames.begin(), ineq_cnames.end());
+	bool has_negative_ineq_lm = false;
+	for (int i = 0; i < cnames_en[rname].size(); i++)
+	{
+		if ((ineq_cnames_set.find(cnames_en[rname][i]) != ineq_cnames_set.end()) && (lm_en[rname][i] < 0))
+		{
+			has_negative_ineq_lm = true;
+			break;
+		}
+	}
+
+	if (has_negative_ineq_lm)
 	{
 		constraint_mat_en[rname] = get_constraint_mat(dv_vals, obs_vals, working_set_tol, &lm_en[rname], cnames_en[rname]);
 		if (constraint_mat_en[rname].first.get_row_names() != cnames_en[rname])
