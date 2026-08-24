@@ -216,6 +216,10 @@ struct ToolAdapter
     /// Candidates awaiting runs, and the factors each was generated with.
     virtual int  candidate_count() const { return 0; }
     virtual Ensemble* candidate(int idx) { (void)idx; return nullptr; }
+    /// The observation-side companion of candidate(idx) - its just-run results, once there are
+    /// any. Absent (null) both before the batch is processed and for tools that have no such
+    /// thing; see PESTPP_CANDIDATE_OBS_EN.
+    virtual Ensemble* candidate_obs(int idx) { (void)idx; return nullptr; }
     virtual void candidate_info(int idx, double& inflation, double& backtrack)
     { (void)idx; inflation = 0.0; backtrack = 0.0; }
 
@@ -870,6 +874,12 @@ struct MouAdapter : public ToolAdapter
     int candidate_count() const override { return gctx ? 1 : 0; }
     Ensemble* candidate(int idx) override
     { return (gctx && (idx == 0)) ? &gctx->new_dp : nullptr; }
+    // valid from process_solve_runs() (which fills new_op) through solve_finish() (which
+    // consumes it) - the same window candidate(0) is writable in, so a caller can read the
+    // just-run results here and edit the decision variables in response before they are
+    // evaluated
+    Ensemble* candidate_obs(int idx) override
+    { return (gctx && (idx == 0)) ? &gctx->new_op : nullptr; }
     void finalize() override { tool.finalize(); }
     int  iteration() override { return iter; }
     // mou has no convergence test - it runs the generations it was asked for
@@ -1986,6 +1996,22 @@ Ensemble* pick_ensemble(PestppSession* s, int id)
         auto it = m->begin();
         std::advance(it, idx);
         return &it->second;
+    }
+    // checked BEFORE PESTPP_CANDIDATE_EN for the same reason member stacks are checked before
+    // candidates above: it is the higher of the two ranges
+    if (id >= PESTPP_CANDIDATE_OBS_EN)
+    {
+        int idx = id - PESTPP_CANDIDATE_OBS_EN;
+        Ensemble* c = s->adapter->candidate_obs(idx);
+        if (c == nullptr)
+        {
+            if (!s->adapter->solve_is_open())
+                bad_state("candidate ensembles exist only during a deferred solve; call "
+                          "pestpp_solve_prepare() first");
+            bad_arg("no such candidate observation ensemble; there are " +
+                    std::to_string(s->adapter->candidate_count()));
+        }
+        return c;
     }
     // candidates are ordinary ensemble ids so that views, names and snapshots all work on
     // them unchanged - see PESTPP_CANDIDATE_EN

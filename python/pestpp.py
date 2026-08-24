@@ -1296,6 +1296,11 @@ class Candidate:
         from pestpp_lib import CANDIDATE_EN
         return CANDIDATE_EN + self.index
 
+    @property
+    def _obs_en_id(self) -> int:
+        from pestpp_lib import CANDIDATE_OBS_EN
+        return CANDIDATE_OBS_EN + self.index
+
     def par_df(self, lower: bool = False) -> pd.DataFrame:
         """This candidate's parameters, as a copy."""
         arr, token = self._lib.get_ensemble_view(self._en_id)
@@ -1311,6 +1316,28 @@ class Candidate:
     def par_view(self):
         """Zero-copy view of this candidate, valid only in this block. Writes reach the run."""
         yield from self._tool._view(self._en_id)
+
+    def obs_df(self, lower: bool = False) -> pd.DataFrame:
+        """This candidate's just-run results, as a copy.
+
+        Only populated between :meth:`_Tool.process_runs` and :meth:`_Tool.finish_solve` - the
+        window in which the results are known but the candidate has not been consumed yet. Most
+        tools have no such thing; asking raises the same "no such candidate" error as an
+        out-of-range :attr:`_en_id` would.
+        """
+        arr, token = self._lib.get_ensemble_view(self._obs_en_id)
+        try:
+            out = pd.DataFrame(arr.copy(),
+                               index=self._lib.get_ensemble_row_names(self._obs_en_id),
+                               columns=self._lib.get_ensemble_col_names(self._obs_en_id))
+        finally:
+            self._lib.release_view(token)
+        return _named(_maybe_lower(out, lower), "realization", "obsnme")
+
+    @contextmanager
+    def obs_view(self):
+        """Zero-copy view of this candidate's just-run results, valid only in this block."""
+        yield from self._tool._view(self._obs_en_id)
 
     @property
     def shape(self):

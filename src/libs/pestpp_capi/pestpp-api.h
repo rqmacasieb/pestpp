@@ -187,6 +187,16 @@ typedef enum {
    outside an open deferred solve is an error, not an empty ensemble. */
 #define PESTPP_CANDIDATE_EN 1000
 
+/* The observation-side companion of a candidate, addressed as PESTPP_CANDIDATE_OBS_EN + i for
+   the same i as PESTPP_CANDIDATE_EN - i.e. candidate i's just-run results, row-aligned to
+   candidate i's parameters. Only mou populates this today: its one candidate (i=0) is the
+   generation's decision-variable population, and PESTPP_CANDIDATE_OBS_EN+0 is the observation
+   ensemble that population just produced - available from pestpp_process_solve_runs() through
+   pestpp_solve_finish(), which is the window in which a caller can still edit
+   PESTPP_CANDIDATE_EN+0 before it is evaluated. Tools with no such thing (ies, da) treat every
+   index as absent, the same as an out-of-range PESTPP_CANDIDATE_EN. */
+#define PESTPP_CANDIDATE_OBS_EN 1500
+
 /* Buffer sizes the library owns. Read these from the library rather than hard-coding them,
    the way xmipy and pypestutils do - and note they are DATA exports, which is why the
    dllimport half of PESTPP_API above matters.
@@ -416,6 +426,7 @@ PESTPP_API pestpp_status pestpp_solve_iteration(pestpp_handle h);
  *     pestpp_queue_runs_subset(h, NULL, 0, &nq);   // NULL = the algorithm's own subset
  *     begin_batch -> run_slice -> end_batch
  *     pestpp_process_runs(h, &nfail);
+ *     ... read PESTPP_CANDIDATE_OBS_EN + i, edit PESTPP_CANDIDATE_EN + i in response ...
  *     pestpp_solve_finish(h, 1, &pending);
  *     while (pending) { queue -> run -> process; pestpp_solve_finish(h, 1, &pending); }
  *

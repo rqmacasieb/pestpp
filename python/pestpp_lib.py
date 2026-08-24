@@ -66,6 +66,10 @@ STACK_PAR_EN, STACK_OBS_EN, NESTED_PAR_EN = 4, 5, 6
 #: candidate ensembles of a deferred solve are ordinary ensemble ids, CANDIDATE_EN + i, so
 #: views, names and snapshots all work on them unchanged
 CANDIDATE_EN = 1000
+#: candidate i's just-run results, row-aligned to candidate i's parameters - CANDIDATE_OBS_EN + i
+#: for the same i as CANDIDATE_EN. Only mou populates this; readable from process_runs() through
+#: finish_solve()
+CANDIDATE_OBS_EN = 1500
 #: per-member chance stacks, MEMBER_STACK_EN + i, likewise ordinary ensemble ids. Only when
 #: opt_chance_points is "all" - otherwise one stack serves every point and the count is 0
 MEMBER_STACK_EN = 2000
