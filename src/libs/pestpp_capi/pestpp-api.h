@@ -155,15 +155,23 @@ typedef enum {
    STACK_PAR/STACK_OBS/NESTED_PAR are the CHANCE STACKS, and exist only for mou and sqp. They
    are empty rather than an error when the run is not stack-based - see the stack section
    below for how to tell "no stack because FOSM" from "no stack because no chance" from
-   "stack not drawn yet". */
+   "stack not drawn yet".
+
+   ARCHIVE_PAR/ARCHIVE_OBS are mou's PARETO ARCHIVE - decision variables and results
+   accumulated and re-sorted across every generation, not just the current live population
+   (PAR_EN/OBS_EN). Only mou has one; asking any other tool for them is an error, the same as
+   asking ies for NOISE_EN. Unlike the candidate/member-stack ids below, mou has exactly one
+   archive, so these are plain fixed ids rather than the base of an indexed range. */
 typedef enum {
-    PESTPP_PAR_EN        = 0,
-    PESTPP_OBS_EN        = 1,
-    PESTPP_NOISE_EN      = 2,
-    PESTPP_WEIGHTS_EN    = 3,
-    PESTPP_STACK_PAR_EN  = 4,
-    PESTPP_STACK_OBS_EN  = 5,
-    PESTPP_NESTED_PAR_EN = 6
+    PESTPP_PAR_EN         = 0,
+    PESTPP_OBS_EN         = 1,
+    PESTPP_NOISE_EN       = 2,
+    PESTPP_WEIGHTS_EN     = 3,
+    PESTPP_STACK_PAR_EN   = 4,
+    PESTPP_STACK_OBS_EN   = 5,
+    PESTPP_NESTED_PAR_EN  = 6,
+    PESTPP_ARCHIVE_PAR_EN = 7,
+    PESTPP_ARCHIVE_OBS_EN = 8
 } pestpp_ensemble_id;
 
 /* The PER-MEMBER chance stacks, addressed as PESTPP_MEMBER_STACK_EN + i for i in

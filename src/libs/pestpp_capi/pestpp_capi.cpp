@@ -223,6 +223,13 @@ struct ToolAdapter
     virtual void candidate_info(int idx, double& inflation, double& backtrack)
     { (void)idx; inflation = 0.0; backtrack = 0.0; }
 
+    /// The tool's Pareto archive - decision variables accumulated and re-sorted across every
+    /// generation, not just the current live population (par_ensemble()). Null for every tool
+    /// but mou; see PESTPP_ARCHIVE_PAR_EN.
+    virtual Ensemble* archive_dv() { return nullptr; }
+    /// The observation-side companion of archive_dv(), row-aligned to it.
+    virtual Ensemble* archive_obs() { return nullptr; }
+
     /// The EnsembleMethod behind this tool, or null for the two that are not one.
     ///
     /// Needed for the operations that are structural rather than cosmetic - activating a
@@ -895,6 +902,11 @@ struct MouAdapter : public ToolAdapter
     }
     ParameterEnsemble* par_ensemble() override { return tool.get_dp_ptr(); }
     ObservationEnsemble* obs_ensemble() override { return tool.get_op_ptr(); }
+    // never null, even before generation 1 - an empty archive is the honest answer before
+    // anything has been sorted into it, the same "empty rather than refused" treatment the
+    // chance stacks get
+    Ensemble* archive_dv() override { return tool.get_dp_archive_ptr(); }
+    Ensemble* archive_obs() override { return tool.get_op_archive_ptr(); }
     Constraints* constraints() override { return tool.get_constraints_ptr(); }
 
     void phi_summary(int, double&, double&, double&, double&) override
@@ -2044,6 +2056,16 @@ Ensemble* pick_ensemble(PestppSession* s, int id)
         // an empty stack is returned rather than refused: it is the honest answer for a FOSM
         // or risk-neutral run, and pestpp_get_stack_status() is how a caller asks why
         return st;
+    }
+    // mou has exactly one archive, not an indexed collection, so these resolve by exact id
+    // rather than a cascading range check like the candidate/member-stack ids above
+    if ((id == PESTPP_ARCHIVE_PAR_EN) || (id == PESTPP_ARCHIVE_OBS_EN))
+    {
+        Ensemble* e = (id == PESTPP_ARCHIVE_PAR_EN) ? s->adapter->archive_dv()
+                                                     : s->adapter->archive_obs();
+        if (e == nullptr)
+            unsupported(string("tool '") + s->adapter->name() + "' has no pareto archive");
+        return e;
     }
     if ((id < PESTPP_PAR_EN) || (id > PESTPP_WEIGHTS_EN))
         bad_arg("unknown ensemble id");

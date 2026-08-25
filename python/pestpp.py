@@ -56,6 +56,7 @@ from pestpp_lib import (  # noqa: E402
     PestppLib, PestppError, _UNSET,
     PAR_EN, OBS_EN, NOISE_EN, WEIGHTS_EN,
     STACK_PAR_EN, STACK_OBS_EN, NESTED_PAR_EN, MEMBER_STACK_EN,
+    ARCHIVE_PAR_EN, ARCHIVE_OBS_EN,
     TOOL_IES, TOOL_DA, TOOL_MOU, TOOL_SQP, TOOL_GLM, TOOL_OPT,
     RM_SERIAL, RM_PANTHER, RM_EXTERNAL,
     PHI_MEAS, PHI_COMPOSITE, PHI_REGUL, PHI_ACTUAL, PHI_NOISE,
@@ -1947,6 +1948,15 @@ class Mou(_ChanceMixin, _Tool):
     def obs_pop(self, lower: bool = False) -> pd.DataFrame:
         """The observation population. Alias of :meth:`obs_df`."""
         return self.obs_df(lower=lower)
+
+    def archive_dv(self, lower: bool = False) -> pd.DataFrame:
+        """The pareto archive's decision variables, accumulated and re-sorted across every
+        generation - not just the current live population (:meth:`dv_pop`)."""
+        return self._stack_df(ARCHIVE_PAR_EN, lower, "parnme")
+
+    def archive_obs(self, lower: bool = False) -> pd.DataFrame:
+        """The observation-side companion of :meth:`archive_dv`, row-aligned to it."""
+        return self._stack_df(ARCHIVE_OBS_EN, lower, "obsnme")
 
     @property
     def population_size(self) -> int:

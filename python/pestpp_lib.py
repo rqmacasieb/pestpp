@@ -63,6 +63,10 @@ PAR_EN, OBS_EN, NOISE_EN, WEIGHTS_EN = 0, 1, 2, 3
 #: the chance stacks, mou and sqp only. Empty - not an error - on a fosm or risk-neutral run;
 #: get_stack_status() is how you tell those apart from "not drawn yet"
 STACK_PAR_EN, STACK_OBS_EN, NESTED_PAR_EN = 4, 5, 6
+#: mou's pareto archive - decision variables and results accumulated and re-sorted across
+#: every generation, not just the live population (PAR_EN/OBS_EN). Only mou has one; every
+#: other tool raises on these ids the same as asking ies for NOISE_EN.
+ARCHIVE_PAR_EN, ARCHIVE_OBS_EN = 7, 8
 #: candidate ensembles of a deferred solve are ordinary ensemble ids, CANDIDATE_EN + i, so
 #: views, names and snapshots all work on them unchanged
 CANDIDATE_EN = 1000
