@@ -24,6 +24,50 @@ using namespace pest_utils;
 
 int  linpack_wrap(void);
 
+/** What this machine has right now, as key:value tokens ready to drop into an info text.
+ *
+ * Only the agent can answer this - the master is on a different machine and cannot see it.
+ *
+ * key:value tokens, one word each and no second colon, because the master copies them into the
+ * rmr log and pyemu's parse_rmr_file turns every colon-bearing token into a column. megabytes
+ * rather than bytes to keep the numbers short, and whole numbers so there is no decimal
+ * separator to vary by locale.
+ *
+ * A figure that cannot be read is left out entirely rather than sent as zero: zero reads as
+ * "none left", which is worse than saying nothing.
+ *
+ * Leading space so it appends cleanly. Sampled at the moment of the call - which is the point
+ * for a failed run, where the interesting question is what the machine looked like when it
+ * failed, not when the agent started.
+ */
+static string resource_info_txt()
+{
+	stringstream res;
+	const long long to_mb = 1048576;
+	SysMemory mem = get_system_memory();
+	if (mem.valid)
+		res << " mem_total_mb:" << (mem.total_bytes / to_mb)
+		    << " mem_avail_mb:" << (mem.available_bytes / to_mb);
+	// "." on purpose: the agent has already moved into its own working directory, and that is
+	// the disk that fills up, not whichever one holds /
+	SysStorage disk = get_system_storage(".");
+	if (disk.valid)
+		res << " disk_total_mb:" << (disk.total_bytes / to_mb)
+		    << " disk_avail_mb:" << (disk.available_bytes / to_mb);
+	// and what THIS AGENT is using, which the machine figures above cannot tell you: on a host
+	// running eight agents those are shared and these are not. agent_ prefix for the same
+	// reason.
+	//
+	// peak, not just current, because it is a high-water mark the kernel keeps - so a run that
+	// ballooned and then freed still reports what it cost, which is exactly the case where
+	// current on its own would look innocent.
+	SysProcessMemory pm = get_process_memory();
+	if (pm.valid)
+		res << " agent_mem_mb:" << (pm.current_bytes / to_mb)
+		    << " agent_peak_mem_mb:" << (pm.peak_bytes / to_mb);
+	return res.str();
+}
+
 /**
  * @brief P a n t h e r agent.
  *
@@ -909,7 +953,7 @@ void PANTHERAgent::start_impl(const string &host, const string &port)
 			report(ss.str(), true);
 			//terminate = true;
 			net_pack.reset(NetPackage::PackType::CORRUPT_MESG, 0, 0, "recv security message error");
-			char data;
+			char data = '\0';
 			err = send_message(net_pack, &data, 0);
 			//if (err != 1)
 			//{
@@ -981,7 +1025,7 @@ void PANTHERAgent::start_impl(const string &host, const string &port)
 				ss << "terminating execution ..." << endl << endl;
 				report(ss.str(), true);
 				net_pack.reset(NetPackage::PackType::CORRUPT_MESG, 0, 0, "");
-				char data;
+				char data = '\0';
 				pair<int,string> np_err = send_message(net_pack, &data, 0);
 				terminate_or_restart(-1);
 			}
@@ -1055,7 +1099,7 @@ void PANTHERAgent::start_impl(const string &host, const string &port)
 				ss << "received corrupt observation name packet from master" << endl;
 				report(ss.str(), true);
 				net_pack.reset(NetPackage::PackType::CORRUPT_MESG, 0, 0, "");
-				char data;
+				char data = '\0';
 				pair<int,string> np_err = send_message(net_pack, &data, 0);
 				terminate_or_restart(-1);
 			}
@@ -1128,9 +1172,13 @@ void PANTHERAgent::start_impl(const string &host, const string &port)
 			// until it has FINISHED a run - so the master skipped it for the whole of the
 			// first run, which is exactly the run a user wants to interrupt. The text is
 			// free-form and an older master ignores it.
-			net_pack.reset(NetPackage::PackType::LINPACK, 0, 0,
-				NetPackage::PARTIAL_CAPABILITY_TAG);
-			char data;
+			//
+			// the machine's memory and disk ride along with the capability tag - this handshake
+			// is the last quiet moment before runs start arriving. see resource_info_txt().
+			stringstream cap;
+			cap << NetPackage::PARTIAL_CAPABILITY_TAG << resource_info_txt();
+			net_pack.reset(NetPackage::PackType::LINPACK, 0, 0, cap.str());
+			char data = '\0';
 			err = send_message(net_pack, &data, 0);
 			if (err.first != 1)
 			{
@@ -1266,7 +1314,7 @@ void PANTHERAgent::start_impl(const string &host, const string &port)
 							frec << ss.str() << endl;
 							cout << ss.str() << endl;
 							net_pack.reset(NetPackage::PackType::RUN_FAILED, group_id, run_id, ss.str());
-							char data;
+							char data = '\0';
 							err = send_message(net_pack, &data, 0);
 							terminate = true;
 							continue;
@@ -1278,7 +1326,7 @@ void PANTHERAgent::start_impl(const string &host, const string &port)
 							frec << ss.str() << endl;
 							cout << ss.str() << endl;
 							net_pack.reset(NetPackage::PackType::RUN_FAILED, group_id, run_id, ss.str());
-							char data;
+							char data = '\0';
 							err = send_message(net_pack, &data, 0);
 							terminate = true;
 							continue;
@@ -1348,7 +1396,7 @@ void PANTHERAgent::start_impl(const string &host, const string &port)
 				// agent says it can answer REQ_PARTIAL without changing the handshake
 				net_pack.reset(NetPackage::PackType::READY, 0, 0,
 					string("lets do it ") + NetPackage::PARTIAL_CAPABILITY_TAG);
-				char data;
+				char data = '\0';
 				err = send_message(net_pack, &data, 0);
 				if (err.first != 1)
 				{
@@ -1394,7 +1442,7 @@ void PANTHERAgent::start_impl(const string &host, const string &port)
 				ss << "run took: " << run_time << " seconds";
 				report(ss.str(), true);
 				ss.str("");
-				ss << " worker_time:" << run_time/60.0;
+				ss << " worker_time:" << run_time/60.0 << resource_info_txt();
 				string message = info_txt + " " + final_run_status.second + ss.str();
 				serialized_data = Serialization::serialize(pars, par_name_vec, obs, obs_name_vec, run_time);
 				net_pack.reset(NetPackage::PackType::RUN_FINISHED, group_id, run_id, message);
@@ -1419,9 +1467,19 @@ void PANTHERAgent::start_impl(const string &host, const string &port)
 				ss << "run failed for run_id: " << run_id << " " << info_txt << "  " << final_run_status.second;
 				report(ss.str(), true);
 				ss.str("");
-				ss << "group_id:" << group_id << " run_id:" << run_id << " " << info_txt << " " << final_run_status.second;
+				// the machine's memory and disk go in BEFORE the model's error text, not after.
+				// info text is capped at NetPackage::DESC_LEN and silently truncated past it,
+				// and a model that fails can produce a great deal of error text - putting these
+				// last is how they would go missing on exactly the runs worth explaining.
+				//
+				// a host that starts failing runs because it is out of memory or has filled its
+				// disk looks identical, from the master, to one failing for any other reason.
+				// these two numbers are what tells them apart, and they have to be sampled here,
+				// at the failure, rather than read from the handshake hours earlier.
+				ss << "group_id:" << group_id << " run_id:" << run_id << resource_info_txt()
+				   << " " << info_txt << " " << final_run_status.second;
 				net_pack.reset(NetPackage::PackType::RUN_FAILED, group_id, run_id,ss.str());
-				char data;
+				char data = '\0';
 				err = send_message(net_pack, &data, 0);
 				if (err.first != 1)
 				{
@@ -1438,7 +1496,7 @@ void PANTHERAgent::start_impl(const string &host, const string &port)
 					ss << "debug_panther_fail_freeze = true, entering frozen state...";
 					report(ss.str(), true);
 					net_pack.reset(NetPackage::PackType::DEBUG_FAIL_FREEZE, group_id, run_id, final_run_status.second);
-					char data;
+					char data = '\0';
 					err = send_message(net_pack, &data, 0);
 					if (err.first != 1)
 					{
@@ -1466,8 +1524,9 @@ void PANTHERAgent::start_impl(const string &host, const string &port)
 				ss.str("");
 				ss << "run_id:" << run_id << " " << info_txt << " killed";
 				report(ss.str(), true);
-				net_pack.reset(NetPackage::PackType::RUN_KILLED, group_id, run_id, final_run_status.second);
-				char data;
+				net_pack.reset(NetPackage::PackType::RUN_KILLED, group_id, run_id,
+				               final_run_status.second + resource_info_txt());
+				char data = '\0';
 				err = send_message(net_pack, &data, 0);
 				if (err.first != 1)
 				{
@@ -1484,7 +1543,7 @@ void PANTHERAgent::start_impl(const string &host, const string &port)
 			{
 				ss << "corrupt/incorrect message received from master:" << final_run_status.second << " " << info_txt << " quitting for safety";
 				net_pack.reset(NetPackage::PackType::RUN_KILLED, group_id, run_id, ss.str());
-				char data;
+				char data = '\0';
 				err = send_message(net_pack, &data, 0);
 				if (err.first != 1)
 				{
@@ -1513,7 +1572,7 @@ void PANTHERAgent::start_impl(const string &host, const string &port)
 				report(ss.str(), true);
 				net_pack.reset(NetPackage::PackType::READY, 0, 0,
 					final_run_status.second + " " + NetPackage::PARTIAL_CAPABILITY_TAG);
-				char data;
+				char data = '\0';
 				err = send_message(net_pack, &data, 0);
 				if (err.first != 1)
 				{

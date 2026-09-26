@@ -169,14 +169,25 @@ def find_library(lib_path: str | None = None) -> str:
             else "pestpp-api.dylib" if "darwin" in plat or "macos" in plat
             else "pestpp-api.so")
     here = os.path.dirname(os.path.abspath(__file__))
-    roots = [os.path.join(os.path.dirname(here), "build"), os.path.join(here, "..", "..", "build")]
+
+    # A wheel carries the library inside the package. Checked FIRST and returned outright,
+    # because a pip-installed copy has no build tree to search and the mtime contest below is
+    # meaningless there - the shipped library is the only one there is, by construction.
+    shipped = os.path.join(here, "_binaries", name)
+    if os.path.exists(shipped):
+        return shipped
+
+    # the package now sits at <repo>/python/pestpp/, so the repo root is two levels up - not
+    # one, as it was when these modules were flat files in python/
+    repo = os.path.dirname(os.path.dirname(here))
+    roots = [os.path.join(repo, "build"), os.path.join(repo, "build_asan")]
 
     # An installed copy next to the executables COMPETES on mtime; it does not win outright.
     # Short-circuiting to it meant a stale install silently shadowed a fresh build - the
     # symptom is an AttributeError from ctypes about a symbol that plainly exists in the
     # source, which sends you looking in exactly the wrong place.
     found = []
-    for cand in (os.path.join(os.path.dirname(here), "bin", name),):
+    for cand in (os.path.join(repo, "bin", name),):
         if os.path.exists(cand):
             found.append(os.path.abspath(cand))
     for root in roots:
@@ -1568,6 +1579,24 @@ class PestppLib:
             "pestpp_get_phi_residuals")
         arr = np.ctypeslib.as_array(data, shape=(nr * nc,)).reshape((nr, nc), order="F").copy()
         return arr, self._unpack_names(rows.raw, nr), self._unpack_names(cols.raw, nc)
+
+    def get_host_failures(self) -> dict:
+        """Run failures per host, summed across every agent on that host. PANTHER only.
+
+        Empty until something fails. Several agents normally share a machine, so a host that is
+        quietly eating runs shows up as scattered single agent failures until they are added
+        together - which is what this does.
+        """
+        n = c_int()
+        self._check(self.lib.pestpp_get_host_failures(self.handle, None, None, 0, byref(n)),
+                    "pestpp_get_host_failures")
+        if n.value == 0:
+            return {}
+        hosts = create_string_buffer(n.value * self.name_len)
+        counts = (c_int * n.value)()
+        self._check(self.lib.pestpp_get_host_failures(
+            self.handle, hosts, counts, n.value, byref(n)), "pestpp_get_host_failures")
+        return dict(zip(self._unpack_names(hosts.raw, n.value), list(counts)))
 
     def get_obs_groups(self) -> list:
         """The group each observation belongs to, aligned with the obs ensemble columns."""

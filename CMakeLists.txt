@@ -29,10 +29,44 @@ string(REGEX REPLACE "^([0-9]+\\.[0-9]+\\.[0-9]+).*$" "\\1"
 message(STATUS
   "Configuring CMake ${CMAKE_VERSION} to build PESTPP ${PESTPP_VERSION_FULL}")
 
-# This logic needs to be considered before project()
-if(MSVC)
-    add_compile_options(/bigobj)
+# Keep the users manual's title page in step with config_os.h.
+#
+# The docs build already injects this when it renders (docs/preprocess_manual.py), so the
+# PUBLISHED manual is never wrong. This is for the copy in the repo - the one github renders
+# when someone browses documentation/ - which otherwise sits at whatever version it was last
+# hand-edited to. It had drifted to 5.2.28 while the code moved on, and nothing said so.
+#
+# The version is a line of its own in the manual, deliberately, so this touches those few
+# characters and nothing else. It used to be the first HEADING, which meant the table of
+# contents mirrored it and two places in two syntaxes had to agree.
+#
+# Only writes when the string actually differs, so a repeat configure leaves the file alone -
+# same mtime, same size, nothing in git status. QUOTE the file contents everywhere below: the
+# manual is full of style="width:6.26806in;height:1.68194in" and an unquoted dereference would
+# treat every semicolon as a cmake list separator and shred the img tags.
+# CMAKE_SOURCE_DIR, not PESTPP_SOURCE_DIR: the latter is set by project(), which has not run
+# yet up here, so it would expand to nothing and the EXISTS check would quietly never fire
+set(_manual "${CMAKE_SOURCE_DIR}/documentation/pestpp_users_manual.md")
+if(EXISTS "${_manual}")
+  file(READ "${_manual}" _manual_text)
+  string(REGEX REPLACE "\nVersion [^\n]*\n" "\nVersion ${PESTPP_VERSION_FULL}\n"
+         _manual_new "${_manual_text}")
+  if(NOT _manual_new STREQUAL _manual_text)
+    file(WRITE "${_manual}" "${_manual_new}")
+    message(STATUS "  users manual version -> ${PESTPP_VERSION_FULL}")
+  endif()
+  unset(_manual_text)
+  unset(_manual_new)
 endif()
+unset(_manual)
+
+# This logic needs to be considered before project()
+#
+# /bigobj used to live here and did nothing. MSVC is set by compiler identification, which does
+# not happen until project(), so this if() is false on a fresh configure - unlike WIN32 below,
+# which comes from the host and IS set this early. It went unnoticed because SQP.cpp sat just
+# under the object-file section limit without it; adding /Zi pushed it over and the build died
+# with C1128. It is now in the MSVC block AFTER project(). Do not move it back up here.
 set(_change_MSVC_flags FALSE)
 if(WIN32)
   add_compile_definitions(NOMINMAX)
@@ -80,6 +114,56 @@ project(PESTPP
 if("${PESTPP_SOURCE_DIR}" STREQUAL "${PESTPP_BINARY_DIR}")
    message(SEND_ERROR "In-source builds are not allowed")
 endif()
+
+# Debug symbols for the SHIPPED windows build.
+#
+# Without a .pdb, a crash report from a released binary is undiagnosable: a windows crash dump
+# records addresses and the module identity, nothing else, so every pestpp frame in the stack
+# reads pestpp-ies.exe+0x3f2a1 and stops there. The pdb is the table that turns that back into a
+# file and a line. It is never read while the program runs - only by whoever opens the dump.
+#
+# The linker stamps a matching guid into the exe and the pdb, so a pdb only ever works for the
+# exact build that produced it. That is why these have to be kept at release time; they cannot
+# be regenerated for a binary someone downloaded months ago.
+#
+# /Zi is compiler-side debug info and /DEBUG makes the linker write the pdb. Neither changes
+# codegen, so this is the same executable we ship today. /DEBUG DOES turn off the linker's
+# default /OPT:REF and /OPT:ICF though, so put both back explicitly - otherwise the exe grows
+# and stops folding identical code, which would be a real change and not just an extra file.
+# Linux: fold the C++ runtime into the binaries, the way holy-build-box does.
+#
+# NOT glibc. glibc stays dynamic, deliberately. Statically linking it breaks NSS, which glibc
+# implements by dlopen'ing libnss_*.so at runtime - and getaddrinfo goes through NSS, which is
+# how a PANTHER agent resolves the master by hostname (PantherAgent.cpp). A static glibc build
+# would either fail those lookups or end up needing the very glibc it was trying to avoid.
+#
+# libstdc++ and libgcc are the ones worth folding in. A binary built with a newer gcc asks the
+# host for a GLIBCXX_3.4.xx symbol version it may not have, and that is the usual way a linux
+# build dies on someone else's machine - more often than glibc itself. Folding them in removes
+# the question. The remaining floor is glibc alone, set by whatever image the build ran in.
+#
+# Safe for the shared library too: the C ABI passes no C++ types, so a host process with its own
+# libstdc++ never meets ours. That is the same argument that makes /MT safe on windows - see the
+# ownership note in pestpp-api.h.
+if(UNIX AND NOT APPLE)
+  add_link_options(-static-libstdc++ -static-libgcc)
+endif()
+
+if(MSVC)
+  # every config, not just Release: SQP.cpp exceeds the default section limit once any debug
+  # info is emitted, and the diagnostic RelWithDebInfo build emits it for every file
+  add_compile_options(/bigobj)
+  add_compile_options($<$<CONFIG:Release>:/Zi>)
+  add_link_options($<$<CONFIG:Release>:/DEBUG>
+                   $<$<CONFIG:Release>:/OPT:REF>
+                   $<$<CONFIG:Release>:/OPT:ICF>)
+endif()
+
+# Let the binary say which build it is. startup_report() prints this into every record file, so
+# a user sending one back identifies their own build without being asked. $<CONFIG> rather than
+# CMAKE_BUILD_TYPE so it is still right under a multi-config generator, where the build type is
+# not known until build time.
+add_compile_definitions(PESTPP_BUILD_CONFIG="$<CONFIG>")
 
 # Fortran is not required (anymore), but can be enabled using either:
 #  1. ENABLE_Fortran=ON and use whatever default compiler is available
@@ -147,6 +231,69 @@ endif()
 set(PESTPP_CXX_WARN_FLAGS "${PESTPP_CXX_WARN_FLAGS}"
   CACHE STRING "C++ flags used to compile PEST++ targets")
 
+# A small, deliberately narrow set of warnings that are on by default.
+#
+# Not -Wall: a build with -Wall -Wextra reports about 1100 warnings in our own code, nearly all
+# of them hygiene (signed/unsigned comparisons, unused variables, ignored qualifiers). At that
+# volume nobody reads any of them, which is how the three below went unnoticed for years:
+#
+#   OperSys::gets_s      called itself forever on mac and linux
+#   get_euclidean_fitness returned an uninitialised double
+#   two self-assignments in Ensemble::from_binary that did nothing
+#
+# Each of these is a defect with no plausible innocent reading, and each is caught by exactly
+# one of these three flags. The categories are now clean, so anything they report is new.
+#
+# Errors, not warnings. A warning in a build that is otherwise green does not get read, so as
+# warnings these would record the rule without enforcing it - and the whole reason the three
+# defects above survived so long is that nobody was reading build output. All three categories
+# are at zero, so this cannot fail on anything that exists today: it can only fail on something
+# newly written, which is the point.
+#
+# Checked in the -Werror= form because that is what has to be accepted. Neither Eigen nor the
+# vendored Coin-OR trips these - Eigen never fires any of the three, and Coin-OR's three
+# self-assignments are turned off at that target in src/libs/opt/CMakeLists.txt.
+#
+# To back out, configure with -DPESTPP_CXX_WARN_FLAGS= to clear it, or drop the offending entry
+# from the list below.
+#
+# One asymmetry to know about: on gcc, -Wuninitialized also turns on -Wmaybe-uninitialized,
+# which is a guess rather than a proof - it fires where gcc cannot see that a loop always runs.
+# It earned its keep once: it found w_sendall and w_recvall returning an unassigned int on a
+# zero-length transfer, on the first CI build after this went in.
+#
+# But it cannot stay an error. Building the whole tree with gcc 16 turns up five more, and not
+# one of them is ours to fix: two are inside libstdc++/libc++ headers (unique_ptr.h, string) and
+# three are in vendored Coin-OR. A warning that fires inside the standard library cannot gate a
+# release build - a compiler upgrade would break the build over code nobody here wrote.
+#
+# So it is turned back off below, AFTER the -Werror flags so it wins. What remains is the
+# definite check, which proves rather than guesses, and which is the one that caught the real
+# defects. Our own code is clean under gcc 16 for both.
+#
+# Detected rather than assumed. -Wself-assign is clang-only, -Winfinite-recursion needs gcc 12
+# or newer, and gcc treats an unknown -W option as a hard error rather than ignoring it - so
+# hardcoding these would break the build on the very compilers we ship from. MSVC accepts none
+# of them and simply gets nothing added.
+include(CheckCXXCompilerFlag)
+foreach(_pestpp_warn_flag -Werror=uninitialized -Werror=infinite-recursion -Werror=self-assign)
+  string(MAKE_C_IDENTIFIER "PESTPP_HAS${_pestpp_warn_flag}" _pestpp_warn_ok)
+  check_cxx_compiler_flag("${_pestpp_warn_flag}" ${_pestpp_warn_ok})
+  if(${_pestpp_warn_ok})
+    list(APPEND PESTPP_CXX_WARN_FLAGS "${_pestpp_warn_flag}")
+  endif()
+endforeach()
+
+# after the loop on purpose - later on the command line, so it overrides the -Werror above for
+# the guessing half of -Wuninitialized. see the note above for why this cannot be an error.
+# clang has no such warning and skips this.
+check_cxx_compiler_flag("-Wno-maybe-uninitialized" PESTPP_HAS_Wno_maybe_uninitialized)
+if(PESTPP_HAS_Wno_maybe_uninitialized)
+  list(APPEND PESTPP_CXX_WARN_FLAGS "-Wno-maybe-uninitialized")
+endif()
+
+message(STATUS "PESTPP_CXX_WARN_FLAGS=${PESTPP_CXX_WARN_FLAGS}")
+
 # Global definitions
 if(WIN32)
   add_compile_definitions(_WIN32_WINNT=0x0600)
@@ -210,6 +357,10 @@ endif()
 # Copying each target from the BUILD TREE avoids both: the build-tree binary was written at link
 # time rather than milliseconds ago, copy_if_different is one defined operation per file with no
 # glob, and nothing is ever removed, so the directory is never momentarily empty.
+# Ship .dSYM bundles with the binaries (macOS). OFF because they are large - see the note in
+# the target loop below. The diagnostic build turns it on; ordinary builds should not.
+option(PESTPP_MAC_DSYM "Run dsymutil and install .dSYM bundles alongside the binaries" OFF)
+
 set(_local_install_bin "${PESTPP_SOURCE_DIR}/bin/${_ostag}")
 set(_local_install_copies
   COMMAND "${CMAKE_COMMAND}" -E make_directory "${_local_install_bin}")
@@ -219,6 +370,34 @@ foreach(_tgt
   list(APPEND _local_install_copies
     COMMAND "${CMAKE_COMMAND}" -E copy_if_different
       "$<TARGET_FILE:${_tgt}>" "${_local_install_bin}/")
+  # NOT in Release: the shipped archive stays as lean as it is today, and the release symbols
+  # travel separately - their own zip, uploaded as a ci artifact and attached to the release.
+  # The diagnostic build DOES carry them, since a debugging binary without symbols is pointless.
+  #
+  # OPTIONAL because TARGET_PDB_FILE is only written when the linker was asked for one, and
+  # MSVC only - the generator expression is not valid for a target that cannot produce a pdb.
+  if(MSVC)
+    install(FILES "$<TARGET_PDB_FILE:${_tgt}>"
+            CONFIGURATIONS RelWithDebInfo Debug
+            DESTINATION ${CMAKE_INSTALL_BINDIR} OPTIONAL)
+  endif()
+
+  # macOS: the same problem, solved differently. -g leaves the DWARF in the .o files and puts
+  # only a map of paths into the binary, so once the build tree is gone the symbols are
+  # unreachable - a mac "diagnostic" build with no dsymutil gives you assertions and an
+  # unreadable stack. dsymutil collects them into a .dSYM bundle keyed to the binary by uuid.
+  #
+  # Behind an OPTION rather than a config check because it is expensive: the bundles run to
+  # roughly 14x the size of the binary, and doing that on every ordinary build would cost
+  # hundreds of megabytes and the time to write them. Only the diagnostic build asks for it.
+  #
+  # Done at INSTALL time, not POST_BUILD: add_custom_command(TARGET ...) only works in the
+  # directory that created the target, and every one of these is created in a subdirectory.
+  # Install time is the better moment anyway - the bundle is written straight into the install
+  # tree, so cpack picks it up with no separate install(DIRECTORY) rule to keep in step.
+  if(APPLE AND PESTPP_MAC_DSYM)
+    install(CODE "execute_process(COMMAND dsymutil \"$<TARGET_FILE:${_tgt}>\" -o \"\${CMAKE_INSTALL_PREFIX}/${CMAKE_INSTALL_BINDIR}/$<TARGET_FILE_NAME:${_tgt}>.dSYM\")")
+  endif()
 endforeach()
 
 add_custom_target(local_install

@@ -1540,6 +1540,12 @@ pestpp_status pestpp_create(const pestpp_create_options* opts, pestpp_handle* ou
                 opt.get_panther_echo_interval_milliseconds(),
                 opt.get_panther_persistent_workers(),
                 opt.get_panther_ping_interval_secs()));
+            // not a constructor argument, so it needs the setter - the same call all seven
+            // executables make. without it the option is read and reported but never reaches
+            // the run manager, which then screens on its own default no matter what the control
+            // file says, and the 0 that is meant to switch screening off does nothing.
+            dynamic_cast<RunManagerPanther*>(s->run_manager.get())->set_max_failed_run_delta(
+                opt.get_panther_agent_max_failed_run_delta());
             break;
 
         case PESTPP_RM_EXTERNAL:
@@ -2591,6 +2597,33 @@ pestpp_status pestpp_get_run_time_stats(pestpp_handle h, double* avg_run_sec,
         if (n_timed_out  != nullptr) *n_timed_out  = st.n_timed_out;
         if (n_queued     != nullptr) *n_queued     = st.n_queued;
         if (n_running    != nullptr) *n_running    = st.n_running;
+        return PESTPP_OK;
+    CAPI_END()
+}
+
+pestpp_status pestpp_get_host_failures(pestpp_handle h, char* hosts, int* counts,
+                                       int max_n, int* n_out)
+{
+    CAPI_BEGIN_OBSERVER_SAFE(h)
+        const auto& hf = panther(s)->get_host_failure_count();
+        int n = (int)hf.size();
+        if (n_out != nullptr) *n_out = n;
+        // size-only call: report the count and touch nothing
+        if ((hosts == nullptr) && (counts == nullptr))
+            return PESTPP_OK;
+        if (max_n < n)
+            too_small("host failure buffers too small; call with both pointers NULL to size "
+                      "them first");
+        // the map is unordered, so sort by name - an unstable order across calls would make
+        // the two parallel arrays impossible to line up with anything the caller kept
+        vector<pair<string,int>> sorted(hf.begin(), hf.end());
+        sort(sorted.begin(), sorted.end(),
+             [](const pair<string,int>& a, const pair<string,int>& b){ return a.first < b.first; });
+        for (int i = 0; i < n; i++)
+        {
+            if (hosts  != nullptr) pack_one_name(sorted[i].first, hosts + (i * PESTPP_NAME_LEN));
+            if (counts != nullptr) counts[i] = sorted[i].second;
+        }
         return PESTPP_OK;
     CAPI_END()
 }

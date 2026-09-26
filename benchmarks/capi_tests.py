@@ -15,6 +15,7 @@ import os
 import re
 import platform
 import shutil
+import socket
 import subprocess
 import sys
 import time
@@ -27,7 +28,7 @@ import pyemu
 _BENCH = os.path.dirname(os.path.abspath(__file__))
 _REPO = os.path.dirname(_BENCH)
 sys.path.insert(0, os.path.join(_REPO, "python"))
-from pestpp_lib import (  # noqa: E402
+from pestpp.pestpp_lib import (  # noqa: E402
     PestppLib, PestppError, PESTPP_OK, PAR_EN, OBS_EN, NOISE_EN, WEIGHTS_EN,
     RM_SERIAL, RM_PANTHER, RM_EXTERNAL,
     TOOL_IES, TOOL_DA, TOOL_MOU, TOOL_SQP, TOOL_GLM, WORKER_COMPLETED,
@@ -630,7 +631,7 @@ def capi_run_manager_selection_test():
 def capi_create_options_validation_test():
     """Bad create options are rejected with a message, not a crash or a silent default."""
     import ctypes
-    from pestpp_lib import CreateOptions
+    from pestpp.pestpp_lib import CreateOptions
 
     lib = PestppLib.__new__(PestppLib)          # no handle needed for these
     lib.lib = ctypes.CDLL(_find_library())
@@ -675,7 +676,7 @@ def capi_struct_size_honoured_test():
     is short: anything the library reads past `ctl_file` is memory this test does not own.
     """
     import ctypes
-    from pestpp_lib import CreateOptions
+    from pestpp.pestpp_lib import CreateOptions
 
     class ShortCreateOptions(ctypes.Structure):
         """pestpp_create_options as it looked before working_dir/run_manager/panther_port."""
@@ -727,7 +728,7 @@ def capi_status_codes_test():
     positive is a failure.
     """
     import ctypes
-    from pestpp_lib import (PESTPP_BUFFER_TOO_SMALL, PESTPP_INVALID_ARGUMENT,
+    from pestpp.pestpp_lib import (PESTPP_BUFFER_TOO_SMALL, PESTPP_INVALID_ARGUMENT,
                             PESTPP_INVALID_STATE, PESTPP_NOT_SUPPORTED, PESTPP_INVALID_HANDLE)
 
     wd = _setup("capi_status_codes")
@@ -1050,7 +1051,7 @@ def capi_output_redirect_is_lifo_test():
     cannot be dup2'd over stdout either.
     """
     import ctypes
-    from pestpp_lib import PESTPP_INVALID_ARGUMENT, PESTPP_INVALID_STATE
+    from pestpp.pestpp_lib import PESTPP_INVALID_ARGUMENT, PESTPP_INVALID_STATE
 
     lib = ctypes.CDLL(_find_library())
     lib.pestpp_redirect_output.argtypes = (ctypes.c_char_p, ctypes.POINTER(ctypes.c_int))
@@ -1108,7 +1109,7 @@ def capi_unknown_option_is_reported_test():
     has to be asked for explicitly by passing `found`.
     """
     import ctypes
-    from pestpp_lib import PESTPP_INVALID_ARGUMENT
+    from pestpp.pestpp_lib import PESTPP_INVALID_ARGUMENT
 
     wd = _setup("capi_unknown_option")
     with PestppLib(_find_library(), TOOL_IES, "pest.pst", wd) as ies:
@@ -2144,6 +2145,341 @@ def capi_service_runs_failure_test():
                 oe.shape[0], count)
 
 
+def capi_host_failure_count_test():
+    """Failures are tallied per HOST, not per agent, and the running total reaches the rmr.
+
+    Several agents normally share a machine, so a host that is eating every run looks like a
+    handful of unrelated agent failures until they are added up. Three agents on localhost here,
+    a model that always fails, so every failure has to land on the one host entry.
+    """
+    wd = _setup("capi_hostfail", noptmax=1, num_reals=6)
+    # a model that fails every time, the same trick basic_tests uses to force run failures
+    pst = pyemu.Pst(os.path.join(wd, "pest.pst"))
+    pst.model_command = ['python -c "raise Exception(\'intentional\')"']
+    pst.write(os.path.join(wd, "pest.pst"), version=2)
+
+    worker_root = os.path.join(_BENCH, "capi_hostfail_workers")
+    if os.path.exists(worker_root):
+        shutil.rmtree(worker_root)
+    os.makedirs(worker_root)
+    n_workers = 3
+    procs = []
+    agent_exe = _find_agent_exe()
+    # a port of its own - the module-level one belongs to the other panther tests, and two
+    # masters bound to the same port in one run is a confusing way to fail
+    hf_port = port + 7
+
+    try:
+        with PestppLib(_find_library(), TOOL_IES, "pest.pst", wd, port=hf_port) as ies:
+            for i in range(n_workers):
+                d = os.path.join(worker_root, "worker_{0}".format(i))
+                shutil.copytree(wd, d)
+                log = open(os.path.join(d, "worker.log"), "w")
+                procs.append(subprocess.Popen(
+                    [agent_exe, "pest.pst", "/h", "localhost:{0}".format(hf_port)],
+                    cwd=d, stdout=log, stderr=subprocess.STDOUT))
+
+            # nothing has failed yet, so the container must be empty rather than absent
+            assert ies.get_host_failures() == {}, ies.get_host_failures()
+
+            ies.initialize_prepare()
+            ies.queue_runs()
+            ies.begin_batch()
+            for _ in range(600):
+                if ies.run_slice(0.1):
+                    break
+            ies.end_batch()
+            nfail = ies.process_runs()
+
+            hf = ies.get_host_failures()
+            print("host failures:", hf, "reported failures:", nfail)
+            assert len(hf) == 1, \
+                "three agents on one machine must roll up to ONE host: {0}".format(hf)
+            host, count = next(iter(hf.items()))
+            assert count > 0, hf
+            # every agent is on this machine, so the host total accounts for all of them - it
+            # must not look like a per-agent count
+            assert count >= n_workers, \
+                "host total {0} looks per-agent, not per-host ({1} agents)".format(count, n_workers)
+    finally:
+        for p_ in procs:
+            try:
+                p_.kill()
+            except Exception:
+                pass
+
+    # and the running total is in the record file, climbing as failures accumulate
+    rmr = os.path.join(wd, "pest.rmr")
+    counts = []
+    with open(rmr, "r") as f:
+        for line in f:
+            if "on this host so far" in line:
+                counts.append(int(line.split("-")[-1].strip().split()[0]))
+    assert counts, "no per-host failure lines in the rmr"
+    assert counts == sorted(counts), "the running total should never go backwards: {0}".format(counts)
+    assert counts[0] == 1, "the first failure on a host should report 1: {0}".format(counts[:3])
+    assert "1 failure " in open(rmr).read(), "singular/plural: the first should read '1 failure'"
+    print("rmr per-host totals:", counts[:6], "...", counts[-1] if counts else None)
+
+    # a failing run carries the agent machine's memory and disk back with it. a host that starts
+    # eating runs because it is out of memory or has filled its disk looks, from the master,
+    # exactly like one failing for any other reason - these two numbers are what separates them.
+    #
+    # sampled at the failure, not taken from the handshake, so a machine that degrades hours into
+    # a long run shows it.
+    fail_lines = [ln for ln in open(rmr) if "failed on agent:" in ln]
+    assert fail_lines, "no run-failure lines in the rmr"
+    # the last two are the AGENT PROCESS, not the machine. on a host running several
+    # agents the machine figures are shared between them and these are not, which is the
+    # whole reason both are sent. agent_peak_mem_mb is a high-water mark, so a run that
+    # ballooned and then freed still reports what it cost.
+    keys = ["mem_total_mb", "mem_avail_mb", "disk_total_mb", "disk_avail_mb",
+            "agent_mem_mb", "agent_peak_mem_mb"]
+    for k in keys:
+        assert k + ":" in fail_lines[0], \
+            "{0} missing from the failure line: {1}".format(k, fail_lines[0].strip()[:200])
+
+    # and pyemu has to be able to read them - same contract as the handshake line. a value with a
+    # stray space or a second colon would arrive truncated and still "look" present above.
+    df = pyemu.utils.helpers.parse_rmr_file(rmr)
+    for k in keys:
+        assert k in df.columns, \
+            "pyemu did not pick up {0} from the failure lines - columns: {1}".format(
+                k, list(df.columns))
+        vals = df[k].dropna()
+        assert len(vals) > 0, "{0} is a column but every value is missing".format(k)
+        assert float(vals.iloc[0]) > 0, "{0} came back as {1!r}".format(k, vals.iloc[0])
+    print("failure lines carry machine state: mem_avail_mb={0}, disk_avail_mb={1}".format(
+        df["mem_avail_mb"].dropna().iloc[0], df["disk_avail_mb"].dropna().iloc[0]))
+
+
+def capi_host_quarantine_test():
+    """A host that fails far more than its share is quarantined and its runs re-queued.
+
+    Two "hosts" out of one machine: the master binds 0.0.0.0, so one group of agents dials
+    127.0.0.1 and the other dials this machine's primary NON-loopback address. They arrive with
+    different peer addresses, and getnameinfo gives the master two distinct host names.
+
+    A second LOOPBACK address does not work, which is what this test originally tried. Ubuntu
+    resolves the whole 127.0.0.0/8 block to "localhost" through systemd's nss-myhostname, so
+    127.0.0.1 and 127.0.0.2 collapse to one host key and the quarantine check - which needs more
+    than one host - never applies. A non-loopback address is not given that treatment.
+
+    No production change is needed for any of this: the master already accepts either address,
+    and the host name it derives is whatever getnameinfo returns.
+
+    The two groups get DIFFERENT pest.pst files - an agent runs the model command from its own
+    working directory - so one group fails everything and the other works normally.
+    """
+    if platform.system() != "Linux":
+        print("skipping host quarantine test: only exercised on linux for now")
+        return
+
+    # the address the OS would use to reach the outside world. no packets are sent and no dns is
+    # consulted - connect() on a udp socket just fixes the local end so getsockname can be read
+    _s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+    try:
+        _s.connect(("8.8.8.8", 80))
+        lan_addr = _s.getsockname()[0]
+    finally:
+        _s.close()
+    assert not lan_addr.startswith("127."), \
+        "no non-loopback address found ({0}) - the two-host arrangement needs one".format(lan_addr)
+    print("second host will dial", lan_addr)
+
+    good_wd = _setup("capi_quar", noptmax=1, num_reals=12)
+
+    # the allowance has to come down for this arrangement to trip at all. a host is screened out
+    # when its failures pass its fair share plus the allowance, and with 2 of the 4 agents on the
+    # bad machine its fair share is half of every failure. at the default of 3 the bad machine
+    # would need 7 failures out of 6 runs, which cannot happen - the test would sit there looking
+    # like the feature was broken. at 1 it trips once the bad machine is 2 clear of its share.
+    _pst = pyemu.Pst(os.path.join(good_wd, "pest.pst"))
+    _pst.pestpp_options["panther_agent_max_failed_run_delta"] = 1
+    _pst.write(os.path.join(good_wd, "pest.pst"), version=2)
+
+    worker_root = os.path.join(_BENCH, "capi_quar_workers")
+    if os.path.exists(worker_root):
+        shutil.rmtree(worker_root)
+    os.makedirs(worker_root)
+
+    agent_exe = _find_agent_exe()
+    q_port = port + 11
+    procs = []
+    n_good, n_bad = 2, 2
+
+    def _worker(idx, addr, fail):
+        d = os.path.join(worker_root, "w{0}".format(idx))
+        shutil.copytree(good_wd, d)
+        if fail:
+            pst = pyemu.Pst(os.path.join(d, "pest.pst"))
+            pst.model_command = ['python -c "raise Exception(\'bad host\')"']
+            pst.write(os.path.join(d, "pest.pst"), version=2)
+        log = open(os.path.join(d, "worker.log"), "w")
+        return subprocess.Popen(
+            [agent_exe, "pest.pst", "/h", "{0}:{1}".format(addr, q_port)],
+            cwd=d, stdout=log, stderr=subprocess.STDOUT)
+
+    try:
+        with PestppLib(_find_library(), TOOL_IES, "pest.pst", good_wd, port=q_port) as ies:
+            for i in range(n_good):
+                procs.append(_worker(i, "127.0.0.1", fail=False))
+            for i in range(n_bad):
+                procs.append(_worker(100 + i, lan_addr, fail=True))
+
+            ies.initialize_prepare()
+            ies.queue_runs()
+            ies.begin_batch()
+            for _ in range(900):
+                if ies.run_slice(0.1):
+                    break
+            ies.end_batch()
+            ies.process_runs()
+            hf = ies.get_host_failures()
+            print("host failures:", hf)
+    finally:
+        for p_ in procs:
+            try:
+                p_.kill()
+            except Exception:
+                pass
+
+    rmr = open(os.path.join(good_wd, "pest.rmr")).read()
+
+    # ASSERT rather than skip. This used to return quietly when the two addresses collapsed to
+    # one host name, which made the test report ok whether or not it had checked anything - the
+    # exact shape that lets a feature rot untested. On linux 127.0.0.2 has no PTR record, so
+    # getnameinfo falls back to the numeric string and the two must come back distinct. If that
+    # ever stops being true the test says so instead of passing silently.
+    #
+    # The connection lines are what proves it, not the failure counts: the healthy machine never
+    # fails, so it is never in the failure counts at all. Asserting on those was checking
+    # something that cannot happen - it wanted two machines in a list that only records the ones
+    # that fail.
+    seen_hosts = set()
+    for line in rmr.splitlines():
+        if "new connection from:" in line:
+            seen_hosts.add(line.split("new connection from:")[1].rsplit(":", 1)[0])
+    assert len(seen_hosts) >= 2, (
+        "expected two distinct hosts from 127.0.0.1 and {0}, saw {1} - without two hosts the "
+        "quarantine check does not apply and this test proves nothing".format(lan_addr, seen_hosts))
+
+    assert "quarantined -" in rmr, "no host was quarantined:\n" + rmr[-2000:]
+    assert "moved to QUARANTINED" in rmr, "agents were not moved out of service"
+    assert "run(s) requeued" in rmr, "failed runs were not requeued"
+    assert "host(s) quarantined for excess run failures" in rmr, "no end-of-batch summary"
+
+    # the failing machine is the only one that should have failures against it, and it is the
+    # one that should have been taken out of service
+    assert hf, "no run failures were counted against any host at all"
+    bad = max(hf, key=lambda k: hf[k])
+    healthy = seen_hosts - {bad}
+    assert healthy, "could not tell the two hosts apart: failures {0}, connected {1}".format(
+        hf, seen_hosts)
+    for line in rmr.splitlines():
+        if "quarantined -" in line:
+            assert bad in line, "the WRONG host was quarantined: {0} (failures {1})".format(line, hf)
+            for h in healthy:
+                assert h not in line.split("quarantined")[0], \
+                    "the healthy host was quarantined: {0}".format(line)
+    print("quarantined the failing host:", bad, "| healthy:", sorted(healthy), hf)
+
+
+def capi_agent_resources_test():
+    """An agent reports its machine's memory and disk at the linpack handshake, and pyemu reads it.
+
+    The master cannot see these - it is on a different machine - so the agent has to send them,
+    and the handshake is the first chance, before any run is handed out.
+
+    The point of the format is that pyemu's parse_rmr_file can read it without being taught
+    anything new: it keeps every whitespace-delimited token containing a colon and splits it on
+    the first one, so each figure has to be a single word, key:value, with no space and no second
+    colon. This test runs the real parser rather than a regex of its own, because a regex here
+    would happily pass a format pyemu cannot actually read.
+    """
+    wd = _setup("capi_agentres", noptmax=1, num_reals=4)
+    worker_root = os.path.join(_BENCH, "capi_agentres_workers")
+    if os.path.exists(worker_root):
+        shutil.rmtree(worker_root)
+    os.makedirs(worker_root)
+
+    agent_exe = _find_agent_exe()
+    res_port = port + 13
+    procs = []
+    # the last two are the AGENT PROCESS, not the machine. on a host running several
+    # agents the machine figures are shared between them and these are not, which is the
+    # whole reason both are sent. agent_peak_mem_mb is a high-water mark, so a run that
+    # ballooned and then freed still reports what it cost.
+    keys = ["mem_total_mb", "mem_avail_mb", "disk_total_mb", "disk_avail_mb",
+            "agent_mem_mb", "agent_peak_mem_mb"]
+
+    try:
+        with PestppLib(_find_library(), TOOL_IES, "pest.pst", wd, port=res_port) as ies:
+            d = os.path.join(worker_root, "w0")
+            shutil.copytree(wd, d)
+            log = open(os.path.join(d, "worker.log"), "w")
+            procs.append(subprocess.Popen(
+                [agent_exe, "pest.pst", "/h", "localhost:{0}".format(res_port)],
+                cwd=d, stdout=log, stderr=subprocess.STDOUT))
+            ies.initialize_prepare()
+            ies.queue_runs()
+            ies.begin_batch()
+            for _ in range(600):
+                if ies.run_slice(0.1):
+                    break
+            ies.end_batch()
+            ies.process_runs()
+    finally:
+        for p_ in procs:
+            try:
+                p_.kill()
+            except Exception:
+                pass
+
+    rmr_file = os.path.join(wd, "pest.rmr")
+    with open(rmr_file, "r") as f:
+        ready = [ln for ln in f if "new agent ready:" in ln]
+    assert ready, "no agent handshake in the rmr at all"
+    print("handshake line:", ready[0].strip())
+
+    for k in keys:
+        assert k + ":" in ready[0], \
+            "{0} missing from the handshake line: {1}".format(k, ready[0].strip())
+
+    # the real gate: pyemu's own parser, on the real file
+    df = pyemu.utils.helpers.parse_rmr_file(rmr_file)
+    for k in keys:
+        assert k in df.columns, \
+            "pyemu did not pick up {0} - got columns {1}".format(k, list(df.columns))
+        vals = df[k].dropna()
+        assert len(vals) > 0, "{0} is a column but every value is missing".format(k)
+        # must survive as a number. a value with a stray space or a second colon would arrive
+        # truncated or split, and would fail here rather than silently reading as nonsense
+        for v in vals:
+            assert float(v) > 0, "{0} came back as {1!r}".format(k, v)
+
+    total = float(df["mem_total_mb"].dropna().iloc[0])
+    avail = float(df["mem_avail_mb"].dropna().iloc[0])
+    assert avail <= total, "available memory above total: {0} > {1}".format(avail, total)
+    dtotal = float(df["disk_total_mb"].dropna().iloc[0])
+    davail = float(df["disk_avail_mb"].dropna().iloc[0])
+    assert davail <= dtotal, "available disk above total: {0} > {1}".format(davail, dtotal)
+    print("pyemu read the handshake: mem {0:.0f}/{1:.0f} MB, disk {2:.0f}/{3:.0f} MB".format(
+        avail, total, davail, dtotal))
+
+
+def capi_host_quarantine_disabled_test():
+    """delta of 0 turns the screening off, and the summary says so rather than going quiet."""
+    wd = _setup("capi_quar_off", noptmax=1, num_reals=4)
+    pst = pyemu.Pst(os.path.join(wd, "pest.pst"))
+    pst.pestpp_options["panther_agent_max_failed_run_delta"] = 0
+    pst.write(os.path.join(wd, "pest.pst"), version=2)
+    with PestppLib(_find_library(), TOOL_IES, "pest.pst", wd) as ies:
+        assert ies.get_option("PANTHER_AGENT_MAX_FAILED_RUN_DELTA") == "0", \
+            ies.get_option("PANTHER_AGENT_MAX_FAILED_RUN_DELTA")
+    print("delta=0 accepted and reported by the option system")
+
+
 if __name__ == "__main__":
     capi_smoke_test()
     capi_snapshot_roundtrip_test()
@@ -2182,4 +2518,7 @@ if __name__ == "__main__":
     capi_stp_file_commands_test()
     capi_service_runs_yourself_test()
     capi_service_runs_failure_test()
+    capi_host_failure_count_test()
+    capi_host_quarantine_test()
+    capi_host_quarantine_disabled_test()
     print("all capi tests passed")

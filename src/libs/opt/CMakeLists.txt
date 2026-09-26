@@ -139,7 +139,20 @@ if(WIN32)
   )
 endif()
 
-target_compile_options(opt PRIVATE ${PESTPP_CXX_WARN_FLAGS})
+# PESTPP_CXX_WARN_FLAGS is deliberately NOT applied here.
+#
+# This is vendored Coin-OR. Our warning policy exists to catch defects in code we write and can
+# fix, and none of that applies to a third-party library we take as-is: every warning it emits
+# is one nobody will ever act on, and with -Werror it stops being noise and starts breaking the
+# build outright.
+#
+# It did exactly that. Coin-OR tripped -Werror=self-assign (three deliberate self-assignments,
+# the old trick for silencing an unused-variable warning), and then CoinIndexedVector.cpp
+# tripped -Werror=uninitialized on the RelWithDebInfo build - which the Release build had not
+# hit, because gcc's analysis changes with the optimisation level. Silencing them one category
+# at a time was chasing symptoms; the cause is linting code we do not maintain.
+#
+# Our own targets keep the full set, which is where it does some good.
 
 # opt is vendored Coin-OR and uses nothing from pestpp_com; this edge only created a
 # dependency cycle, which blocks any shared-library build

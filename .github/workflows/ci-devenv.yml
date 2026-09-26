@@ -45,11 +45,123 @@ jobs:
       #     pixi run install-modflow
   
       - name: Build release
-        run: pixi run build-release 
+        run: pixi run build-release
 
       # - name: Test pestpp
       #   run: |
       #     pixi run test
+
+      # Version and ostag, read the same way release.yml reads them, so the diagnostic archive
+      # this job produces is named exactly what the release workflow will look for.
+      - name: Read version and ostag
+        id: version
+        run: |
+          version=$(grep -oE '#define PESTPP_VERSION "[^"]+"' src/libs/common/config_os.h \
+                    | sed -E 's/.*"(.*)"/\1/')
+          if [[ -z "$version" ]]; then
+            echo "::error::could not read PESTPP_VERSION from src/libs/common/config_os.h"
+            exit 1
+          fi
+          if [[ $RUNNER_OS == "Linux" ]]; then ostag="linux"
+          elif [[ $RUNNER_OS == "macOS" ]]; then ostag="mac"
+          else ostag="win"; fi
+          echo "version=$version" >> $GITHUB_OUTPUT
+          echo "ostag=$ostag" >> $GITHUB_OUTPUT
+
+      # Diagnostic binaries - release speed, symbols on, and NDEBUG REMOVED so eigen checks its
+      # own matrix dimensions and index bounds on every operation instead of reading off the end
+      # of an allocation and corrupting the heap for something else to trip over later.
+      #
+      # Built here rather than in the release workflow so one exists for every commit, not only
+      # for releases: when a user hits something you want to hand them a binary today.
+      #
+      # NDEBUG goes by REPLACING the per-config flags. Adding -UNDEBUG to CMAKE_CXX_FLAGS does
+      # nothing - those are emitted before the per-config ones, so -DNDEBUG just re-defines it.
+      # LINUX BUILDS IN MANYLINUX, not on the runner. This artifact is not a local convenience -
+      # release.yml downloads it and attaches it to the release, so these binaries end up on
+      # other people's machines. Built against the runner's glibc they would refuse to start on
+      # rhel/rocky 8, debian 11 or ubuntu 20.04.
+      #
+      # Note this is the DIAGNOSTIC build only. The pixi "Build release" step above deliberately
+      # stays on the runner: its whole job is to prove the developer environment builds pest++,
+      # and doing that in a container would be testing something else. Those binaries-* artifacts
+      # are never published.
+      - name: Build diagnostic binaries (linux, manylinux)
+        if: runner.os == 'Linux'
+        run: |
+          docker run --rm -v "$PWD":/io -w /io \
+            quay.io/pypa/manylinux_2_28_x86_64 bash -c '
+              set -euo pipefail
+              export PATH=/opt/python/cp312-cp312/bin:$PATH
+              pip install --quiet cmake ninja
+              cmake -G Ninja -S . -B _build-diag \
+                -DCMAKE_BUILD_TYPE=RelWithDebInfo \
+                -DCMAKE_CXX_FLAGS_RELWITHDEBINFO="-O2 -g" \
+                -DCMAKE_CXX_COMPILER_WORKS=1
+              cmake --build _build-diag -j$(nproc)
+              cpack --config _build-diag/CPackConfig.cmake -G TGZ -B _build-diag \
+                -D CPACK_PACKAGE_FILE_NAME="pestpp-${{ steps.version.outputs.version }}-linux-debug" \
+                -D CPACK_INCLUDE_TOPLEVEL_DIRECTORY=ON
+              # the container runs as root, so everything it wrote would land in the runner
+              # workspace owned by root and the upload step could not read it
+              chown -R $(stat -c %u:%g /io) _build-diag
+            '
+          ls -l _build-diag/pestpp-*-debug.tar.gz
+
+      - name: Build diagnostic binaries
+        if: runner.os != 'Linux'
+        run: |
+          if [[ "$RUNNER_OS" == "Windows" ]]; then
+            # dashes, not slashes. this step runs under git bash, and msys rewrites any
+            # argument that looks like a posix path - /Zi came out the other side as
+            # "C:/Program Files/Git/Zi", which then split on the space and reached the
+            # compiler as two source file names. msvc takes - and / interchangeably, and
+            # msys leaves a dash alone. the /Zi and /bigobj inside CMakeLists.txt are fine
+            # as they are: cmake never passes those through a shell.
+            diag_flags="-Zi -O2 -Ob1"
+            extra=""
+          else
+            diag_flags="-O2 -g"
+            # macOS only. -g leaves the DWARF in the .o files and puts just a map of paths into
+            # the binary, so once this build tree is gone the symbols are unreachable - without
+            # this the mac diagnostic build gives you assertions and an unreadable stack, which
+            # is half of what the other two platforms give you. dsymutil collects them into a
+            # .dSYM bundle matched to the binary by uuid, written straight into the install tree
+            # so cpack carries it in the archive.
+            #
+            # It is not free: the bundles run to roughly 14x the size of the binary, which is
+            # why the option is off by default and only the diagnostic build asks for it.
+            extra="-DPESTPP_MAC_DSYM=ON"
+          fi
+          pixi run -- cmake -G Ninja -S . -B _build-diag \
+            -DCMAKE_BUILD_TYPE=RelWithDebInfo \
+            -DCMAKE_CXX_FLAGS_RELWITHDEBINFO="$diag_flags" \
+            -DCMAKE_CXX_COMPILER_WORKS=1 $extra
+          pixi run -- cmake --build _build-diag
+
+      # CPACK_INCLUDE_TOPLEVEL_DIRECTORY is ON here and OFF for the release archive on purpose:
+      # the executables have the SAME names in both, and the release archive unpacks straight
+      # into bin/, so without a containing directory these would extract on top of a release
+      # install and silently replace fast binaries with slow ones.
+      # linux already packaged inside the container above, where cpack could see the build
+      - name: Package diagnostic binaries
+        if: runner.os != 'Linux'
+        run: |
+          name="pestpp-${{ steps.version.outputs.version }}-${{ steps.version.outputs.ostag }}-debug"
+          if [[ "$RUNNER_OS" == "Windows" ]]; then gen=ZIP; else gen=TGZ; fi
+          pixi run -- cpack --config _build-diag/CPackConfig.cmake -G $gen -B _build-diag \
+            -D CPACK_PACKAGE_FILE_NAME="$name" -D CPACK_INCLUDE_TOPLEVEL_DIRECTORY=ON
+          ls -l _build-diag/pestpp-*-debug.* || true
+
+      # Consumed by release.yml, which downloads it from this run rather than rebuilding.
+      - name: Upload diagnostic binaries
+        uses: actions/upload-artifact@v6
+        with:
+          name: diagnostic-${{ matrix.os }}
+          path: |
+            _build-diag/pestpp-*-debug.tar.gz
+            _build-diag/pestpp-*-debug.zip
+          if-no-files-found: error
 
       - name: Upload binaries
         uses: actions/upload-artifact@v6

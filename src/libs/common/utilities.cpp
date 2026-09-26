@@ -1419,10 +1419,15 @@ bool read_binary(const string &filename, vector<string> &row_names, vector<strin
 			in.read((char*)&(j), sizeof(j));
 			in.read((char*)&(data), sizeof(data));
 
+			// i_rec, not n. this format reads i and j straight from the file and never touches
+			// n, so these two messages were printing whatever was on the stack as the record
+			// number. they only fire on an already corrupt file, which is exactly when the
+			// number has to be right. the old-format loop below is different - there n IS read
+			// from the file and is the real index, so it prints n on purpose.
 			if ((i >= n_obs_and_pi) || (i < 0))
-				cout << "invalid 'i':" << i << " at " << n << " data:" << data << " j: " << j << endl;
+				cout << "invalid 'i':" << i << " at " << i_rec << " data:" << data << " j: " << j << endl;
 			if ((j >= n_par) || (j < 0))
-				cout << "invalid 'j':" << j << " at " << n << " data:" << data << " i: " << i << endl;
+				cout << "invalid 'j':" << j << " at " << i_rec << " data:" << data << " i: " << i << endl;
 			triplet_list.push_back(Eigen::Triplet<double>(i, j, data));
 		}
 		matrix.resize(n_obs_and_pi, n_par);
@@ -2488,11 +2493,48 @@ void CmdLine::startup_report(std::ostream &s, string start_string) {
 	s << "in directory: \"" << cwd << "\"" << endl;
 	s << "on host: \"" << w_get_hostname() << "\"" << endl;
 	s << "on a(n) " << opersys << " operating system" << endl;
-#ifdef _DEBUG
-	s << "with debugging configuration" << endl;
+	// what this binary actually is, so a record file identifies its own build.
+	//
+	// this used to key off _DEBUG, which is set by msvc and only when linking the debug
+	// runtime - so every gcc and clang build, and the diagnostic build on every platform,
+	// called itself "release". PESTPP_BUILD_CONFIG comes from cmake, and the assert state is
+	// the part that changes behaviour: with NDEBUG gone, eigen checks its own dimensions and
+	// index bounds on every operation and aborts on a bad one instead of walking off the end.
+#ifdef PESTPP_BUILD_CONFIG
+	s << "build configuration: " << PESTPP_BUILD_CONFIG;
 #else
-	s << "with release configuration" << endl;
+	s << "build configuration: unknown";
 #endif
+#ifdef NDEBUG
+	s << " (asserts off)" << endl;
+#else
+	s << " (asserts ON - diagnostic build, slower than a release build)" << endl;
+#endif
+
+	// what the machine has to work with. worth recording because the two ways a long run dies
+	// without explaining itself are running out of memory and filling the disk, and afterwards
+	// there is nothing left to say which - the record file is what is left.
+	//
+	// available, not free, for both: see the comments on these in system_variables.h. and the
+	// disk figure is for the working directory, not the machine, because that is the one that
+	// fills up and it is often not on the same mount as /.
+	const double to_gb = 1073741824.0;
+	SysMemory mem = get_system_memory();
+	if (mem.valid)
+		s << "machine memory: " << fixed << setprecision(1) << (mem.total_bytes / to_gb)
+		  << " GB total, " << (mem.available_bytes / to_gb) << " GB available" << endl;
+	else
+		s << "machine memory: could not be read on this system" << endl;
+
+	SysStorage disk = get_system_storage(cwd);
+	if (disk.valid)
+		s << "storage in working directory: " << fixed << setprecision(1)
+		  << (disk.total_bytes / to_gb) << " GB total, "
+		  << (disk.available_bytes / to_gb) << " GB available" << endl;
+	else
+		s << "storage in working directory: could not be read" << endl;
+	s.unsetf(ios_base::floatfield);
+
 	if (start_string.size() > 0)
 		s << "started at " << start_string << endl << endl;
 }
