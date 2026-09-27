@@ -57,6 +57,7 @@
 #include "GLM.h"
 #include "sequential_lp.h"
 #include "SQP.h"
+#include "GPR.h"
 #include "utilities.h"
 #include "system_variables.h"
 
@@ -3974,6 +3975,255 @@ pestpp_status pestpp_set_par_snapshot(pestpp_handle h, const double* data, int n
         require_par_ensemble(s)->set_from_ctl_snapshot(snap);
         return PESTPP_OK;
     CAPI_END()
+}
+
+} // extern "C"
+
+/* ---- gaussian process surrogate ------------------------------------------------------ */
+
+namespace {
+
+/** Stamped at the head of every live GP handle, the same way PESTPP_SESSION_MAGIC guards a
+ * session. It differs from the session magic on purpose: both handles are void*, and a GP
+ * handle passed where a session is expected (or the reverse) must be refused, not reinterpreted. */
+const unsigned int PESTPP_GP_MAGIC = 0x47505253u;   // 'GPRS'
+
+struct PestppGp
+{
+    unsigned int magic = PESTPP_GP_MAGIC;   // must stay the first member
+    GP gp;
+    string last_error;
+};
+
+PestppGp* as_gp(pestpp_gp_handle h)
+{
+    if (h == nullptr)
+        return nullptr;
+    PestppGp* g = static_cast<PestppGp*>(h);
+    if (g->magic != PESTPP_GP_MAGIC)
+        return nullptr;
+    return g;
+}
+
+GPKernel gp_kernel_from_enum(int kernel)
+{
+    switch (kernel)
+    {
+    case PESTPP_GP_SQUARED_EXPONENTIAL: return GPKernel::SquaredExponential;
+    case PESTPP_GP_EXPONENTIAL:         return GPKernel::Exponential;
+    case PESTPP_GP_MATERN32:            return GPKernel::Matern32;
+    case PESTPP_GP_MATERN52:            return GPKernel::Matern52;
+    }
+    bad_arg("unknown GP kernel " + to_string(kernel) + "; expected a pestpp_gp_kernel value (0-3)");
+}
+
+int gp_kernel_to_enum(GPKernel kernel)
+{
+    switch (kernel)
+    {
+    case GPKernel::SquaredExponential: return PESTPP_GP_SQUARED_EXPONENTIAL;
+    case GPKernel::Exponential:        return PESTPP_GP_EXPONENTIAL;
+    case GPKernel::Matern32:           return PESTPP_GP_MATERN32;
+    case GPKernel::Matern52:           return PESTPP_GP_MATERN52;
+    }
+    return PESTPP_GP_SQUARED_EXPONENTIAL;
+}
+
+/// Copy a caller's column-major nrow x ncol array. Refuses NaN/inf: a non-finite design point
+/// or response does not fail loudly inside the covariance, it just poisons every prediction.
+Eigen::MatrixXd gp_copy_in(const double* data, int nrow, int ncol, const char* what)
+{
+    if (data == nullptr)
+        bad_arg(string(what) + " is NULL");
+    if ((nrow <= 0) || (ncol <= 0))
+        bad_arg(string(what) + " must have at least one row and one column, got " +
+                to_string(nrow) + " x " + to_string(ncol));
+    Eigen::MatrixXd out = Eigen::Map<const Eigen::MatrixXd>(data, nrow, ncol);
+    if (!out.allFinite())
+        bad_arg(string(what) + " contains NaN or infinite values");
+    return out;
+}
+
+/// A hyper-parameter is either a fixed value (> 0) or "estimate it" (<= 0) - never NaN, which
+/// compares false both ways and would silently fall through to a fixed NaN.
+void gp_check_hyper(double v, const char* what)
+{
+    if (!std::isfinite(v))
+        bad_arg(string(what) + " must be finite; use a value <= 0 to estimate it");
+}
+
+void gp_copy_out(const Eigen::MatrixXd& src, double* dst)
+{
+    if (dst != nullptr)
+        Eigen::Map<Eigen::MatrixXd>(dst, src.rows(), src.cols()) = src;
+}
+
+} // namespace
+
+/* The GP calls own no session, so they get their own wrappers - but the same guarantees:
+   nothing propagates past the C boundary, a thrown status survives, and the fatal flag is
+   honoured because the header promises every call refuses once it is set. There is no
+   working directory to enter, since nothing here touches the filesystem. */
+#define CAPI_GP_BEGIN(h)                                                       \
+    PestppGp* s = as_gp(h);                                                    \
+    if (s == nullptr) return PESTPP_INVALID_HANDLE;                            \
+    try {                                                                      \
+        s->last_error.clear();                                                 \
+        if (!g_cwd_restore_error.empty())                                      \
+            bad_state(g_cwd_restore_error);
+
+#define CAPI_GLOBAL_BEGIN()                                                    \
+    g_create_error.clear();                                                    \
+    try {                                                                      \
+        if (!g_cwd_restore_error.empty())                                      \
+            bad_state(g_cwd_restore_error);
+
+#define CAPI_GLOBAL_END()                                                      \
+    } catch (const capi_error& e) {                                            \
+        g_create_error = clamp_message(e.what());                              \
+        return e.status;                                                       \
+    } catch (const std::exception& e) {                                        \
+        g_create_error = clamp_message(e.what());                              \
+        return PESTPP_ERROR;                                                   \
+    } catch (...) {                                                            \
+        g_create_error = string("unknown error in ") + __func__;               \
+        return PESTPP_ERROR;                                                   \
+    }
+
+extern "C" {
+
+pestpp_status pestpp_gp_create(const double* X, int n, int m, const double* Z, int kernel,
+                               double d, double g, int verb, pestpp_gp_handle* out)
+{
+    CAPI_GLOBAL_BEGIN()
+        if (out == nullptr)
+            bad_arg("pestpp_gp_create needs an out-param for the handle");
+        *out = nullptr;
+        Eigen::MatrixXd Xm = gp_copy_in(X, n, m, "X");
+        Eigen::VectorXd Zv = gp_copy_in(Z, n, 1, "Z").col(0);
+        GPKernel k = gp_kernel_from_enum(kernel);
+        gp_check_hyper(d, "the lengthscale d");
+        gp_check_hyper(g, "the nugget g");
+
+        // exactly laGPy's buildGP(): priors and bounds from the data, start there, then
+        // estimate whichever hyper-parameters were asked for
+        GPPrior dp = GPutils::darg(d, Xm);
+        GPPrior gp_ = GPutils::garg(g, Zv);
+        unique_ptr<PestppGp> h(new PestppGp());
+        h->gp.build(Xm, Zv, dp.start, gp_.start, k);
+        GPutils::optimize_parameters(h->gp, dp, gp_, verb);
+        // the covariance derivatives are only needed by the optimizer, and are two more
+        // n x n matrices kept alive for as long as the handle is
+        h->gp.delete_dK();
+        *out = h.release();
+        return PESTPP_OK;
+    CAPI_GLOBAL_END()
+}
+
+pestpp_status pestpp_gp_destroy(pestpp_gp_handle gp)
+{
+    PestppGp* s = as_gp(gp);
+    if (s == nullptr)
+        return PESTPP_INVALID_HANDLE;
+    // stamped dead first, so a second destroy answers PESTPP_INVALID_HANDLE, not a double free
+    s->magic = 0;
+    try { delete s; }
+    catch (...) { return PESTPP_ERROR; }
+    return PESTPP_OK;
+}
+
+pestpp_status pestpp_gp_get_info(pestpp_gp_handle gp, int* n, int* m, int* kernel, double* d,
+                                 double* g, double* phi)
+{
+    CAPI_GP_BEGIN(gp)
+        if (n != nullptr)      *n = s->gp.get_n();
+        if (m != nullptr)      *m = s->gp.get_m();
+        if (kernel != nullptr) *kernel = gp_kernel_to_enum(s->gp.get_kernel());
+        if (d != nullptr)      *d = s->gp.get_d();
+        if (g != nullptr)      *g = s->gp.get_g();
+        if (phi != nullptr)    *phi = s->gp.get_phi();
+        return PESTPP_OK;
+    CAPI_END()
+}
+
+pestpp_status pestpp_gp_predict(pestpp_gp_handle gp, const double* Xref, int nref, int m,
+                                double* mean, double* s2, double* dmean, double* ds2)
+{
+    CAPI_GP_BEGIN(gp)
+        if ((mean == nullptr) || (s2 == nullptr))
+            bad_arg("pestpp_gp_predict needs mean and s2 buffers");
+        if (m != s->gp.get_m())
+            bad_arg("prediction points have " + to_string(m) + " dimensions but the GP was fitted "
+                    "on " + to_string(s->gp.get_m()));
+        Eigen::MatrixXd Xr = gp_copy_in(Xref, nref, m, "Xref");
+        Eigen::VectorXd mv, sv;
+        Eigen::MatrixXd dm, ds;
+        s->gp.predict_lite(Xr, mv, sv, (dmean != nullptr) ? &dm : nullptr,
+                           (ds2 != nullptr) ? &ds : nullptr);
+        gp_copy_out(mv, mean);
+        gp_copy_out(sv, s2);
+        if (dmean != nullptr) gp_copy_out(dm, dmean);
+        if (ds2 != nullptr)   gp_copy_out(ds, ds2);
+        return PESTPP_OK;
+    CAPI_END()
+}
+
+pestpp_status pestpp_gp_get_last_error(pestpp_gp_handle gp, char* buf, int buf_len, int* needed)
+{
+    PestppGp* s = as_gp(gp);
+    // deliberately NOT CAPI_GP_BEGIN, for the same reason as pestpp_get_last_error(): clearing
+    // the message on the way in would empty the very thing being asked for
+    const string& msg = (s == nullptr) ? string() : s->last_error;
+    if (needed != nullptr)
+        *needed = (int)msg.size() + 1;
+    if (s == nullptr)
+        return PESTPP_INVALID_HANDLE;
+    if (buf == nullptr)
+        return PESTPP_OK;
+    if (buf_len < (int)msg.size() + 1)
+        return PESTPP_BUFFER_TOO_SMALL;
+    for (size_t i = 0; i < msg.size(); i++)
+        buf[i] = msg[i];
+    buf[msg.size()] = '\0';
+    return PESTPP_OK;
+}
+
+pestpp_status pestpp_gp_local_predict(const double* X, int n, int m, const double* Z,
+                                      const double* Xref, int nref, int start, int end,
+                                      const char* method, int kernel, double d, double g,
+                                      int num_threads, double* mean, double* s2, double* dmean,
+                                      double* ds2)
+{
+    CAPI_GLOBAL_BEGIN()
+        if ((mean == nullptr) || (s2 == nullptr))
+            bad_arg("pestpp_gp_local_predict needs mean and s2 buffers");
+        Eigen::MatrixXd Xm = gp_copy_in(X, n, m, "X");
+        Eigen::VectorXd Zv = gp_copy_in(Z, n, 1, "Z").col(0);
+        Eigen::MatrixXd Xr = gp_copy_in(Xref, nref, m, "Xref");
+        GPKernel k = gp_kernel_from_enum(kernel);
+        gp_check_hyper(d, "the lengthscale d");
+        gp_check_hyper(g, "the nugget g");
+        if ((start < 1) || (end < start))
+            bad_arg("local design sizes need 1 <= start <= end, got start=" + to_string(start) +
+                    " end=" + to_string(end));
+        // GPR treats anything that is not "nn" as alc, so a typo would quietly pick alc
+        string meth = (method == nullptr) ? string("alc") : string(method);
+        transform(meth.begin(), meth.end(), meth.begin(), ::tolower);
+        if ((meth != "alc") && (meth != "nn"))
+            bad_arg("unknown local design method '" + meth + "'; expected \"alc\" or \"nn\"");
+
+        GPR engine(k);
+        Eigen::VectorXd mv, sv;
+        Eigen::MatrixXd dm, ds;
+        engine.local_gp_predict(Xm, Zv, Xr, start, end, meth, d, g, 0, mv, sv,
+                                max(1, num_threads), (dmean != nullptr) ? &dm : nullptr,
+                                (ds2 != nullptr) ? &ds : nullptr);
+        gp_copy_out(mv, mean);
+        gp_copy_out(sv, s2);
+        if (dmean != nullptr) gp_copy_out(dm, dmean);
+        if (ds2 != nullptr)   gp_copy_out(ds, ds2);
+        return PESTPP_OK;
+    CAPI_GLOBAL_END()
 }
 
 } // extern "C"

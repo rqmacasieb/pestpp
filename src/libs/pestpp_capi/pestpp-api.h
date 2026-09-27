@@ -75,7 +75,7 @@ extern "C" {
  * while major is still 0, a breaking change might show up as a minor bump too - that is what
  * 0.x means. pin to a commit if that matters to you. */
 #define PESTPP_API_VERSION_MAJOR 0
-#define PESTPP_API_VERSION_MINOR 5
+#define PESTPP_API_VERSION_MINOR 6
 #define PESTPP_API_VERSION_PATCH 0
 
 /* Opaque session handle. Owns the scenario, file manager, run manager and tool object. */
@@ -311,8 +311,9 @@ PESTPP_API pestpp_status pestpp_get_last_error(pestpp_handle h, char* buf, int b
                                                int* needed);
 
 /* Why the most recent HANDLE-LESS call failed - pestpp_create(), pestpp_redirect_output(),
-   pestpp_restore_output(), pestpp_flush_output(). There is no handle to hang the message on,
-   so they share one process-global slot, which the next handle-less call overwrites. */
+   pestpp_restore_output(), pestpp_flush_output(), pestpp_gp_create(),
+   pestpp_gp_local_predict(). There is no handle to hang the message on, so they share one
+   process-global slot, which the next handle-less call overwrites. */
 PESTPP_API const char* pestpp_last_global_error(void);
 /* Deprecated spelling of pestpp_last_global_error(); it was never create-only. */
 PESTPP_API const char* pestpp_last_create_error(void);
@@ -1253,6 +1254,96 @@ PESTPP_API pestpp_status pestpp_get_par_snapshot(pestpp_handle h, double* data,
 PESTPP_API pestpp_status pestpp_set_par_snapshot(pestpp_handle h, const double* data,
                                                  int nrow, int ncol,
                                                  const char* row_names, const char* col_names);
+
+/* ---- gaussian process surrogate ------------------------------------------------------
+ *
+ * Direct access to the GP regression in pestpp_common (GPR.h, a C++/Eigen port of laGPy), so a
+ * caller can fit an emulator and predict with it in-process - for example to service a mou
+ * inner loop through pestpp_set_run_values() instead of a forward-model subprocess.
+ *
+ * None of this needs a session. A GP handle is its own thing: it owns a fitted model and
+ * nothing else, never touches the working directory and writes no files. It is NOT a
+ * pestpp_handle and the two are not interchangeable - each call checks which one it was given.
+ * Distinct GP handles share nothing and may be used from different threads at once; one GP
+ * handle is not safe to use from two threads at once, because each call rewrites its message.
+ *
+ * Arrays are COLUMN-MAJOR, like the rest of this API (numpy order="F"): X is n x m with
+ * X[i + j*n] the j-th coordinate of the i-th point, and the gradient outputs are nref x m the
+ * same way. Z, mean and s2 are plain length-n / length-nref vectors.
+ *
+ * Hyper-parameters follow laGPy's buildGP(): a lengthscale d <= 0 is estimated by maximum
+ * likelihood (starting from, and bounded by, the spread of the design's pairwise distances),
+ * and d > 0 is held fixed at that value. The nugget g works the same way. laGPy's defaults -
+ * d=None, g=1e-4 - are therefore d=0, g=1e-4 here. The kernel is isotropic: one lengthscale
+ * across every input dimension.
+ *
+ * Failures are reported the usual way. pestpp_gp_create() and pestpp_gp_local_predict() have
+ * no GP handle to hang a message on, so they use pestpp_last_global_error(); the calls that
+ * take a GP handle use pestpp_gp_get_last_error(). */
+
+/* Opaque GP handle. Owns one fitted model. */
+typedef void* pestpp_gp_handle;
+
+/* The covariance kernel. Isotropic, so each has exactly one lengthscale. */
+typedef enum {
+    PESTPP_GP_SQUARED_EXPONENTIAL = 0,   /* laGPy's default */
+    PESTPP_GP_EXPONENTIAL         = 1,   /* matern 1/2 */
+    PESTPP_GP_MATERN32            = 2,
+    PESTPP_GP_MATERN52            = 3
+} pestpp_gp_kernel;
+
+/* Fit a full GP on all n training points: build it, estimate whichever of d and g are <= 0,
+   and hand back a handle to the fitted model. The data is copied, so the caller's arrays may
+   be freed afterwards. verb > 0 prints the optimizer's progress to stdout.
+
+   A covariance that is not positive definite - duplicate design points with too small a
+   nugget, typically - is PESTPP_ERROR, not a silently regularized fit. */
+PESTPP_API pestpp_status pestpp_gp_create(const double* X, int n, int m, const double* Z,
+                                          int kernel, double d, double g, int verb,
+                                          pestpp_gp_handle* out);
+
+/* Free the model. The handle is dead afterwards; passing it anywhere, including here again,
+   returns PESTPP_INVALID_HANDLE rather than crashing. */
+PESTPP_API pestpp_status pestpp_gp_destroy(pestpp_gp_handle gp);
+
+/* What was fitted: design size, kernel and the hyper-parameters actually used - the MLE
+   result when they were estimated. phi is Z' K^-1 Z, the scale behind the predictive
+   variance. Any out-param may be NULL. */
+PESTPP_API pestpp_status pestpp_gp_get_info(pestpp_gp_handle gp, int* n, int* m, int* kernel,
+                                            double* d, double* g, double* phi);
+
+/* Predictive mean and variance at nref points - laGPy's predict_lite(), diagonal variance
+   only. `m` must equal the fitted dimension; it is asked for so a shape mismatch is an error
+   rather than a misread buffer. mean and s2 are length nref.
+
+   dmean and ds2, when non-NULL, receive the analytic gradients of the mean and variance with
+   respect to the prediction coordinates, nref x m column-major. Pass NULL to skip them: they
+   cost O(nref * m * n) on top of the prediction itself. */
+PESTPP_API pestpp_status pestpp_gp_predict(pestpp_gp_handle gp, const double* Xref, int nref,
+                                           int m, double* mean, double* s2, double* dmean,
+                                           double* ds2);
+
+/* Why the most recent call on this GP handle failed; "" if it succeeded. Same query-then-fill
+   shape as pestpp_get_last_error(): pass buf=NULL to learn `needed` (with the NUL). */
+PESTPP_API pestpp_status pestpp_gp_get_last_error(pestpp_gp_handle gp, char* buf, int buf_len,
+                                                  int* needed);
+
+/* Local approximate GP (laGPy's laGP()) - stateless, so there is no handle: for each of the
+   nref points it picks its own sub-design from the n training points, fits a GP on that and
+   predicts, so it scales to training sets far too large for a full GP.
+
+   Each local design starts from the `start` nearest neighbours and grows to `end` points, by
+   `method`: "alc" (active learning cohn, laGPy's default) or "nn" (nearest neighbours only).
+   d and g follow the same <= 0 means estimate rule as pestpp_gp_create(), per local design.
+   num_threads > 1 spreads the prediction points over that many threads.
+
+   Outputs are shaped as in pestpp_gp_predict(); dmean and ds2 may be NULL. */
+PESTPP_API pestpp_status pestpp_gp_local_predict(const double* X, int n, int m, const double* Z,
+                                                 const double* Xref, int nref, int start,
+                                                 int end, const char* method, int kernel,
+                                                 double d, double g, int num_threads,
+                                                 double* mean, double* s2, double* dmean,
+                                                 double* ds2);
 
 #ifdef __cplusplus
 }
