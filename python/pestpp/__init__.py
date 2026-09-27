@@ -61,6 +61,7 @@ from .pestpp_lib import (  # noqa: E402
     RM_SERIAL, RM_PANTHER, RM_EXTERNAL,
     PHI_MEAS, PHI_COMPOSITE, PHI_REGUL, PHI_ACTUAL, PHI_NOISE,
     WORKER_COMPLETED, WORKER_FAILED, WORKER_TIMED_OUT,
+    GaussianProcess, gp_local_predict,
 )
 
 from .pestpp_progress import Progress, auto as _progress_auto  # noqa: E402
@@ -75,7 +76,7 @@ __all__ = [
     "Ies", "Da", "Mou", "Sqp", "Glm", "Opt", "IterationStep", "Candidate", "PestppError", "ExpiredViewError",
     "Progress", "run_ies", "run_da", "run_mou", "run_sqp", "find_library",
     "PHI_MEAS", "PHI_COMPOSITE", "PHI_REGUL", "PHI_ACTUAL", "PHI_NOISE",
-    "find_library", "api_info",
+    "find_library", "api_info", "GaussianProcess", "gp_local_predict",
 ]
 
 

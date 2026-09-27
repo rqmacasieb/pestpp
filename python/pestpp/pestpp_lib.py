@@ -1682,6 +1682,290 @@ class PestppLib:
             "pestpp_set_par_snapshot")
 
 
+# ---- gaussian process surrogate -----------------------------------------------------------
+#
+GP_SQUARED_EXPONENTIAL, GP_EXPONENTIAL, GP_MATERN32, GP_MATERN52 = 0, 1, 2, 3
+GP_KERNEL = {
+    "squared_exponential": GP_SQUARED_EXPONENTIAL,
+    "exponential": GP_EXPONENTIAL,
+    "matern32": GP_MATERN32,
+    "matern52": GP_MATERN52,
+}
+_GP_KERNEL_NAME = {v: k for k, v in GP_KERNEL.items()}
+_GP_LIBS: dict = {}
+
+
+def _gp_lib(lib_path: str | None = None):
+    path = find_library(lib_path)
+    lib = _GP_LIBS.get(path)
+    if lib is not None:
+        return lib
+    lib = CDLL(path)
+    dp = POINTER(c_double)
+    lib.pestpp_gp_create.argtypes = (dp, c_int, c_int, dp, c_int, c_double, c_double, c_int,
+                                     POINTER(c_void_p))
+    lib.pestpp_gp_create.restype = c_int
+    lib.pestpp_gp_destroy.argtypes = (c_void_p,)
+    lib.pestpp_gp_destroy.restype = c_int
+    lib.pestpp_gp_get_info.argtypes = (c_void_p, POINTER(c_int), POINTER(c_int), POINTER(c_int),
+                                       dp, dp, dp)
+    lib.pestpp_gp_get_info.restype = c_int
+    lib.pestpp_gp_predict.argtypes = (c_void_p, dp, c_int, c_int, dp, dp, dp, dp)
+    lib.pestpp_gp_predict.restype = c_int
+    lib.pestpp_gp_get_last_error.argtypes = (c_void_p, c_char_p, c_int, POINTER(c_int))
+    lib.pestpp_gp_get_last_error.restype = c_int
+    lib.pestpp_gp_local_predict.argtypes = (dp, c_int, c_int, dp, dp, c_int, c_int, c_int,
+                                            c_char_p, c_int, c_double, c_double, c_int,
+                                            dp, dp, dp, dp)
+    lib.pestpp_gp_local_predict.restype = c_int
+    lib.pestpp_last_global_error.argtypes = ()
+    lib.pestpp_last_global_error.restype = c_char_p
+    _GP_LIBS[path] = lib
+    return lib
+
+
+def _gp_kernel(kernel) -> int:
+    if isinstance(kernel, str):
+        key = kernel.lower()
+        if key not in GP_KERNEL:
+            raise ValueError("unknown GP kernel '{0}'; expected one of {1}".format(
+                kernel, sorted(GP_KERNEL)))
+        return GP_KERNEL[key]
+    if int(kernel) not in _GP_KERNEL_NAME:
+        raise ValueError("unknown GP kernel {0}; expected 0-3 or a kernel name".format(kernel))
+    return int(kernel)
+
+
+def _gp_hyper(value) -> float:
+    """laGPy spells "estimate this" as None; the C ABI spells it as <= 0."""
+    return 0.0 if value is None else float(value)
+
+
+def _gp_matrix(values, what: str, ncol: int | None = None) -> np.ndarray:
+    arr = np.asarray(values, dtype=np.float64)
+    if arr.ndim == 1:
+        # a single point, or a single-dimension design - decided by the width we expect
+        arr = arr.reshape(1, -1) if (ncol is not None and arr.size == ncol) else arr.reshape(-1, 1)
+    if arr.ndim != 2:
+        raise ValueError("{0} must be 2-D (points x dimensions), got shape {1}".format(
+            what, arr.shape))
+    return np.asfortranarray(arr)
+
+
+def _gp_vector(values, what: str) -> np.ndarray:
+    arr = np.ascontiguousarray(np.asarray(values, dtype=np.float64).ravel())
+    if arr.size == 0:
+        raise ValueError("{0} is empty".format(what))
+    return arr
+
+
+def _dptr(arr):
+    return None if arr is None else arr.ctypes.data_as(POINTER(c_double))
+
+
+def _gp_outputs(nref: int, m: int, gradients: bool):
+    mean = np.empty(nref)
+    s2 = np.empty(nref)
+    dmean = np.empty((nref, m), order="F") if gradients else None
+    ds2 = np.empty((nref, m), order="F") if gradients else None
+    return mean, s2, dmean, ds2
+
+
+def _gp_result(mean, s2, dmean, ds2, df: int) -> dict:
+    # laGPy's predict_lite() keys, so result["mean"] / result["s2"] carry straight over
+    out = {"mean": mean, "s2": s2, "df": df}
+    if dmean is not None:
+        out["dmean"] = np.ascontiguousarray(dmean)
+        out["ds2"] = np.ascontiguousarray(ds2)
+    return out
+
+
+def _destroy_gp(lib, handle) -> None:
+    """Hand one GP back to the library. Module level so a finalizer can hold it; never raises."""
+    try:
+        if handle:
+            lib.pestpp_gp_destroy(handle)
+    except Exception:
+        pass
+
+
+class GaussianProcess:
+    """A full GP fitted in the library - the C ABI's counterpart of laGPy's buildGP().
+
+    Fit once, predict many times, all in-process::
+
+        gp = GaussianProcess(X, Z, kernel="matern32")      # laGPy: gpr.buildGP(X, Z, ...)
+        pred = gp.predict(Xref)                            # laGPy: gp.predict_lite(Xref)
+        pred["mean"], pred["s2"]
+
+    Shapes - n training points, m input dimensions:
+
+        X      (n, m)   training inputs, one row per point, one column per variable.
+                        A 1-D array is read as n points in ONE dimension.
+        Z      (n,)     training outputs, one per row of X. Flattened, so (n, 1) or a
+                        pandas Series also works.
+
+    X and Z are copied, so they can be changed or freed afterwards.
+
+    ``d`` and ``g`` follow laGPy: None estimates the hyper-parameter by maximum likelihood, a
+    number holds it fixed. The defaults (d=None, g=1e-4) are laGPy's. ``kernel`` is one of
+    "squared_exponential", "exponential", "matern32", "matern52" (or 0-3).
+    """
+
+    def __init__(self, X, Z, kernel="squared_exponential", d=None, g=1.0e-4, verb: int = 0,
+                 lib_path: str | None = None):
+        self.lib = _gp_lib(lib_path)
+        Xa = _gp_matrix(X, "X")
+        Za = _gp_vector(Z, "Z")
+        n, m = Xa.shape
+        if Za.size != n:
+            raise ValueError("X has {0} points but Z has {1} values".format(n, Za.size))
+        self.handle = c_void_p()
+        status = self.lib.pestpp_gp_create(
+            _dptr(Xa), c_int(n), c_int(m), _dptr(Za), c_int(_gp_kernel(kernel)),
+            c_double(_gp_hyper(d)), c_double(_gp_hyper(g)), c_int(verb), byref(self.handle))
+        if status > PESTPP_OK:
+            raise PestppError("pestpp_gp_create: {0} (status {1})".format(
+                self.lib.pestpp_last_global_error().decode(errors="replace") or "unknown error",
+                status))
+        # same reasoning as PestppLib: a finalizer, not __del__, holding the handle rather than self
+        self._finalizer = weakref.finalize(self, _destroy_gp, self.lib, self.handle)
+        self._info = self._get_info()
+
+    def _check(self, status: int, what: str) -> None:
+        if status <= PESTPP_OK:
+            return
+        needed = c_int()
+        msg = ""
+        if self.lib.pestpp_gp_get_last_error(self.handle, None, 0, byref(needed)) == PESTPP_OK \
+                and needed.value > 1:
+            buf = create_string_buffer(needed.value)
+            if self.lib.pestpp_gp_get_last_error(
+                    self.handle, buf, c_int(needed.value), byref(needed)) == PESTPP_OK:
+                msg = buf.value.decode(errors="replace")
+        raise PestppError("{0}: {1} (status {2})".format(what, msg or "unknown error", status))
+
+    def _get_info(self) -> dict:
+        n, m, k = c_int(), c_int(), c_int()
+        d, g, phi = c_double(), c_double(), c_double()
+        self._check(self.lib.pestpp_gp_get_info(
+            self.handle, byref(n), byref(m), byref(k), byref(d), byref(g), byref(phi)),
+            "pestpp_gp_get_info")
+        return {"n": n.value, "m": m.value, "kernel": _GP_KERNEL_NAME[k.value],
+                "d": d.value, "g": g.value, "phi": phi.value}
+
+    @property
+    def n(self) -> int:
+        """number of training points"""
+        return self._info["n"]
+
+    @property
+    def m(self) -> int:
+        """number of input dimensions"""
+        return self._info["m"]
+
+    @property
+    def kernel(self) -> str:
+        return self._info["kernel"]
+
+    @property
+    def d(self) -> float:
+        """the lengthscale used - the MLE result if it was estimated"""
+        return self._info["d"]
+
+    @property
+    def g(self) -> float:
+        """the nugget used - the MLE result if it was estimated"""
+        return self._info["g"]
+
+    @property
+    def phi(self) -> float:
+        return self._info["phi"]
+
+    def predict(self, Xref, gradients: bool = False) -> dict:
+        """Predictive mean and variance at the rows of Xref - laGPy's predict_lite().
+
+        Shapes - nref prediction points, m = the fitted dimension (self.m):
+
+            Xref     (nref, m)  one row per point. A single point may also be given
+                                as a 1-D (m,) array.
+            mean     (nref,)    always 1-D, even for one point: use mean[0] or .item()
+            s2       (nref,)    predictive variance
+            dmean    (nref, m)  with gradients=True: d(mean)/d(x_j) per point
+            ds2      (nref, m)  with gradients=True: d(s2)/d(x_j) per point
+            df       int        degrees of freedom, n (as in laGPy)
+
+        A point read from a one-value-per-line file comes in as (m, 1): transpose it to
+        (1, m) first. A batch passed transposed, as (m, nref), is refused unless
+        nref == m, in which case it is silently misread.
+        """
+        Xr = _gp_matrix(Xref, "Xref", ncol=self.m)
+        nref, m = Xr.shape
+        mean, s2, dmean, ds2 = _gp_outputs(nref, m, gradients)
+        self._check(self.lib.pestpp_gp_predict(
+            self.handle, _dptr(Xr), c_int(nref), c_int(m), _dptr(mean), _dptr(s2),
+            _dptr(dmean), _dptr(ds2)), "pestpp_gp_predict")
+        return _gp_result(mean, s2, dmean, ds2, self.n)
+
+    def destroy(self) -> None:
+        """Free the model now rather than at garbage collection. Safe to call twice."""
+        self._finalizer()
+
+    def __enter__(self):
+        return self
+
+    def __exit__(self, *exc):
+        self.destroy()
+
+    def __repr__(self):
+        i = self._info
+        return "GaussianProcess(n={0}, m={1}, kernel={2!r}, d={3:.6g}, g={4:.6g})".format(
+            i["n"], i["m"], i["kernel"], i["d"], i["g"])
+
+
+def gp_local_predict(X, Z, Xref, start: int = 6, end: int = 50, method: str = "alc",
+                     kernel="squared_exponential", d=None, g=1.0e-4, num_threads: int = 1,
+                     gradients: bool = False, lib_path: str | None = None) -> dict:
+    """Local approximate GP at the rows of Xref - the C ABI's counterpart of laGPy's laGP().
+
+    Each prediction point gets its own sub-design, grown from its `start` nearest neighbours
+    to `end` points by `method` ("alc" or "nn"), so this scales to training sets too large for
+    GaussianProcess. Stateless: nothing is kept between calls.
+
+    Shapes - n training points, m dimensions, nref prediction points:
+
+        X      (n, m)      training inputs
+        Z      (n,)        training outputs
+        Xref   (nref, m)   ALL prediction points in one call, unlike laGPy's laGP(), which
+                           takes one point per call. A single point may be (m,).
+
+    Returns the same dict as GaussianProcess.predict(), with df = end (capped at n).
+    """
+    lib = _gp_lib(lib_path)
+    Xa = _gp_matrix(X, "X")
+    Za = _gp_vector(Z, "Z")
+    n, m = Xa.shape
+    if Za.size != n:
+        raise ValueError("X has {0} points but Z has {1} values".format(n, Za.size))
+    Xr = _gp_matrix(Xref, "Xref", ncol=m)
+    if Xr.shape[1] != m:
+        raise ValueError("Xref has {0} dimensions but X has {1}".format(Xr.shape[1], m))
+    nref = Xr.shape[0]
+    # a local design cannot be bigger than the training set, which laGPy also quietly allows for
+    end = min(end, n)
+    start = min(start, end)
+    mean, s2, dmean, ds2 = _gp_outputs(nref, m, gradients)
+    status = lib.pestpp_gp_local_predict(
+        _dptr(Xa), c_int(n), c_int(m), _dptr(Za), _dptr(Xr), c_int(nref), c_int(start),
+        c_int(end), method.encode(), c_int(_gp_kernel(kernel)), c_double(_gp_hyper(d)),
+        c_double(_gp_hyper(g)), c_int(num_threads), _dptr(mean), _dptr(s2), _dptr(dmean),
+        _dptr(ds2))
+    if status > PESTPP_OK:
+        raise PestppError("pestpp_gp_local_predict: {0} (status {1})".format(
+            lib.pestpp_last_global_error().decode(errors="replace") or "unknown error", status))
+    return _gp_result(mean, s2, dmean, ds2, end)
+
+
 if __name__ == "__main__":
     # `python pestpp_lib.py` prints the environment block. easiest way to answer "which library
     # were you running", which is the first question on every bug report.
