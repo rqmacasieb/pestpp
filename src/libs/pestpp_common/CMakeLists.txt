@@ -10,6 +10,7 @@ add_library(pestpp_com
   EnsembleSmoother.cpp
   FileManager.cpp
   GLM.cpp
+  GPR.cpp
   Jacobian_1to1.cpp
   Jacobian.cpp
   linear_analysis.cpp
@@ -20,6 +21,7 @@ add_library(pestpp_com
   OutputFileWriter.cpp
   ParamTransformSeq.cpp
   PerformanceLog.cpp
+  PLS.cpp
   Pest.cpp
   pest_data_structs.cpp
   pest_options_registry.cpp
