@@ -758,15 +758,21 @@ pair<vector<string>, vector<string>> ParetoObjectives::get_nsga2_pareto_dominanc
 			crowd_ordered_front = front.second;
 			crowd_map[front.second[0]] = -999.0;
 			fitness_map[front.second[0]] = -999;
-			if (sort_ppd)
+			//prob_pareto, not sort_ppd: write_pareto_summary() reports the _SYN sd whenever
+			//prob_pareto is set, and multi-member fronts get it from get_mopso_fitness() on the
+			//same condition. initialize_finish() sorts with sort_ppd=false, so a single-member
+			//front there was left without it (map::at in write_pareto_summary())
+			if (prob_pareto)
 			{
 				for (auto& obj_name : *obs_obj_names_ptr)
 				{
-					if (member_struct[front.second[0]].at(ppd_obj_to_sd_ptr->at(obj_name)) < min_sd.at(obj_name) - FLOAT_EPSILON)
-						member_struct[front.second[0]][ppd_obj_to_sd_ptr->at(obj_name) + "_SYN"] = min_sd.at(obj_name);
-					else
-						member_struct[front.second[0]][ppd_obj_to_sd_ptr->at(obj_name) + "_SYN"] = member_struct[front.second[0]].at(ppd_obj_to_sd_ptr->at(obj_name));
-					//member_struct[front.second[0]][ppd_obj_to_sd_ptr->at(obj_name) + "_SYN"] = min_sd.at(obj_name);
+					const string& sd_name = ppd_obj_to_sd_ptr->at(obj_name);
+					double sd = member_struct[front.second[0]].at(sd_name);
+					//min_sd is only set once a multi-member front has been through
+					//get_cluster_crowding_fitness() - keep the member's own sd until then
+					if (auto min_it = min_sd.find(obj_name); (min_it != min_sd.end()) && (sd < min_it->second - FLOAT_EPSILON))
+						sd = min_it->second;
+					member_struct[front.second[0]][sd_name + "_SYN"] = sd;
 				}
 			}
 		}
