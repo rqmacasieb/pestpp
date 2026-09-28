@@ -1679,12 +1679,11 @@ double ParetoObjectives::dominance_prob_adhoc(map<string, double>& first, map<st
  */
 bool ParetoObjectives::first_equals_second(const map<string, double>& first, const map<string, double>& second)
 {
-	for (const auto& f : first)
+	// objectives only, as in first_dominates_second() - members with the same objectives but
+	// different sd are duplicates
+	for (const auto& obj_name : *obj_names_ptr)
 	{
-		// see first_dominates_second - find, not [], so a missing objective cant insert
-		auto it = second.find(f.first);
-		double sval = (it == second.end()) ? 0.0 : it->second;
-		if (abs(f.second - sval) >= FLOAT_EPSILON)
+		if (abs(first.at(obj_name) - second.at(obj_name)) >= FLOAT_EPSILON)
 			return false;
 	}
 	return true;
@@ -1713,13 +1712,9 @@ bool ParetoObjectives::first_dominates_second(const map<string, double>& first, 
 	}
 	else
 	{
-		for (const auto& f : first)
+		for (const auto& obj_name : *obj_names_ptr)
 		{
-			// find instead of [] - the maps are const now, and a missing objective used to
-			// insert a zero into the caller's copy. same answer, no insert
-			auto it = second.find(f.first);
-			double sval = (it == second.end()) ? 0.0 : it->second;
-			if (f.second > sval + FLOAT_EPSILON)
+			if (first.at(obj_name) > second.at(obj_name) + FLOAT_EPSILON)
 				return false;
 		}
 		return true;
