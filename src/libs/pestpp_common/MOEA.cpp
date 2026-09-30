@@ -758,10 +758,7 @@ pair<vector<string>, vector<string>> ParetoObjectives::get_nsga2_pareto_dominanc
 			crowd_ordered_front = front.second;
 			crowd_map[front.second[0]] = -999.0;
 			fitness_map[front.second[0]] = -999;
-			//prob_pareto, not sort_ppd: write_pareto_summary() reports the _SYN sd whenever
-			//prob_pareto is set, and multi-member fronts get it from get_mopso_fitness() on the
-			//same condition. initialize_finish() sorts with sort_ppd=false, so a single-member
-			//front there was left without it (map::at in write_pareto_summary())
+			
 			if (prob_pareto)
 			{
 				for (auto& obj_name : *obs_obj_names_ptr)
@@ -4036,7 +4033,7 @@ void MOEA::initialize_finish()
 	if (get_envtype() == MouEnvType::NSGA)
 	{
 
-		DomPair dompair = objectives.get_nsga2_pareto_dominance(iter, op, dp, &constraints, false, true, POP_SUM_TAG);
+		DomPair dompair = objectives.get_nsga2_pareto_dominance(iter, op, dp, &constraints, prob_pareto, true, POP_SUM_TAG);
 
 		//drop any duplicates
 		keep.clear();
@@ -4071,8 +4068,8 @@ void MOEA::initialize_finish()
 
 
 		//this causes the initial archive pareto summary file to be written
-		objectives.get_nsga2_pareto_dominance(iter, op_archive, dp_archive, &constraints, false, true, ARC_SUM_TAG);
-		objectives.get_nsga2_pareto_dominance(iter, op_archive, dp_archive, &constraints, false, true, ARC_TRIM_SUM_TAG);
+		objectives.get_nsga2_pareto_dominance(iter, op_archive, dp_archive, &constraints, prob_pareto, true, ARC_SUM_TAG);
+		objectives.get_nsga2_pareto_dominance(iter, op_archive, dp_archive, &constraints, prob_pareto, true, ARC_TRIM_SUM_TAG);
 
 		//set hypervolume partitions of nondom solutions from previous outer iteration
 		if (prob_pareto)
