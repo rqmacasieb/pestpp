@@ -1810,6 +1810,11 @@ bool PestppOptions::assign_value_by_key_sqp(const string& key, const string& val
 		convert_ip(value, sqp_num_reals);
 		return true;
 	}
+	else if (key == "SQP_SURROGATE_ASSIST")
+	{
+		sqp_surrogate_assist = pest_utils::parse_string_arg_to_bool(value);
+		return true;
+	}
 	else if (key == "SQP_NUM_REFINED_SEARCH_PTS")
 	{
 		convert_ip(value, sqp_num_refined_search_pts);
@@ -2130,6 +2135,7 @@ os << endl << "...pestpp-swp options:" << endl;
 	os << "sqp_cma_bound_handling: " << sqp_cma_bound_handling << endl;
 	os << "sqp_num_reals: " << sqp_num_reals << endl;
 	os << "sqp_num_refined_search_pts: " << sqp_num_refined_search_pts << endl;
+	os << "sqp_surrogate_assist: " << sqp_surrogate_assist << endl;
 	os << "sqp_subset_size: " << sqp_subset_size << endl;
 	os << "sqp_update_hessian: " << sqp_update_hessian << endl;
 	os << "sqp_hessian_update_method: " << sqp_hessian_update_method << endl;
@@ -2390,6 +2396,7 @@ void PestppOptions::set_defaults_legacy()
 	set_sqp_solve_method("NULL");
 	set_sqp_cma_bound_handling("reject");
 	set_sqp_num_reals(50);
+	set_sqp_surrogate_assist(false);
 	set_sqp_num_refined_search_pts(1.0);
 	set_sqp_subset_size(-10);
 	set_sqp_update_hessian(true);

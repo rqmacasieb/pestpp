@@ -408,6 +408,8 @@ public:
 	string get_sqp_cma_bound_handling()const { return sqp_cma_bound_handling; }
 	void set_sqp_search_method(string _how) { sqp_search_method = _how; }
 	int get_sqp_num_reals()const { return sqp_num_reals; }
+	bool get_sqp_surrogate_assist()const { return sqp_surrogate_assist; }
+	void set_sqp_surrogate_assist(bool _flag) { sqp_surrogate_assist = _flag; }
 	void set_sqp_num_refined_search_pts(int _num_pts) { sqp_num_refined_search_pts = _num_pts; }
 	int get_sqp_num_refined_search_pts()const { return sqp_num_refined_search_pts; }
 	void set_sqp_num_reals(int _num_reals) { sqp_num_reals = _num_reals; }
@@ -935,6 +937,7 @@ private:
 	string sqp_search_method;
 	string sqp_solve_method;
 	string sqp_cma_bound_handling;
+	bool sqp_surrogate_assist;
 	int sqp_num_reals;
 	int sqp_subset_size;
 	bool sqp_update_hessian;
