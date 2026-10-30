@@ -3453,6 +3453,12 @@ int MOEA::initialize_prepare()
 		pi_obj_names = keep_pi;
 		pi_obj_sd_names = keep_pi_sd;
 	}
+	
+	if (obj_names.size() == 0)
+	{
+		obj_names = obs_obj_names;
+		obj_names.insert(obj_names.end(), pi_obj_names.begin(), pi_obj_names.end());
+	}
 
 	ss.str("");
 	ss << "...using the following observations as objectives: " << endl;
@@ -3497,6 +3503,7 @@ int MOEA::initialize_prepare()
 			pi_ptr->AddRecord(pest_utils::upper_cp(ss.str()));
 			message(1, "added prior information objective for '" + RISK_NAME + "': ", ss.str());
 			pi_obj_names.push_back(RISK_NAME);
+			obj_names.push_back(RISK_NAME);
 			obj_dir_mult[RISK_NAME] = -1;
 		}
 		ss.str("");
