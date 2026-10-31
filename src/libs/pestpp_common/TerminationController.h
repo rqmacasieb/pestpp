@@ -28,7 +28,7 @@ class PhiComponets;
 
 class TerminationController
 {
-	friend RestartController;
+	friend class RestartController;
 public:
 	TerminationController(int _noptmax=0, double _phiredstp=0.0, int _nphistp=0,
 		int _nphinored=0, double _relparstp = 0.0, int _nrelpar = 0,
