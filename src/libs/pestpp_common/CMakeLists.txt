@@ -21,7 +21,6 @@ add_library(pestpp_com
   OutputFileWriter.cpp
   ParamTransformSeq.cpp
   PerformanceLog.cpp
-  PLS.cpp
   Pest.cpp
   pest_data_structs.cpp
   pest_options_registry.cpp
